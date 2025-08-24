@@ -1,0 +1,66 @@
+[project]
+name = "aduib_rpc"
+version = "0.1.0"
+description = "Aduib RPC - A Python library for Aduib AI RPC framework."
+readme = "README.md"
+requires-python = ">3.9,<=3.12"
+license = {text = "Apache-2.0"}
+authors = [{name = "chaorenex1", email = "24537608z@gmail.com"},]
+dependencies = [
+    "httpx>=0.28.1",
+    "httpx-sse>=0.4.0",
+    "pydantic>=2.11.7",
+    "protobuf>=4.24.3",
+]
+
+classifiers = [
+  "Intended Audience :: Developers",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "License :: OSI Approved :: Apache Software License",
+]
+
+[project.optional-dependencies]
+http-server = ["fastapi>=0.115.2", "sse-starlette", "starlette"]
+encryption = ["cryptography>=43.0.0"]
+grpc = ["grpcio>=1.66.1", "grpcio-tools>=1.66.1", "grpcio_reflection>=1.66.1"]
+telemetry = ["opentelemetry-api>=1.33.0", "opentelemetry-sdk>=1.33.0"]
+nacos = ["nacos-sdk-python==2.0.1"]
+
+[project.urls]
+homepage = "https://a2a-protocol.org/"
+repository = "https://github.com/chaorenex1/aduib_rpc"
+changelog = "https://github.com/chaorenex1/aduib_rpc/blob/main/CHANGELOG.md"
+documentation = "https://github.com/chaorenex1/aduib_rpc"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aduib_rpc"]
+
+[build-system]
+requires = ["hatchling","uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.sdist]
+exclude = ["tests/"]
+
+[tool.uv-dynamic-versioning]
+version_pattern = "^(\\d+\\.\\d+\\.\\d+.*)$"
+version_source = "tag"
+
+[tool.uv]
+[dependency-groups]
+dev= [
+    "alembic==1.16.4",
+    "pytest==8.4.1",
+]
+
+[[tool.uv.index]]
+url = "http://mirrors.aliyun.com/pypi/simple/"
+default = true
