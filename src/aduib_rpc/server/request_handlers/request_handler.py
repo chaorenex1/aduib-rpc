@@ -11,7 +11,7 @@ class RequestHandler(ABC):
 
     @staticmethod
     async def on_message(
-            message: CompletionRequest,
+            message: CompletionRequest | ChatCompletionRequest,
             context: ServerContext | None = None
     )-> ChatCompletionResponse:
         """Handles the 'message' method.
@@ -27,7 +27,7 @@ class RequestHandler(ABC):
 
     @staticmethod
     async def on_stream_message(
-            message: ChatCompletionRequest,
+            message: CompletionRequest | ChatCompletionRequest,
             context: ServerContext | None = None
     )-> AsyncGenerator[ChatCompletionResponseChunk]:
         """Handles the 'stream_message' method.

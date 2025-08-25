@@ -2,8 +2,6 @@ import contextlib
 from abc import ABC, abstractmethod
 
 import grpc
-from a2a import types
-from a2a.utils.errors import ServerError
 
 from aduib_rpc.grpc.chat_completion_pb2 import ChatCompletion
 from aduib_rpc.grpc.chat_completion_response_pb2 import ChatCompletionResponse
@@ -28,6 +26,7 @@ class DefaultServerContentBuilder(ServerContentBuilder):
         state={}
         with contextlib.suppress(Exception):
             state['grpc_context'] = context
+            state['headers'] = dict(context.invocation_metadata() or {})
         return ServerContext(state=state,metadata=
                                 dict(context.invocation_metadata() or {}))
 
@@ -63,8 +62,11 @@ class GrpcHandler(ChatCompletionServiceServicer):
                 chat_completion_request, server_context
             ):
                 yield proto_utils.ToProto.chat_completion_response(response)
-        except ServerError as e:
-            await self.abort_context(e, context)
+        except Exception as e:
+            await context.abort(
+                    grpc.StatusCode.INTERNAL,
+                    f'Internal server error: {e}',
+                )
         return
 
 
@@ -82,74 +84,9 @@ class GrpcHandler(ChatCompletionServiceServicer):
                 chat_completion_request, server_context
             )
             return proto_utils.ToProto.chat_completion_response(response)
-        except ServerError as e:
-            return await self.abort_context(e, context)
+        except Exception as e:
+            return  await context.abort(
+                    grpc.StatusCode.INTERNAL,
+                    f'Internal server error: {e}',
+                )
         return ChatCompletionResponse()
-
-
-    async def abort_context(
-            self, error: ServerError, context: grpc.aio.ServicerContext
-    ) -> None:
-        """Sets the grpc errors appropriately in the context."""
-        match error.error:
-            case types.JSONParseError():
-                await context.abort(
-                    grpc.StatusCode.INTERNAL,
-                    f'JSONParseError: {error.error.message}',
-                )
-            case types.InvalidRequestError():
-                await context.abort(
-                    grpc.StatusCode.INVALID_ARGUMENT,
-                    f'InvalidRequestError: {error.error.message}',
-                )
-            case types.MethodNotFoundError():
-                await context.abort(
-                    grpc.StatusCode.NOT_FOUND,
-                    f'MethodNotFoundError: {error.error.message}',
-                )
-            case types.InvalidParamsError():
-                await context.abort(
-                    grpc.StatusCode.INVALID_ARGUMENT,
-                    f'InvalidParamsError: {error.error.message}',
-                )
-            case types.InternalError():
-                await context.abort(
-                    grpc.StatusCode.INTERNAL,
-                    f'InternalError: {error.error.message}',
-                )
-            case types.TaskNotFoundError():
-                await context.abort(
-                    grpc.StatusCode.NOT_FOUND,
-                    f'TaskNotFoundError: {error.error.message}',
-                )
-            case types.TaskNotCancelableError():
-                await context.abort(
-                    grpc.StatusCode.UNIMPLEMENTED,
-                    f'TaskNotCancelableError: {error.error.message}',
-                )
-            case types.PushNotificationNotSupportedError():
-                await context.abort(
-                    grpc.StatusCode.UNIMPLEMENTED,
-                    f'PushNotificationNotSupportedError: {error.error.message}',
-                )
-            case types.UnsupportedOperationError():
-                await context.abort(
-                    grpc.StatusCode.UNIMPLEMENTED,
-                    f'UnsupportedOperationError: {error.error.message}',
-                )
-            case types.ContentTypeNotSupportedError():
-                await context.abort(
-                    grpc.StatusCode.UNIMPLEMENTED,
-                    f'ContentTypeNotSupportedError: {error.error.message}',
-                )
-            case types.InvalidAgentResponseError():
-                await context.abort(
-                    grpc.StatusCode.INTERNAL,
-                    f'InvalidAgentResponseError: {error.error.message}',
-                )
-            case _:
-                await context.abort(
-                    grpc.StatusCode.UNKNOWN,
-                    f'Unknown error type: {error.error}',
-                )
-

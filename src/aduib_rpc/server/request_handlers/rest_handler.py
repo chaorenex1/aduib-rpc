@@ -1,6 +1,6 @@
 from typing import AsyncGenerator
 
-from google.protobuf.json_format import MessageToDict, Parse
+from google.protobuf.json_format import Parse
 from starlette.requests import Request
 
 from aduib_rpc.grpc.chat_completion_pb2 import ChatCompletion

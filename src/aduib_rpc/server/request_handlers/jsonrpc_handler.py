@@ -1,17 +1,11 @@
 import logging
 from collections.abc import AsyncIterable
 
-from a2a.types import (
-    InternalError,
-    JSONRPCErrorResponse,
-)
-from a2a.utils.errors import ServerError
-
 from aduib_rpc.server.context import ServerContext
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
 from aduib_rpc.types import ChatCompletionResponseChunk, ChatCompletionResponse, JsonRpcMessageRequest, \
     JsonRpcMessageResponse, JsonRpcMessageSuccessResponse, JsonRpcStreamingMessageRequest, \
-    JsonRpcStreamingMessageSuccessResponse, JsonRpcStreamingMessageResponse
+    JsonRpcStreamingMessageSuccessResponse, JsonRpcStreamingMessageResponse, JSONRPCErrorResponse
 from aduib_rpc.utils.jsonrpc_helper import prepare_response_object
 
 logger = logging.getLogger(__name__)
@@ -59,10 +53,10 @@ class JSONRPCHandler:
                 JsonRpcMessageSuccessResponse,
                 JsonRpcMessageResponse,
             )
-        except ServerError as e:
+        except Exception as e:
             return JsonRpcMessageResponse(
                 root=JSONRPCErrorResponse(
-                    id=request.id, error=e.error if e.error else InternalError()
+                    id=request.id, error=str(e)
                 )
             )
 
@@ -97,9 +91,7 @@ class JSONRPCHandler:
                     JsonRpcStreamingMessageSuccessResponse,
                     JsonRpcStreamingMessageResponse,
                 )
-        except ServerError as e:
+        except Exception as e:
             yield JsonRpcStreamingMessageResponse(
-                root=JSONRPCErrorResponse(
-                    id=request.id, error=e.error if e.error else InternalError()
-                )
+                root=JSONRPCErrorResponse(id=request.id, error=str(e))
             )

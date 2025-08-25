@@ -1,7 +1,4 @@
-from typing import Any
-
 from google.protobuf.json_format import ParseDict, MessageToDict
-from google.protobuf.proto import parse
 from pydantic import BaseModel
 
 from aduib_rpc.grpc.chat_completion_pb2 import ChatCompletion

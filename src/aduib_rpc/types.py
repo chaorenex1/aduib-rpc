@@ -754,6 +754,49 @@ class ModelList(BaseModel):
 """
 jsonrpc types
 """
+
+class JSONRPCRequest(BaseModel):
+    """
+    Represents a JSON-RPC 2.0 Request object.
+    """
+
+    id: str | int | None = None
+    """
+    A unique identifier established by the client. It must be a String, a Number, or null.
+    The server must reply with the same value in the response. This property is omitted for notifications.
+    """
+    jsonrpc: Literal['2.0'] = '2.0'
+    """
+    The version of the JSON-RPC protocol. MUST be exactly "2.0".
+    """
+    method: str
+    """
+    A string containing the name of the method to be invoked.
+    """
+    params: dict[str, Any] | None = None
+    """
+    A structured value holding the parameter values to be used during the method invocation.
+    """
+
+
+class JSONRPCSuccessResponse(BaseModel):
+    """
+    Represents a successful JSON-RPC 2.0 Response object.
+    """
+
+    id: str | int | None = None
+    """
+    The identifier established by the client.
+    """
+    jsonrpc: Literal['2.0'] = '2.0'
+    """
+    The version of the JSON-RPC protocol. MUST be exactly "2.0".
+    """
+    result: Any
+    """
+    The value of this member is determined by the method invoked on the Server.
+    """
+
 class JsonRpcMessageRequest(BaseModel):
     """
     Represents a JSON-RPC request for the `message/send` method.
@@ -771,7 +814,7 @@ class JsonRpcMessageRequest(BaseModel):
     """
     The method name. Must be 'message/completion'.
     """
-    params: Union[ChatCompletionRequest, CompletionRequest, EmbeddingRequest]
+    params: Union[ChatCompletionRequest, CompletionRequest]
     """
     The parameters for sending a message.
     """
@@ -793,7 +836,7 @@ class JsonRpcStreamingMessageRequest(BaseModel):
     """
     The method name. Must be 'message/completion/stream'.
     """
-    params: Union[ChatCompletionRequest, CompletionRequest, EmbeddingRequest]
+    params: Union[ChatCompletionRequest, CompletionRequest]
     """
     The parameters for sending a message.
     """
@@ -835,6 +878,28 @@ class JsonRpcStreamingMessageSuccessResponse(BaseModel):
     """
     The result, which can be a Message, Task, or a streaming update event.
     """
+class JSONRPCResponse(
+    RootModel[
+        JSONRPCErrorResponse
+        | JsonRpcMessageSuccessResponse
+        | JsonRpcStreamingMessageSuccessResponse
+    ]):
+    root: (
+        JSONRPCErrorResponse
+        | JsonRpcMessageSuccessResponse
+        | JsonRpcStreamingMessageSuccessResponse
+    )
+    """
+    Represents a JSON-RPC response envelope.
+    """
+
+class AduibRpcRequest(RootModel[JsonRpcMessageRequest
+                                |JsonRpcStreamingMessageRequest
+                                ]):
+    root: JSONRPCRequest | JsonRpcStreamingMessageRequest
+    """
+    Represents a JSON-RPC request envelope.
+    """
 
 
 class JsonRpcMessageResponse(
@@ -852,4 +917,44 @@ class JsonRpcStreamingMessageResponse(
     root: JSONRPCErrorResponse | JsonRpcStreamingMessageSuccessResponse
     """
     Represents a JSON-RPC response for the `message/stream` method.
+    """
+
+
+class JSONRPCError(BaseModel):
+    """
+    Represents a JSON-RPC 2.0 Error object, included in an error response.
+    """
+
+    code: int
+    """
+    A number that indicates the error type that occurred.
+    """
+    data: Any | None = None
+    """
+    A primitive or structured value containing additional information about the error.
+    This may be omitted.
+    """
+    message: str
+    """
+    A string providing a short description of the error.
+    """
+
+class JSONRPCErrorResponse(BaseModel):
+    """
+    Represents a JSON-RPC 2.0 Error Response object.
+    """
+
+    error: (
+        JSONRPCError
+    )
+    """
+    An object describing the error that occurred.
+    """
+    id: str | int | None = None
+    """
+    The identifier established by the client.
+    """
+    jsonrpc: Literal['2.0'] = '2.0'
+    """
+    The version of the JSON-RPC protocol. MUST be exactly "2.0".
     """
