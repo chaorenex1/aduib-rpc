@@ -39,12 +39,23 @@ class ChatCompletionServiceStub(object):
                 request_serializer=completion__rpc__pb2.StreamMessage.SerializeToString,
                 response_deserializer=completion__rpc__pb2.StreamMessage.FromString,
                 _registered_method=True)
+        self.completion = channel.unary_unary(
+                '/src.aduib_rpc.protos.ChatCompletionService/completion',
+                request_serializer=completion__rpc__pb2.CompletionTask.SerializeToString,
+                response_deserializer=completion__rpc__pb2.CompletionTaskResult.FromString,
+                _registered_method=True)
 
 
 class ChatCompletionServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def chatCompletion(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def completion(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -57,6 +68,11 @@ def add_ChatCompletionServiceServicer_to_server(servicer, server):
                     servicer.chatCompletion,
                     request_deserializer=completion__rpc__pb2.StreamMessage.FromString,
                     response_serializer=completion__rpc__pb2.StreamMessage.SerializeToString,
+            ),
+            'completion': grpc.unary_unary_rpc_method_handler(
+                    servicer.completion,
+                    request_deserializer=completion__rpc__pb2.CompletionTask.FromString,
+                    response_serializer=completion__rpc__pb2.CompletionTaskResult.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -96,51 +112,6 @@ class ChatCompletionService(object):
             metadata,
             _registered_method=True)
 
-
-class CompletionServiceStub(object):
-    """Missing associated documentation comment in .proto file."""
-
-    def __init__(self, channel):
-        """Constructor.
-
-        Args:
-            channel: A grpc.Channel.
-        """
-        self.completion = channel.unary_unary(
-                '/src.aduib_rpc.protos.CompletionService/completion',
-                request_serializer=completion__rpc__pb2.CompletionTask.SerializeToString,
-                response_deserializer=completion__rpc__pb2.CompletionTaskResult.FromString,
-                _registered_method=True)
-
-
-class CompletionServiceServicer(object):
-    """Missing associated documentation comment in .proto file."""
-
-    def completion(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-
-def add_CompletionServiceServicer_to_server(servicer, server):
-    rpc_method_handlers = {
-            'completion': grpc.unary_unary_rpc_method_handler(
-                    servicer.completion,
-                    request_deserializer=completion__rpc__pb2.CompletionTask.FromString,
-                    response_serializer=completion__rpc__pb2.CompletionTaskResult.SerializeToString,
-            ),
-    }
-    generic_handler = grpc.method_handlers_generic_handler(
-            'src.aduib_rpc.protos.CompletionService', rpc_method_handlers)
-    server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('src.aduib_rpc.protos.CompletionService', rpc_method_handlers)
-
-
- # This class is part of an EXPERIMENTAL API.
-class CompletionService(object):
-    """Missing associated documentation comment in .proto file."""
-
     @staticmethod
     def completion(request,
             target,
@@ -155,7 +126,7 @@ class CompletionService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/src.aduib_rpc.protos.CompletionService/completion',
+            '/src.aduib_rpc.protos.ChatCompletionService/completion',
             completion__rpc__pb2.CompletionTask.SerializeToString,
             completion__rpc__pb2.CompletionTaskResult.FromString,
             options,

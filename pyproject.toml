@@ -3,7 +3,7 @@ name = "aduib_rpc"
 version = "0.1.0"
 description = "Aduib RPC - A Python library for Aduib AI RPC framework."
 readme = "README.md"
-requires-python = ">3.9,<=3.12"
+requires-python = ">=3.10,<=3.12"
 license = {text = "Apache-2.0"}
 authors = [{name = "chaorenex1", email = "24537608z@gmail.com"},]
 dependencies = [
@@ -11,6 +11,7 @@ dependencies = [
     "httpx-sse>=0.4.0",
     "pydantic>=2.11.7",
     "protobuf>=4.24.3",
+    "a2a-sdk>=0.2.4",
 ]
 
 classifiers = [
@@ -18,7 +19,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
   "Operating System :: OS Independent",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "License :: OSI Approved :: Apache Software License",

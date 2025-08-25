@@ -35,12 +35,12 @@ def check_version():
 
     if grpc_version and tools_version:
         if grpc_version != tools_version:
-            print(f"⚠️  Version mismatch: grpcio={grpc_version}, grpcio-tools={tools_version}")
+            print(f"Version mismatch: grpcio={grpc_version}, grpcio-tools={tools_version}")
             # 默认以 grpcio 版本为基准
-            print(f"🔄 Syncing grpcio-tools to {grpc_version} ...")
+            print(f"Syncing grpcio-tools to {grpc_version} ...")
             pip_install("grpcio-tools", grpc_version)
         else:
-            print("✅ grpcio and grpcio-tools versions are already in sync.")
+            print("grpcio and grpcio-tools versions are already in sync.")
     elif grpc_version and not tools_version:
         print(f"grpcio={grpc_version} is installed, grpcio-tools not found. Installing matching version...")
         pip_install("grpcio-tools", grpc_version)

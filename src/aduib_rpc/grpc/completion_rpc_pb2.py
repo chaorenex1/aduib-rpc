@@ -26,7 +26,7 @@ import chat_completion_pb2 as chat__completion__pb2
 import chat_completion_response_pb2 as chat__completion__response__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14\x63ompletion_rpc.proto\x12\x14src.aduib_rpc.protos\x1a\x15\x63hat_completion.proto\x1a\x1e\x63hat_completion_response.proto\"\"\n\x04Meta\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"\xa7\x01\n\x0e\x43ompletionTask\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12(\n\x04meta\x18\x03 \x03(\x0b\x32\x1a.src.aduib_rpc.protos.Meta\x12\x35\n\x07payload\x18\x04 \x01(\x0b\x32$.src.aduib_rpc.protos.ChatCompletion\x12\x12\n\ncreated_at\x18\x05 \x01(\x03\"\xad\x01\n\x14\x43ompletionTaskResult\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\n\n\x02ok\x18\x02 \x01(\x08\x12\x13\n\x0bstatus_code\x18\x03 \x01(\x05\x12<\n\x06result\x18\x04 \x01(\x0b\x32,.src.aduib_rpc.protos.ChatCompletionResponse\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x13\n\x0b\x66inished_at\x18\x06 \x01(\x03\"\x8b\x01\n\rStreamMessage\x12\x34\n\x04task\x18\x01 \x01(\x0b\x32$.src.aduib_rpc.protos.CompletionTaskH\x00\x12<\n\x06result\x18\x02 \x01(\x0b\x32*.src.aduib_rpc.protos.CompletionTaskResultH\x00\x42\x06\n\x04\x62ody2w\n\x15\x43hatCompletionService\x12^\n\x0e\x63hatCompletion\x12#.src.aduib_rpc.protos.StreamMessage\x1a#.src.aduib_rpc.protos.StreamMessage(\x01\x30\x01\x32s\n\x11\x43ompletionService\x12^\n\ncompletion\x12$.src.aduib_rpc.protos.CompletionTask\x1a*.src.aduib_rpc.protos.CompletionTaskResultb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14\x63ompletion_rpc.proto\x12\x14src.aduib_rpc.protos\x1a\x15\x63hat_completion.proto\x1a\x1e\x63hat_completion_response.proto\"\"\n\x04Meta\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"\xa7\x01\n\x0e\x43ompletionTask\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12(\n\x04meta\x18\x03 \x03(\x0b\x32\x1a.src.aduib_rpc.protos.Meta\x12\x35\n\x07payload\x18\x04 \x01(\x0b\x32$.src.aduib_rpc.protos.ChatCompletion\x12\x12\n\ncreated_at\x18\x05 \x01(\x03\"\xad\x01\n\x14\x43ompletionTaskResult\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\n\n\x02ok\x18\x02 \x01(\x08\x12\x13\n\x0bstatus_code\x18\x03 \x01(\x05\x12<\n\x06result\x18\x04 \x01(\x0b\x32,.src.aduib_rpc.protos.ChatCompletionResponse\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x13\n\x0b\x66inished_at\x18\x06 \x01(\x03\"\x8b\x01\n\rStreamMessage\x12\x34\n\x04task\x18\x01 \x01(\x0b\x32$.src.aduib_rpc.protos.CompletionTaskH\x00\x12<\n\x06result\x18\x02 \x01(\x0b\x32*.src.aduib_rpc.protos.CompletionTaskResultH\x00\x42\x06\n\x04\x62ody2\xd7\x01\n\x15\x43hatCompletionService\x12^\n\x0e\x63hatCompletion\x12#.src.aduib_rpc.protos.StreamMessage\x1a#.src.aduib_rpc.protos.StreamMessage(\x01\x30\x01\x12^\n\ncompletion\x12$.src.aduib_rpc.protos.CompletionTask\x1a*.src.aduib_rpc.protos.CompletionTaskResultb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,8 +41,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_COMPLETIONTASKRESULT']._serialized_end=481
   _globals['_STREAMMESSAGE']._serialized_start=484
   _globals['_STREAMMESSAGE']._serialized_end=623
-  _globals['_CHATCOMPLETIONSERVICE']._serialized_start=625
-  _globals['_CHATCOMPLETIONSERVICE']._serialized_end=744
-  _globals['_COMPLETIONSERVICE']._serialized_start=746
-  _globals['_COMPLETIONSERVICE']._serialized_end=861
+  _globals['_CHATCOMPLETIONSERVICE']._serialized_start=626
+  _globals['_CHATCOMPLETIONSERVICE']._serialized_end=841
 # @@protoc_insertion_point(module_scope)
