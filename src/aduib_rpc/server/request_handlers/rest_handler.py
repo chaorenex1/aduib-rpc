@@ -1,12 +1,12 @@
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Any
 
-from google.protobuf.json_format import Parse
+from google.protobuf.json_format import Parse, MessageToDict, MessageToJson
 from starlette.requests import Request
 
+from aduib_rpc.grpc import aduib_rpc_pb2
 from aduib_rpc.grpc.chat_completion_pb2 import ChatCompletion
 from aduib_rpc.server.context import ServerContext
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
-from aduib_rpc.types import ChatCompletionResponseChunk, ChatCompletionResponse
 from aduib_rpc.utils import proto_utils
 
 
@@ -23,7 +23,7 @@ class RESTHandler:
             self,
             request: Request,
             context: ServerContext | None = None
-    ) -> ChatCompletionResponse:
+    ) -> dict[str, Any]:
         """Handles the 'message' method.
 
         Args:
@@ -33,23 +33,23 @@ class RESTHandler:
             The `ChatCompletionResponse` object containing the response.
         """
         body = await request.body()
-        params = ChatCompletion()
+        params =aduib_rpc_pb2.RpcTask()
         Parse(body, params)
         # Transform the proto object to the python internal objects
-        completion_request = proto_utils.FromProto.completion_request(
+        request = proto_utils.FromProto.rpc_request(
             params,
         )
         message = await self.request_handler.on_message(
-            completion_request, context
+            request, context
         )
-        return message
+        return MessageToDict(proto_utils.ToProto.rpc_response(message))
 
     @staticmethod
     async def on_stream_message(
             self,
             request: Request,
             context: ServerContext | None = None
-    ) -> AsyncGenerator[ChatCompletionResponseChunk]:
+    ) -> AsyncGenerator[str]:
         """Handles the 'stream_message' method.
 
         Args:
@@ -60,13 +60,13 @@ class RESTHandler:
             The `ChatCompletionResponse` object containing the response.
         """
         body = await request.body()
-        params = ChatCompletion()
+        params = aduib_rpc_pb2.RpcTask()
         Parse(body, params)
         # Transform the proto object to the python internal objects
-        completion_request = proto_utils.FromProto.chat_completion_request(
+        request = proto_utils.FromProto.rpc_request(
             params,
         )
         async for chunk in self.request_handler.on_stream_message(
-                completion_request, context
+                request, context
         ):
-            yield chunk
+            yield MessageToJson(proto_utils.ToProto.rpc_response(chunk))

@@ -1,19 +1,19 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import AsyncGenerator
 
 from aduib_rpc.server.context import ServerContext
-from aduib_rpc.types import CompletionRequest, ChatCompletionResponse, ChatCompletionResponseChunk, \
-    ChatCompletionRequest
+from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse
 
 
 class RequestHandler(ABC):
     """ request handler base class """
 
-    @staticmethod
+    @abstractmethod
     async def on_message(
-            message: CompletionRequest | ChatCompletionRequest,
+            self,
+            message: AduibRpcRequest,
             context: ServerContext | None = None
-    )-> ChatCompletionResponse:
+    )-> AduibRpcResponse:
         """Handles the 'message' method.
 
         Args:
@@ -21,15 +21,16 @@ class RequestHandler(ABC):
             context: Context provided by the server.
 
         Returns:
-            The `ChatCompletionResponse` object containing the response.
+            The `AduibRpcResponse` object containing the response.
         """
         raise NotImplementedError("Method not implemented.")
 
-    @staticmethod
+    @abstractmethod
     async def on_stream_message(
-            message: CompletionRequest | ChatCompletionRequest,
+            self,
+            message: AduibRpcRequest,
             context: ServerContext | None = None
-    )-> AsyncGenerator[ChatCompletionResponseChunk]:
+    )-> AsyncGenerator[AduibRpcResponse]:
         """Handles the 'stream_message' method.
 
         Args:
@@ -37,7 +38,7 @@ class RequestHandler(ABC):
             context: Context provided by the server.
 
         Yields:
-            The `ChatCompletionResponse` object containing the response.
+            The `AduibRpcResponse` objects containing the streaming responses.
         """
         raise NotImplementedError("Method not implemented.")
         yield

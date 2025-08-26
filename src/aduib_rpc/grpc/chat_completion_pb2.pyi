@@ -1,4 +1,5 @@
 import json_schema_pb2 as _json_schema_pb2
+from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -23,12 +24,12 @@ class PromptMessages(_message.Message):
     __slots__ = ("content", "role")
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
-    content: str
+    content: _struct_pb2.Struct
     role: str
-    def __init__(self, content: _Optional[str] = ..., role: _Optional[str] = ...) -> None: ...
+    def __init__(self, content: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., role: _Optional[str] = ...) -> None: ...
 
 class ChatCompletion(_message.Message):
-    __slots__ = ("enable_thinking", "frequency_penalty", "include_reasoning", "max_completion_tokens", "max_tokens", "messages", "model", "n", "presence_penalty", "prompt", "reasoning_effort", "response_format", "stop", "stream", "stream_options", "temperature", "tool_choice", "tools", "top_k", "top_p", "user")
+    __slots__ = ("enable_thinking", "frequency_penalty", "include_reasoning", "max_completion_tokens", "max_tokens", "messages", "model", "n", "presence_penalty", "prompt", "reasoning_effort", "response_format", "stop", "stream", "stream_options", "temperature", "tool_choice", "tools", "top_k", "top_p", "user", "audio", "modalities", "prompt_embeds")
     class Response_format(_message.Message):
         __slots__ = ("json_schema", "type", "properties")
         class Json_schema(_message.Message):
@@ -116,6 +117,9 @@ class ChatCompletion(_message.Message):
     TOP_K_FIELD_NUMBER: _ClassVar[int]
     TOP_P_FIELD_NUMBER: _ClassVar[int]
     USER_FIELD_NUMBER: _ClassVar[int]
+    AUDIO_FIELD_NUMBER: _ClassVar[int]
+    MODALITIES_FIELD_NUMBER: _ClassVar[int]
+    PROMPT_EMBEDS_FIELD_NUMBER: _ClassVar[int]
     enable_thinking: str
     frequency_penalty: int
     include_reasoning: str
@@ -137,4 +141,7 @@ class ChatCompletion(_message.Message):
     top_k: int
     top_p: int
     user: str
-    def __init__(self, enable_thinking: _Optional[str] = ..., frequency_penalty: _Optional[int] = ..., include_reasoning: _Optional[str] = ..., max_completion_tokens: _Optional[int] = ..., max_tokens: _Optional[int] = ..., messages: _Optional[_Iterable[_Union[PromptMessages, _Mapping]]] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., presence_penalty: _Optional[int] = ..., prompt: _Optional[str] = ..., reasoning_effort: _Optional[str] = ..., response_format: _Optional[_Union[ChatCompletion.Response_format, _Mapping]] = ..., stop: _Optional[str] = ..., stream: _Optional[str] = ..., stream_options: _Optional[_Mapping[str, str]] = ..., temperature: _Optional[float] = ..., tool_choice: _Optional[str] = ..., tools: _Optional[_Iterable[_Union[ChatCompletion.Tools, _Mapping]]] = ..., top_k: _Optional[int] = ..., top_p: _Optional[int] = ..., user: _Optional[str] = ...) -> None: ...
+    audio: _struct_pb2.Struct
+    modalities: _struct_pb2.Struct
+    prompt_embeds: _struct_pb2.Struct
+    def __init__(self, enable_thinking: _Optional[str] = ..., frequency_penalty: _Optional[int] = ..., include_reasoning: _Optional[str] = ..., max_completion_tokens: _Optional[int] = ..., max_tokens: _Optional[int] = ..., messages: _Optional[_Iterable[_Union[PromptMessages, _Mapping]]] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., presence_penalty: _Optional[int] = ..., prompt: _Optional[str] = ..., reasoning_effort: _Optional[str] = ..., response_format: _Optional[_Union[ChatCompletion.Response_format, _Mapping]] = ..., stop: _Optional[str] = ..., stream: _Optional[str] = ..., stream_options: _Optional[_Mapping[str, str]] = ..., temperature: _Optional[float] = ..., tool_choice: _Optional[str] = ..., tools: _Optional[_Iterable[_Union[ChatCompletion.Tools, _Mapping]]] = ..., top_k: _Optional[int] = ..., top_p: _Optional[int] = ..., user: _Optional[str] = ..., audio: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., modalities: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., prompt_embeds: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...

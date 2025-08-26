@@ -11,8 +11,9 @@ from aduib_rpc.server.context import ServerContext
 from aduib_rpc.server.request_handlers.jsonrpc_handler import JSONRPCHandler
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
 from aduib_rpc.types import JsonRpcMessageRequest, JsonRpcStreamingMessageRequest, JSONRPCError, JSONRPCErrorResponse, \
-    JSONRPCRequest, AduibRpcRequest, JSONRPCResponse, \
+    JSONRPCRequest, AduibJSONRpcRequest, AduibJSONRPCResponse, \
     JsonRpcStreamingMessageResponse
+from aduib_rpc.utils.constant import DEFAULT_STREAM_HEADER
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +31,11 @@ class DefaultServerContentBuilder(ServerContentBuilder):
     def build_context(self, request:Request) -> ServerContext:
         """Builds and returns a default ServerContext."""
         state={}
+        metadata = {}
         with contextlib.suppress(Exception):
             state['headers'] = dict(request.headers)
-        return ServerContext(state=state,metadata={})
+            metadata[DEFAULT_STREAM_HEADER] = state['headers'].get(DEFAULT_STREAM_HEADER) or 'false'
+        return ServerContext(state=state,metadata=metadata)
 
 class JsonRpcApp(ABC):
 
@@ -99,7 +102,7 @@ class JsonRpcApp(ABC):
             status_code=200,
         )
 
-    async def _handle_request(
+    async def _handle_requests(
         self,
         request: Request,
     ) -> Response:
@@ -121,7 +124,7 @@ class JsonRpcApp(ABC):
             logger.debug("Request ID=%s, Body=%s", request_id, body)
         except Exception as e:
             return self._generate_error_response(
-                request_id=None,
+                request_id=request_id,
                 error=JSONRPCError(
                     code=-32603,
                     message="Parse error",
@@ -147,7 +150,7 @@ class JsonRpcApp(ABC):
 
         context = self.context_builder.build_context(request)
         request_id = rpc_request.id
-        aduib_request=AduibRpcRequest(root=rpc_request)
+        aduib_request=AduibJSONRpcRequest(root=rpc_request)
         request_object = aduib_request.root
 
         try:
@@ -172,14 +175,14 @@ class JsonRpcApp(ABC):
             )
 
     async def _process_streaming_request(self,
-                                             request_id: str,
-                                             request: AduibRpcRequest,
-                                             context: ServerContext,
-                                             ) -> Response:
+                                         request_id: str,
+                                         request: AduibJSONRpcRequest,
+                                         context: ServerContext,
+                                         ) -> Response:
         """Processes a streaming JSON-RPC request.
         Args:
             request_id: The ID of the request.
-            request: The `AduibRpcRequest` object containing the request details.
+            request: The `AduibJSONRpcRequest` object containing the request details.
             context: Context provided by the server.
         Returns:
             A `Response` object containing the JSON-RPC response.
@@ -187,7 +190,7 @@ class JsonRpcApp(ABC):
         request_obj = request.root
         response_obj: Any = None
         if isinstance(request_obj, JsonRpcStreamingMessageRequest):
-            response_obj = self.handler.chatCompletion(
+            response_obj = self.handler.on_stream_message(
                 request=request_obj,
                 context=context,
             )
@@ -209,13 +212,13 @@ class JsonRpcApp(ABC):
 
     async def _process_non_streaming_request(self,
                                              request_id: str,
-                                             request: AduibRpcRequest,
+                                             request: AduibJSONRpcRequest,
                                              context: ServerContext,
                                              ) -> Response:
         """Processes a non-streaming JSON-RPC request.
         Args:
             request_id: The ID of the request.
-            request: The `AduibRpcRequest` object containing the request details.
+            request: The `AduibJSONRpcRequest` object containing the request details.
             context: Context provided by the server.
         Returns:
             A `Response` object containing the JSON-RPC response.
@@ -223,7 +226,7 @@ class JsonRpcApp(ABC):
         request_obj=request.root
         response_obj:Any=None
         if isinstance(request_obj, JsonRpcMessageRequest):
-            response_obj = await self.handler.completion(
+            response_obj = await self.handler.on_message(
                     request=request_obj,
                     context=context,
                 )
@@ -248,8 +251,8 @@ class JsonRpcApp(ABC):
         request_id: str,
         response: (
                 JSONRPCErrorResponse
-            | JSONRPCResponse
-            | AsyncGenerator[JsonRpcStreamingMessageResponse]
+                | AduibJSONRPCResponse
+                | AsyncGenerator[JsonRpcStreamingMessageResponse]
         ),
         context: ServerContext) -> Response:
         """Creates a JSON-RPC response.

@@ -5,7 +5,6 @@ from enum import StrEnum, Enum
 from typing import List
 from typing import Optional, Sequence, Annotated, Union, Literal, Any
 
-from a2a.types import JSONRPCErrorResponse
 from pydantic import BaseModel, Field, field_validator, RootModel
 from pydantic import model_validator
 
@@ -273,6 +272,15 @@ class VideoPromptMessageContent(MultiModalPromptMessageContent):
 class AudioPromptMessageContent(MultiModalPromptMessageContent):
     type: PromptMessageContentType = PromptMessageContentType.AUDIO
 
+    @property
+    def input_audio(self):
+        return {
+            "format": self.format,
+            "data": self.data,
+            "url": self.url,
+            "mime_type": self.mime_type
+        }
+
 
 class ImagePromptMessageContent(MultiModalPromptMessageContent):
     """
@@ -285,6 +293,17 @@ class ImagePromptMessageContent(MultiModalPromptMessageContent):
 
     type: PromptMessageContentType = PromptMessageContentType.IMAGE
     detail: DETAIL = DETAIL.LOW
+
+    @property
+    def image_url(self):
+        return {
+            "format": self.format,
+            "data": self.data,
+            "url": self.data,
+            "mime_type": self.mime_type,
+            "detail": self.detail
+        }
+
 
 
 class DocumentPromptMessageContent(MultiModalPromptMessageContent):
@@ -361,6 +380,7 @@ class AssistantPromptMessage(PromptMessage):
 
     role: PromptMessageRole = PromptMessageRole.ASSISTANT
     tool_calls: list[ToolCall] = []
+    audio: Optional[dict[str, Any]] = None
 
     def is_empty(self) -> bool:
         """
@@ -437,6 +457,8 @@ class ChatCompletionRequest(BaseModel):
     user: Optional[str] = None
     reasoning_effort: Optional[Literal["low", "medium", "high"]] = None
     include_reasoning: bool = None
+    audio: Optional[dict[str,Any]]= None
+    modalities: Optional[list[str]]= None
 
 
     @field_validator("messages", mode="before")
@@ -652,10 +674,12 @@ class CompletionRequest(BaseModel):
 class EmbeddingRequest(BaseModel):
     prompt: str
     model: str
+    encoding_format: Optional[str] = "float"
 
 class EmbeddingsResponse(BaseModel):
     embedding: Optional[List[float]] = None
-
+    object: Optional[str] = None
+    index: Optional[int] = None
 
 
 class CreateModelRequest(BaseModel):
@@ -749,11 +773,82 @@ class ModelList(BaseModel):
     object: str = "list"
     data: list[ModelCard] = Field(default_factory=list)
 
+class AduibRPCError(BaseModel):
+    """
+    Represents a JSON-RPC 2.0 Error object, included in an error response.
+    """
 
+    code: int
+    """
+    A number that indicates the error type that occurred.
+    """
+    data: Any | None = None
+    """
+    A primitive or structured value containing additional information about the error.
+    This may be omitted.
+    """
+    message: str
+    """
+    A string providing a short description of the error.
+    """
+
+class AduibRpcRequest(BaseModel):
+    aduib_rpc: Literal['1.0'] = '1.0'
+    method: str
+    data: Union[ChatCompletionRequest, CompletionRequest, EmbeddingRequest, dict[str, Any],Any, None] = None
+    id: Union[str, int, None] = None
+    meta: Optional[dict[str, Any]] = None
+
+
+class AduibRpcResponse(BaseModel):
+    aduib_rpc: Literal['1.0'] = '1.0'
+    result: Union[ChatCompletionResponse, ChatCompletionResponseChunk, EmbeddingsResponse, dict[str, Any],Any, None] = None
+    error: Optional[AduibRPCError] = None
+    id: Union[str, int, None] = None
+    status: Literal['success', 'error'] = 'success'
 
 """
 jsonrpc types
 """
+
+class JSONRPCError(BaseModel):
+    """
+    Represents a JSON-RPC 2.0 Error object, included in an error response.
+    """
+
+    code: int
+    """
+    A number that indicates the error type that occurred.
+    """
+    data: Any | None = None
+    """
+    A primitive or structured value containing additional information about the error.
+    This may be omitted.
+    """
+    message: str
+    """
+    A string providing a short description of the error.
+    """
+
+class JSONRPCErrorResponse(BaseModel):
+    """
+    Represents a JSON-RPC 2.0 Error Response object.
+    """
+
+    error: (
+        JSONRPCError
+    )
+    """
+    An object describing the error that occurred.
+    """
+    id: str | int | None = None
+    """
+    The identifier established by the client.
+    """
+    jsonrpc: Literal['2.0'] = '2.0'
+    """
+    The version of the JSON-RPC protocol. MUST be exactly "2.0".
+    """
 
 class JSONRPCRequest(BaseModel):
     """
@@ -814,7 +909,7 @@ class JsonRpcMessageRequest(BaseModel):
     """
     The method name. Must be 'message/completion'.
     """
-    params: Union[ChatCompletionRequest, CompletionRequest]
+    params: AduibRpcRequest
     """
     The parameters for sending a message.
     """
@@ -836,7 +931,7 @@ class JsonRpcStreamingMessageRequest(BaseModel):
     """
     The method name. Must be 'message/completion/stream'.
     """
-    params: Union[ChatCompletionRequest, CompletionRequest]
+    params: AduibRpcRequest
     """
     The parameters for sending a message.
     """
@@ -854,7 +949,7 @@ class JsonRpcMessageSuccessResponse(BaseModel):
     """
     The version of the JSON-RPC protocol. MUST be exactly "2.0".
     """
-    result: Union[ChatCompletionResponse,ChatCompletionResponseChunk]
+    result: AduibRpcResponse
     """
     The result, which can be a direct reply Message or the initial Task object.
     """
@@ -874,11 +969,11 @@ class JsonRpcStreamingMessageSuccessResponse(BaseModel):
     """
     The version of the JSON-RPC protocol. MUST be exactly "2.0".
     """
-    result: Union[ChatCompletionResponse,ChatCompletionResponseChunk]
+    result: AduibRpcResponse
     """
     The result, which can be a Message, Task, or a streaming update event.
     """
-class JSONRPCResponse(
+class AduibJSONRPCResponse(
     RootModel[
         JSONRPCErrorResponse
         | JsonRpcMessageSuccessResponse
@@ -893,10 +988,12 @@ class JSONRPCResponse(
     Represents a JSON-RPC response envelope.
     """
 
-class AduibRpcRequest(RootModel[JsonRpcMessageRequest
-                                |JsonRpcStreamingMessageRequest
-                                ]):
-    root: JSONRPCRequest | JsonRpcStreamingMessageRequest
+class AduibJSONRpcRequest(
+    RootModel[JsonRpcMessageRequest
+              |JsonRpcStreamingMessageRequest
+              ]):
+    root: (JSONRPCRequest
+           | JsonRpcStreamingMessageRequest)
     """
     Represents a JSON-RPC request envelope.
     """
@@ -917,44 +1014,4 @@ class JsonRpcStreamingMessageResponse(
     root: JSONRPCErrorResponse | JsonRpcStreamingMessageSuccessResponse
     """
     Represents a JSON-RPC response for the `message/stream` method.
-    """
-
-
-class JSONRPCError(BaseModel):
-    """
-    Represents a JSON-RPC 2.0 Error object, included in an error response.
-    """
-
-    code: int
-    """
-    A number that indicates the error type that occurred.
-    """
-    data: Any | None = None
-    """
-    A primitive or structured value containing additional information about the error.
-    This may be omitted.
-    """
-    message: str
-    """
-    A string providing a short description of the error.
-    """
-
-class JSONRPCErrorResponse(BaseModel):
-    """
-    Represents a JSON-RPC 2.0 Error Response object.
-    """
-
-    error: (
-        JSONRPCError
-    )
-    """
-    An object describing the error that occurred.
-    """
-    id: str | int | None = None
-    """
-    The identifier established by the client.
-    """
-    jsonrpc: Literal['2.0'] = '2.0'
-    """
-    The version of the JSON-RPC protocol. MUST be exactly "2.0".
     """

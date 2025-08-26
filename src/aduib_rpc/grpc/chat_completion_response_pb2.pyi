@@ -1,3 +1,4 @@
+from google.protobuf import struct_pb2 as _struct_pb2
 import chat_completion_pb2 as _chat_completion_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -38,16 +39,20 @@ class ToolCall(_message.Message):
     def __init__(self, id: _Optional[str] = ..., type: _Optional[str] = ..., function: _Optional[_Union[ToolCall.FunctionCall, _Mapping]] = ...) -> None: ...
 
 class MessageContent(_message.Message):
-    __slots__ = ("content", "role", "name", "tool_calls")
+    __slots__ = ("content", "role", "name", "tool_calls", "audio", "annotations")
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
+    AUDIO_FIELD_NUMBER: _ClassVar[int]
+    ANNOTATIONS_FIELD_NUMBER: _ClassVar[int]
     content: str
     role: str
     name: str
     tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
-    def __init__(self, content: _Optional[str] = ..., role: _Optional[str] = ..., name: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ...) -> None: ...
+    audio: _struct_pb2.Struct
+    annotations: _struct_pb2.Struct
+    def __init__(self, content: _Optional[str] = ..., role: _Optional[str] = ..., name: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., audio: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., annotations: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
 
 class MessageContentChunk(_message.Message):
     __slots__ = ("index", "message", "text", "usage", "finish_reason", "delta")

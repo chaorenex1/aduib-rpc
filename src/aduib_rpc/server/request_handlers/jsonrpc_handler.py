@@ -27,7 +27,7 @@ class JSONRPCHandler:
         """
         self.request_handler = request_handler
 
-    async def completion(
+    async def on_message(
         self,
         request: JsonRpcMessageRequest,
         context: ServerContext | None = None,
@@ -60,7 +60,7 @@ class JSONRPCHandler:
                 )
             )
 
-    async def chatCompletion(
+    async def on_stream_message(
         self,
         request: JsonRpcStreamingMessageRequest,
         context: ServerContext | None = None,

@@ -22,26 +22,27 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 import chat_completion_pb2 as chat__completion__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1e\x63hat_completion_response.proto\x12\x14src.aduib_rpc.protos\x1a\x15\x63hat_completion.proto\"r\n\x05Usage\x12\x15\n\rprompt_tokens\x18\x01 \x01(\x03\x12\x19\n\x11\x63ompletion_tokens\x18\x02 \x01(\x03\x12\x14\n\x0ctotal_tokens\x18\x03 \x01(\x03\x12\x10\n\x08\x63urrency\x18\x04 \x01(\t\x12\x0f\n\x07latency\x18\x05 \x01(\x01\"\x94\x01\n\x08ToolCall\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12=\n\x08\x66unction\x18\x03 \x01(\x0b\x32+.src.aduib_rpc.protos.ToolCall.FunctionCall\x1a/\n\x0c\x46unctionCall\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\targuments\x18\x02 \x01(\t\"q\n\x0eMessageContent\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\t\x12\x0c\n\x04role\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x32\n\ntool_calls\x18\x04 \x03(\x0b\x32\x1e.src.aduib_rpc.protos.ToolCall\"\xe1\x01\n\x13MessageContentChunk\x12\r\n\x05index\x18\x01 \x01(\x03\x12\x35\n\x07message\x18\x02 \x01(\x0b\x32$.src.aduib_rpc.protos.MessageContent\x12\x0c\n\x04text\x18\x03 \x01(\t\x12*\n\x05usage\x18\x04 \x01(\x0b\x32\x1b.src.aduib_rpc.protos.Usage\x12\x15\n\rfinish_reason\x18\x05 \x01(\t\x12\x33\n\x05\x64\x65lta\x18\x06 \x01(\x0b\x32$.src.aduib_rpc.protos.MessageContent\"\xdc\x02\n\x16\x43hatCompletionResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06object\x18\x02 \x01(\t\x12\x0f\n\x07\x63reated\x18\x03 \x01(\x03\x12\r\n\x05model\x18\x04 \x01(\t\x12:\n\x07\x63hoices\x18\x05 \x03(\x0b\x32).src.aduib_rpc.protos.MessageContentChunk\x12*\n\x05usage\x18\x06 \x01(\x0b\x32\x1b.src.aduib_rpc.protos.Usage\x12\x0c\n\x04\x64one\x18\x07 \x01(\x08\x12\x1a\n\x12system_fingerprint\x18\x08 \x01(\t\x12=\n\x0fprompt_messages\x18\t \x01(\x0b\x32$.src.aduib_rpc.protos.ChatCompletion\x12\x35\n\x07message\x18\n \x01(\x0b\x32$.src.aduib_rpc.protos.MessageContentb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1e\x63hat_completion_response.proto\x12\x14src.aduib_rpc.protos\x1a\x1cgoogle/protobuf/struct.proto\x1a\x15\x63hat_completion.proto\"r\n\x05Usage\x12\x15\n\rprompt_tokens\x18\x01 \x01(\x03\x12\x19\n\x11\x63ompletion_tokens\x18\x02 \x01(\x03\x12\x14\n\x0ctotal_tokens\x18\x03 \x01(\x03\x12\x10\n\x08\x63urrency\x18\x04 \x01(\t\x12\x0f\n\x07latency\x18\x05 \x01(\x01\"\x94\x01\n\x08ToolCall\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12=\n\x08\x66unction\x18\x03 \x01(\x0b\x32+.src.aduib_rpc.protos.ToolCall.FunctionCall\x1a/\n\x0c\x46unctionCall\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\targuments\x18\x02 \x01(\t\"\xc7\x01\n\x0eMessageContent\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\t\x12\x0c\n\x04role\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x32\n\ntool_calls\x18\x04 \x03(\x0b\x32\x1e.src.aduib_rpc.protos.ToolCall\x12&\n\x05\x61udio\x18\x05 \x01(\x0b\x32\x17.google.protobuf.Struct\x12,\n\x0b\x61nnotations\x18\x06 \x01(\x0b\x32\x17.google.protobuf.Struct\"\xe1\x01\n\x13MessageContentChunk\x12\r\n\x05index\x18\x01 \x01(\x03\x12\x35\n\x07message\x18\x02 \x01(\x0b\x32$.src.aduib_rpc.protos.MessageContent\x12\x0c\n\x04text\x18\x03 \x01(\t\x12*\n\x05usage\x18\x04 \x01(\x0b\x32\x1b.src.aduib_rpc.protos.Usage\x12\x15\n\rfinish_reason\x18\x05 \x01(\t\x12\x33\n\x05\x64\x65lta\x18\x06 \x01(\x0b\x32$.src.aduib_rpc.protos.MessageContent\"\xdc\x02\n\x16\x43hatCompletionResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06object\x18\x02 \x01(\t\x12\x0f\n\x07\x63reated\x18\x03 \x01(\x03\x12\r\n\x05model\x18\x04 \x01(\t\x12:\n\x07\x63hoices\x18\x05 \x03(\x0b\x32).src.aduib_rpc.protos.MessageContentChunk\x12*\n\x05usage\x18\x06 \x01(\x0b\x32\x1b.src.aduib_rpc.protos.Usage\x12\x0c\n\x04\x64one\x18\x07 \x01(\x08\x12\x1a\n\x12system_fingerprint\x18\x08 \x01(\t\x12=\n\x0fprompt_messages\x18\t \x01(\x0b\x32$.src.aduib_rpc.protos.ChatCompletion\x12\x35\n\x07message\x18\n \x01(\x0b\x32$.src.aduib_rpc.protos.MessageContentb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'chat_completion_response_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_USAGE']._serialized_start=79
-  _globals['_USAGE']._serialized_end=193
-  _globals['_TOOLCALL']._serialized_start=196
-  _globals['_TOOLCALL']._serialized_end=344
-  _globals['_TOOLCALL_FUNCTIONCALL']._serialized_start=297
-  _globals['_TOOLCALL_FUNCTIONCALL']._serialized_end=344
-  _globals['_MESSAGECONTENT']._serialized_start=346
-  _globals['_MESSAGECONTENT']._serialized_end=459
-  _globals['_MESSAGECONTENTCHUNK']._serialized_start=462
-  _globals['_MESSAGECONTENTCHUNK']._serialized_end=687
-  _globals['_CHATCOMPLETIONRESPONSE']._serialized_start=690
-  _globals['_CHATCOMPLETIONRESPONSE']._serialized_end=1038
+  _globals['_USAGE']._serialized_start=109
+  _globals['_USAGE']._serialized_end=223
+  _globals['_TOOLCALL']._serialized_start=226
+  _globals['_TOOLCALL']._serialized_end=374
+  _globals['_TOOLCALL_FUNCTIONCALL']._serialized_start=327
+  _globals['_TOOLCALL_FUNCTIONCALL']._serialized_end=374
+  _globals['_MESSAGECONTENT']._serialized_start=377
+  _globals['_MESSAGECONTENT']._serialized_end=576
+  _globals['_MESSAGECONTENTCHUNK']._serialized_start=579
+  _globals['_MESSAGECONTENTCHUNK']._serialized_end=804
+  _globals['_CHATCOMPLETIONRESPONSE']._serialized_start=807
+  _globals['_CHATCOMPLETIONRESPONSE']._serialized_end=1155
 # @@protoc_insertion_point(module_scope)

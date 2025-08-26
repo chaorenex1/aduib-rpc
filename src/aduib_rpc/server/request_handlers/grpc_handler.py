@@ -1,11 +1,12 @@
 import contextlib
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 
 import grpc
 
-from aduib_rpc.grpc.chat_completion_pb2 import ChatCompletion
+from aduib_rpc.grpc import aduib_rpc_pb2
+from aduib_rpc.grpc.aduib_rpc_pb2_grpc import AduibRpcServiceServicer
 from aduib_rpc.grpc.chat_completion_response_pb2 import ChatCompletionResponse
-from aduib_rpc.grpc.completion_rpc_pb2_grpc import ChatCompletionServiceServicer
 from aduib_rpc.server.context import ServerContext
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
 from aduib_rpc.utils import proto_utils
@@ -30,7 +31,7 @@ class DefaultServerContentBuilder(ServerContentBuilder):
         return ServerContext(state=state,metadata=
                                 dict(context.invocation_metadata() or {}))
 
-class GrpcHandler(ChatCompletionServiceServicer):
+class GrpcHandler(AduibRpcServiceServicer):
     """Maps incoming gRPC requests to the appropriate request handler method and formats responses."""
 
     def __init__(
@@ -47,8 +48,8 @@ class GrpcHandler(ChatCompletionServiceServicer):
         self.context_builder = context_builder or DefaultServerContentBuilder()
         self.request_handler = request_handler
 
-    async def chatCompletion(self, request:ChatCompletion,
-                             context:grpc.aio.ServicerContext):
+    async def stream_completion(self, request:aduib_rpc_pb2.RpcTask,
+                             context:grpc.aio.ServicerContext)->AsyncIterator[aduib_rpc_pb2.RpcTaskResponse]:
         """Handles the 'chatCompletion' gRPC method.
 
         Args:
@@ -57,11 +58,11 @@ class GrpcHandler(ChatCompletionServiceServicer):
         """
         try:
             server_context = self.context_builder.build_context(context)
-            chat_completion_request=proto_utils.FromProto.chat_completion_request(request)
+            chat_completion_request=proto_utils.FromProto.rpc_request(request)
             async for response in self.request_handler.on_stream_message(
                 chat_completion_request, server_context
             ):
-                yield proto_utils.ToProto.chat_completion_response(response)
+                yield proto_utils.ToProto.rpc_response(response)
         except Exception as e:
             await context.abort(
                     grpc.StatusCode.INTERNAL,
@@ -70,7 +71,8 @@ class GrpcHandler(ChatCompletionServiceServicer):
         return
 
 
-    async def completion(self, request, context):
+    async def completion(self, request:aduib_rpc_pb2.RpcTask,
+                             context:grpc.aio.ServicerContext)->aduib_rpc_pb2.RpcTaskResponse:
         """Handles the 'completion' gRPC method.
 
         Args:
@@ -79,14 +81,14 @@ class GrpcHandler(ChatCompletionServiceServicer):
         """
         try:
             server_context = self.context_builder.build_context(context)
-            chat_completion_request=proto_utils.FromProto.completion_request(request)
+            chat_completion_request=proto_utils.FromProto.rpc_request(request)
             response = await self.request_handler.on_message(
                 chat_completion_request, server_context
             )
-            return proto_utils.ToProto.chat_completion_response(response)
+            return proto_utils.ToProto.rpc_response(response)
         except Exception as e:
-            return  await context.abort(
+            await context.abort(
                     grpc.StatusCode.INTERNAL,
                     f'Internal server error: {e}',
                 )
-        return ChatCompletionResponse()
+        return aduib_rpc_pb2.RpcTaskResponse()
