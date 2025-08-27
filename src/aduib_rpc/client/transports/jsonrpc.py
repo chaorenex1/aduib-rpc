@@ -72,6 +72,8 @@ class JsonRpcTransport(ClientTransport):
         response = JsonRpcMessageResponse.model_validate(response_data)
         if isinstance(response.root, JSONRPCErrorResponse):
             raise ClientJSONRPCError(response.root)
+        if not response.root.result.is_success():
+            raise ClientHTTPError(status_code=response.root.result.error.code, message=response.root.result.error.message)
         return response.root.result
 
     async def completion_stream(self, request: AduibRpcRequest, *, context: ClientContext) -> AsyncGenerator[
@@ -103,6 +105,8 @@ class JsonRpcTransport(ClientTransport):
                     )
                     if isinstance(response.root, JSONRPCErrorResponse):
                         raise ClientJSONRPCError(response.root)
+                    if not response.root.result.is_success():
+                        raise ClientHTTPError(status_code=response.root.result.error.code, message=response.root.result.error.message)
                     yield response.root.result
             except SSEError as e:
                 raise ClientHTTPError(

@@ -5,7 +5,7 @@ from typing import Any, Tuple
 
 from pydantic import BaseModel, ConfigDict
 
-from aduib_rpc.types import AduibRpcRequest
+from aduib_rpc.types import AduibRpcRequest, AduibRPCError
 
 State=collections.abc.MutableMapping[str, Any]
 
@@ -27,7 +27,7 @@ class ServerInterceptor(ABC):
         self,
         request_body: AduibRpcRequest,
         context: ServerContext,
-    ) -> Tuple[bool, str]:
+    ) -> AduibRPCError | None:
         """Intercepts and potentially modifies the incoming request.
 
         Args:

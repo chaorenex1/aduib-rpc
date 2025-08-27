@@ -5,6 +5,7 @@ from grpc.aio import Channel
 
 from aduib_rpc.client import ClientContext, ClientRequestInterceptor
 from aduib_rpc.client.base_client import ClientConfig
+from aduib_rpc.client.errors import ClientHTTPError
 from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.grpc import aduib_rpc_pb2_grpc, aduib_rpc_pb2
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse
@@ -51,7 +52,10 @@ class GrpcTransport(ClientTransport):
             ),
             metadata=grpc_metadata
         )
-        return proto_utils.FromProto.rpc_response(response)
+        rpc_response = proto_utils.FromProto.rpc_response(response)
+        if not rpc_response.is_success():
+            raise ClientHTTPError(rpc_response.error.code, rpc_response.error.message)
+        return rpc_response
 
     async def completion_stream(self, request: AduibRpcRequest, *, context: ClientContext) -> AsyncGenerator[
         AduibRpcResponse]:
@@ -73,6 +77,9 @@ class GrpcTransport(ClientTransport):
                 response = await stream.read()
                 if response == grpc.aio.EOF:
                     break
-                yield proto_utils.FromProto.rpc_response(response)
+                rpc_response = proto_utils.FromProto.rpc_response(response)
+                if not rpc_response.is_success():
+                    raise ClientHTTPError(rpc_response.error.code, rpc_response.error.message)
+                yield rpc_response
             except Exception as e:
                 break

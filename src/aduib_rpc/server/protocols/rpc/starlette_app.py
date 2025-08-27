@@ -4,7 +4,7 @@ from typing import Any
 from starlette.applications import Starlette
 from starlette.routing import Route
 
-from aduib_rpc.server.protocols.rpc.jsonrpc_app import JsonRpcApp, ServerContentBuilder
+from aduib_rpc.server.protocols.rpc.jsonrpc_app import JsonRpcApp, ServerContextBuilder
 from aduib_rpc.server.request_handlers import RequestHandler
 from aduib_rpc.utils.constant import DEFAULT_RPC_PATH
 
@@ -21,7 +21,7 @@ class AduibRpcStarletteApp(JsonRpcApp):
     def __init__(  # noqa: PLR0913
         self,
             request_handler: RequestHandler,
-            context_builder: ServerContentBuilder | None = None,
+            context_builder: ServerContextBuilder | None = None,
     ):
         """Initializes the AduibRpcStarletteApp.
 

@@ -1,4 +1,4 @@
-from enum import StrEnum
+from enum import StrEnum, IntEnum
 
 DEFAULT_STREAM_HEADER="x-rpc-streaming"
 DEFAULT_STREAM_KEY="stream"
@@ -18,6 +18,12 @@ class TransportSchemes(StrEnum):
     HTTP
     WebSocket
     """
-    HTTP="HTTP"
-    GRPC="gRPC"
-    JSONRPC="JSON-RPC"
+    HTTP="http"
+    GRPC=""
+    JSONRPC="http"
+
+
+class AIProtocols(StrEnum):
+    """AI protocol specification for the OpenAPI specification"""
+    A2A="A2A"
+    AduibRpc="AduibRpc"

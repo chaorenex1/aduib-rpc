@@ -61,7 +61,10 @@ class RestTransport(ClientTransport):
         response_data = await self._send_post_request(method, data_, http_args)
         response = aduib_rpc_pb2.RpcTaskResponse()
         ParseDict(response_data, response)
-        return proto_utils.FromProto.rpc_response(response)
+        rpc_response = proto_utils.FromProto.rpc_response(response)
+        if not rpc_response.is_success():
+            raise ClientHTTPError(rpc_response.error.code, rpc_response.error.message)
+        return rpc_response
 
     async def completion_stream(self, request: AduibRpcRequest, *, context: ClientContext) -> AsyncGenerator[
         AduibRpcResponse]:
@@ -78,7 +81,10 @@ class RestTransport(ClientTransport):
                 async for sse in event_source.aiter_sse():
                     event = aduib_rpc_pb2.RpcTaskResponse()
                     Parse(sse.data, event)
-                    yield proto_utils.FromProto.rpc_response(event)
+                    response = proto_utils.FromProto.rpc_response(event)
+                    if not response.is_success():
+                        raise  ClientHTTPError( response.error.code, response.error.message)
+                    yield response
             except SSEError as e:
                 raise ClientHTTPError(
                     400, f'Invalid SSE response or protocol error: {e}'

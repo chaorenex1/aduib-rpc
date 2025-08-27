@@ -31,9 +31,6 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-http-server = ["fastapi>=0.115.2", "sse-starlette", "starlette"]
-encryption = ["cryptography>=43.0.0"]
-grpc = ["grpcio>=1.66.1", "grpcio-tools>=1.66.1", "grpcio_reflection>=1.66.1"]
 telemetry = ["opentelemetry-api>=1.33.0", "opentelemetry-sdk>=1.33.0"]
 nacos = ["nacos-sdk-python==2.0.1"]
 a2a = ["a2a-sdk>=0.2.4"]

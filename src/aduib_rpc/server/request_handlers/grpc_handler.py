@@ -19,7 +19,7 @@ class ServerContentBuilder(ABC):
         """Builds and returns server content based on the provided data."""
 
 class DefaultServerContentBuilder(ServerContentBuilder):
-    """Default implementation of ServerContentBuilder."""
+    """Default implementation of ServerContextBuilder."""
 
     def build_context(self, context: grpc.aio.ServicerContext) -> ServerContext:
         """Builds and returns a default ServerContext."""
@@ -41,7 +41,7 @@ class GrpcHandler(AduibRpcServiceServicer):
         """Initializes the GrpcHandler.
 
         Args:
-          context_builder: The ServerContentBuilder instance to build server context.
+          context_builder: The ServerContextBuilder instance to build server context.
           request_handler: The underlying `RequestHandler` instance to delegate requests to.
         """
         self.context_builder = context_builder or DefaultServerContentBuilder()

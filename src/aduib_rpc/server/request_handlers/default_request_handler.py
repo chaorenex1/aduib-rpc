@@ -7,7 +7,7 @@ from aduib_rpc.server.model_excution import get_model_executor
 from aduib_rpc.server.model_excution.context import RequestContext
 from aduib_rpc.server.model_excution.model_executor import ModelExecutor, MODEL_EXECUTIONS
 from aduib_rpc.server.request_handlers import RequestHandler
-from aduib_rpc.types import AduibRpcResponse, AduibRpcRequest
+from aduib_rpc.types import AduibRpcResponse, AduibRpcRequest, AduibRPCError
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +40,10 @@ class DefaultRequestHandler(RequestHandler):
             The `AduibRpcResponse` object containing the response.
         """
         try:
-            intercepted: bool = False
-            intercepted_message: str=""
+            intercepted: AduibRPCError= None
             if interceptors:
                 for interceptor in interceptors:
-                    intercepted,intercepted_message = await interceptor.intercept(message, context)
+                    intercepted = await interceptor.intercept(message, context)
                     if intercepted:
                         break
             if not intercepted:
@@ -54,7 +53,7 @@ class DefaultRequestHandler(RequestHandler):
                 return AduibRpcResponse(id=context.request_id, result=response)
             else:
                 return AduibRpcResponse(id=context.request_id, result=None, status='error',
-                                       error="Request was intercepted and not processed. "+intercepted_message)
+                                       error=intercepted)
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             raise
@@ -74,11 +73,10 @@ class DefaultRequestHandler(RequestHandler):
             The `AduibRpcResponse` objects containing the streaming responses.
         """
         try:
-            intercepted:bool=False
-            intercepted_message: str = ""
+            intercepted: AduibRPCError= None
             if interceptors:
                 for interceptor in interceptors:
-                    intercepted,intercepted_message = await interceptor.intercept(message, context)
+                    intercepted = await interceptor.intercept(message, context)
             if not intercepted:
                 context:RequestContext=self._setup_request_context(message,context)
                 self.model_executor=self._validate_model_executor(self.model_executor,context)
@@ -86,7 +84,7 @@ class DefaultRequestHandler(RequestHandler):
                     yield AduibRpcResponse(id=context.request_id, result=response)
             else:
                 yield AduibRpcResponse(id=context.request_id, result=None, status='error',
-                                       error="Request was intercepted and not processed."+intercepted_message)
+                                       error=intercepted)
         except Exception as e:
             logger.error(f"Error processing stream message: {e}")
             raise

@@ -21,15 +21,15 @@ from aduib_rpc.utils.constant import DEFAULT_STREAM_HEADER, DEFAULT_RPC_PATH
 logger = logging.getLogger(__name__)
 
 
-class ServerContentBuilder(ABC):
+class ServerContextBuilder(ABC):
     """Abstract base class for building server content."""
 
     @abstractmethod
     def build_context(self, request:Request) -> ServerContext:
         """Builds and returns server content based on the provided data."""
 
-class DefaultServerContentBuilder(ServerContentBuilder):
-    """Default implementation of ServerContentBuilder."""
+class DefaultServerContextBuilder(ServerContextBuilder):
+    """Default implementation of ServerContextBuilder."""
 
     def build_context(self, request:Request) -> ServerContext:
         """Builds and returns a default ServerContext."""
@@ -73,16 +73,16 @@ class JsonRpcApp(ABC):
 
     def __init__(
         self,
-        context_builder: ServerContentBuilder,
+        context_builder: ServerContextBuilder,
         request_handler: RequestHandler,
     ):
         """Initializes the JsonRpcApp.
 
         Args:
-          context_builder: The ServerContentBuilder instance to build server context.
+          context_builder: The ServerContextBuilder instance to build server context.
           request_handler: The underlying `RequestHandler` instance to delegate requests to.
         """
-        self.context_builder = context_builder or DefaultServerContentBuilder()
+        self.context_builder = context_builder or DefaultServerContextBuilder()
         self.request_handler = request_handler
         self.handler = JSONRPCHandler(
             request_handler=request_handler,

@@ -24,6 +24,16 @@ class TaskResponseData(_message.Message):
     embedding_response: _embedding_pb2.EmbeddingResponse
     def __init__(self, chat_completion_response: _Optional[_Union[_chat_completion_response_pb2.ChatCompletionResponse, _Mapping]] = ..., embedding_response: _Optional[_Union[_embedding_pb2.EmbeddingResponse, _Mapping]] = ...) -> None: ...
 
+class RpcError(_message.Message):
+    __slots__ = ("data", "message", "code")
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    data: _struct_pb2.Struct
+    message: str
+    code: str
+    def __init__(self, data: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., message: _Optional[str] = ..., code: _Optional[str] = ...) -> None: ...
+
 class RpcTask(_message.Message):
     __slots__ = ("id", "method", "meta", "data")
     ID_FIELD_NUMBER: _ClassVar[int]
@@ -45,8 +55,8 @@ class RpcTaskResponse(_message.Message):
     id: str
     status: str
     result: TaskResponseData
-    error: str
-    def __init__(self, id: _Optional[str] = ..., status: _Optional[str] = ..., result: _Optional[_Union[TaskResponseData, _Mapping]] = ..., error: _Optional[str] = ...) -> None: ...
+    error: RpcError
+    def __init__(self, id: _Optional[str] = ..., status: _Optional[str] = ..., result: _Optional[_Union[TaskResponseData, _Mapping]] = ..., error: _Optional[_Union[RpcError, _Mapping]] = ...) -> None: ...
 
 class RpcTaskStream(_message.Message):
     __slots__ = ("task", "task_response")

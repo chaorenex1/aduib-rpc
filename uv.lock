@@ -20,7 +20,7 @@ wheels = [
 
 [[package]]
 name = "aduib-rpc"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
@@ -40,19 +40,6 @@ dependencies = [
 a2a = [
     { name = "a2a-sdk" },
 ]
-encryption = [
-    { name = "cryptography" },
-]
-grpc = [
-    { name = "grpcio" },
-    { name = "grpcio-reflection" },
-    { name = "grpcio-tools" },
-]
-http-server = [
-    { name = "fastapi" },
-    { name = "sse-starlette" },
-    { name = "starlette" },
-]
 nacos = [
     { name = "nacos-sdk-python" },
 ]
@@ -71,15 +58,10 @@ dev = [
 requires-dist = [
     { name = "a2a-sdk", marker = "extra == 'a2a'", specifier = ">=0.2.4" },
     { name = "cryptography", specifier = ">=43.0.0" },
-    { name = "cryptography", marker = "extra == 'encryption'", specifier = ">=43.0.0" },
     { name = "fastapi", specifier = ">=0.115.2" },
-    { name = "fastapi", marker = "extra == 'http-server'", specifier = ">=0.115.2" },
     { name = "grpcio", specifier = ">=1.66.1" },
-    { name = "grpcio", marker = "extra == 'grpc'", specifier = ">=1.66.1" },
     { name = "grpcio-reflection", specifier = ">=1.66.1" },
-    { name = "grpcio-reflection", marker = "extra == 'grpc'", specifier = ">=1.66.1" },
     { name = "grpcio-tools", specifier = ">=1.66.1" },
-    { name = "grpcio-tools", marker = "extra == 'grpc'", specifier = ">=1.66.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "httpx-sse", specifier = ">=0.4.0" },
     { name = "nacos-sdk-python", marker = "extra == 'nacos'", specifier = "==2.0.1" },
@@ -88,11 +70,9 @@ requires-dist = [
     { name = "protobuf", specifier = ">=4.24.3" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "sse-starlette" },
-    { name = "sse-starlette", marker = "extra == 'http-server'" },
     { name = "starlette" },
-    { name = "starlette", marker = "extra == 'http-server'" },
 ]
-provides-extras = ["http-server", "encryption", "grpc", "telemetry", "nacos", "a2a"]
+provides-extras = ["telemetry", "nacos", "a2a"]
 
 [package.metadata.requires-dev]
 dev = [

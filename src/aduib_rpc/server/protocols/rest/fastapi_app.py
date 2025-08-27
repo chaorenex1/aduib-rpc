@@ -4,29 +4,29 @@ from collections.abc import AsyncIterable, Awaitable
 from typing import Any, Callable, Union
 
 from fastapi import FastAPI, APIRouter
-from httpx import stream
 from sse_starlette import EventSourceResponse
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
 
-from aduib_rpc.server.protocols.rpc.jsonrpc_app import ServerContentBuilder
 from aduib_rpc.server.context import ServerContext
+from aduib_rpc.server.protocols.rpc import DefaultServerContextBuilder
+from aduib_rpc.server.protocols.rpc.jsonrpc_app import ServerContextBuilder
 from aduib_rpc.server.request_handlers import RequestHandler, RESTHandler
-from aduib_rpc.utils.constant import DEFAULT_RPC_PATH, DEFAULT_STREAM_KEY
+from aduib_rpc.utils.constant import DEFAULT_RPC_PATH
 
 logger = logging.getLogger(__name__)
 
 class  AduibRpcRestFastAPIApp:
     def __init__(self,
                  request_handler: RequestHandler,
-                 context_builder: ServerContentBuilder | None = None
+                 context_builder: ServerContextBuilder | None = None
                     ):
         """Initializes the AduibRpcRestFastAPIApp.
         Args:
             request_handler (RequestHandler): The request handler to process incoming requests.
-            context_builder (ServerContentBuilder | None): Optional context builder for request processing.
+            context_builder (ServerContextBuilder | None): Optional context builder for request processing.
         """
-        self.context_builder = context_builder
+        self.context_builder = context_builder or DefaultServerContextBuilder()
         self.request_handler = RESTHandler(request_handler)
 
     def build(self,
