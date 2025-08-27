@@ -79,9 +79,7 @@ class JSONRPCHandler:
             or JSON-RPC error responses if a `ServerError` is raised.
         """
         try:
-            async for event in self.request_handler.on_stream_message(
-                request.params, context
-            ):
+            async for event in self.request_handler.on_stream_message(request.params, context):
                 yield prepare_response_object(
                     request.id,
                     event,

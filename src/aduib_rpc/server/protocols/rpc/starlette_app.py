@@ -4,8 +4,9 @@ from typing import Any
 from starlette.applications import Starlette
 from starlette.routing import Route
 
-from aduib_rpc.server.app.rpc.jsonrpc_app import JsonRpcApp, ServerContentBuilder
+from aduib_rpc.server.protocols.rpc.jsonrpc_app import JsonRpcApp, ServerContentBuilder
 from aduib_rpc.server.request_handlers import RequestHandler
+from aduib_rpc.utils.constant import DEFAULT_RPC_PATH
 
 logger=logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class AduibRpcStarletteApp(JsonRpcApp):
 
     def add_routes(self,
                    app: Starlette,
-                   rpc_path: str = "/") -> None:
+                   rpc_path: str = DEFAULT_RPC_PATH) -> None:
         """Adds the RPC routes to the Starlette application.
         Args:
             app: The Starlette application instance.
@@ -47,7 +48,7 @@ class AduibRpcStarletteApp(JsonRpcApp):
         logger.debug(f"Added RPC route at path: {rpc_path}")
 
     def build(self,
-              rpc_path: str="/",
+              rpc_path: str=DEFAULT_RPC_PATH,
               **kwargs: Any)-> Starlette:
         """Builds and returns the Starlette application with the configured routes.
 

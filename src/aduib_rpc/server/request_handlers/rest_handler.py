@@ -4,7 +4,6 @@ from google.protobuf.json_format import Parse, MessageToDict, MessageToJson
 from starlette.requests import Request
 
 from aduib_rpc.grpc import aduib_rpc_pb2
-from aduib_rpc.grpc.chat_completion_pb2 import ChatCompletion
 from aduib_rpc.server.context import ServerContext
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
 from aduib_rpc.utils import proto_utils
@@ -66,7 +65,5 @@ class RESTHandler:
         request = proto_utils.FromProto.rpc_request(
             params,
         )
-        async for chunk in self.request_handler.on_stream_message(
-                request, context
-        ):
+        async for chunk in self.request_handler.on_stream_message(request, context):
             yield MessageToJson(proto_utils.ToProto.rpc_response(chunk))

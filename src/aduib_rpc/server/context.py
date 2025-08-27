@@ -1,8 +1,11 @@
 import collections
+from abc import ABC, abstractmethod
 from dataclasses import Field
-from typing import Any
+from typing import Any, Tuple
 
 from pydantic import BaseModel, ConfigDict
+
+from aduib_rpc.types import AduibRpcRequest
 
 State=collections.abc.MutableMapping[str, Any]
 
@@ -14,3 +17,24 @@ class ServerContext(BaseModel):
     state: State = Field(default={})
 
     metadata: dict[str,Any] = Field(default_factory={})
+
+
+class ServerInterceptor(ABC):
+    """Abstract base class for server interceptors."""
+
+    @abstractmethod
+    async def intercept(
+        self,
+        request_body: AduibRpcRequest,
+        context: ServerContext,
+    ) -> Tuple[bool, str]:
+        """Intercepts and potentially modifies the incoming request.
+
+        Args:
+            method: The HTTP method (e.g., 'GET', 'POST').
+            request_body: The body of the request as a dictionary.
+            context: The ServerContext instance for maintaining state.
+
+        Returns:
+            A boolean indicating whether to continue processing the request.
+        """

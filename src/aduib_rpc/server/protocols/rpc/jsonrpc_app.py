@@ -3,7 +3,10 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator
 
+from fastapi import FastAPI
 from sse_starlette import EventSourceResponse
+from starlette.applications import Starlette
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
@@ -13,7 +16,7 @@ from aduib_rpc.server.request_handlers.request_handler import RequestHandler
 from aduib_rpc.types import JsonRpcMessageRequest, JsonRpcStreamingMessageRequest, JSONRPCError, JSONRPCErrorResponse, \
     JSONRPCRequest, AduibJSONRpcRequest, AduibJSONRPCResponse, \
     JsonRpcStreamingMessageResponse
-from aduib_rpc.utils.constant import DEFAULT_STREAM_HEADER
+from aduib_rpc.utils.constant import DEFAULT_STREAM_HEADER, DEFAULT_RPC_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +39,25 @@ class DefaultServerContentBuilder(ServerContentBuilder):
             state['headers'] = dict(request.headers)
             metadata[DEFAULT_STREAM_HEADER] = state['headers'].get(DEFAULT_STREAM_HEADER) or 'false'
         return ServerContext(state=state,metadata=metadata)
+
+class RpcPathValidatorMiddleware(BaseHTTPMiddleware):
+    """Middleware to validate the RPC path in incoming requests."""
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        if not request.url.path.startswith(DEFAULT_RPC_PATH):
+            return JSONResponse(
+                content={
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": -32601,
+                        "message": "Method not found"
+                    },
+                    "id": None
+                },
+                status_code=404
+            )
+        response = await call_next(request)
+        return response
 
 class JsonRpcApp(ABC):
 
@@ -65,6 +87,14 @@ class JsonRpcApp(ABC):
         self.handler = JSONRPCHandler(
             request_handler=request_handler,
         )
+
+    def _init_middlewares(self, app:Any)->None:
+        """Initializes middleware for the application.
+
+        Args:
+            app: The application instance to which the middleware will be added.
+        """
+        app.add_middleware(RpcPathValidatorMiddleware)
 
 
     def _generate_error_response(
@@ -285,3 +315,15 @@ class JsonRpcApp(ABC):
             content=response.root.model_dump(mode='json', exclude_none=True),
             status_code=200,
         )
+
+    @abstractmethod
+    def build(self,
+              rpc_path: str = DEFAULT_RPC_PATH,
+              **kwargs: Any,)->FastAPI|Starlette:
+        """Builds and returns the FastAPI or Starlette application.
+        Args:
+            rpc_path: The RPC path for the application.
+            **kwargs: Additional keyword arguments for the application.
+        Returns:
+            The configured FastAPI or Starlette application instance.
+        """

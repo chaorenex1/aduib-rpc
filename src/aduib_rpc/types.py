@@ -339,6 +339,16 @@ class PromptMessage(ABC, BaseModel):
         """
         return not self.content
 
+    @field_validator("content", mode="before")
+    def convert_str_prompt_to_content(self):
+        """
+        Convert string prompt to content.
+
+        :return: None
+        """
+        if isinstance(self, str):
+            self.content = [TextPromptMessageContent(data=self.content)]
+
 
 class UserPromptMessage(PromptMessage):
     """
@@ -796,8 +806,13 @@ class AduibRpcRequest(BaseModel):
     aduib_rpc: Literal['1.0'] = '1.0'
     method: str
     data: Union[ChatCompletionRequest, CompletionRequest, EmbeddingRequest, dict[str, Any],Any, None] = None
-    id: Union[str, int, None] = None
     meta: Optional[dict[str, Any]] = None
+    id: Union[str, int, None] = None
+
+    def add_meta(self, key: str, value: Any) -> None:
+        if self.meta is None:
+            self.meta = {}
+        self.meta[key] = value
 
 
 class AduibRpcResponse(BaseModel):
@@ -806,6 +821,16 @@ class AduibRpcResponse(BaseModel):
     error: Optional[AduibRPCError] = None
     id: Union[str, int, None] = None
     status: Literal['success', 'error'] = 'success'
+
+    def is_success(self) -> bool:
+        return self.status == 'success' and self.error is None
+
+    def cast(self, to_type: Any) -> Any:
+        if self.result is None:
+            return None
+        if isinstance(self.result, to_type):
+            return self.result
+        return to_type(**self.result)
 
 """
 jsonrpc types

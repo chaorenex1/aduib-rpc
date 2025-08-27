@@ -3,9 +3,10 @@ from typing import Any
 
 from fastapi import FastAPI
 
-from aduib_rpc.server.app.rpc.jsonrpc_app import JsonRpcApp, ServerContentBuilder
+from aduib_rpc.server.protocols.rpc.jsonrpc_app import JsonRpcApp, ServerContentBuilder
 from aduib_rpc.server.request_handlers import RequestHandler
 from aduib_rpc.types import AduibJSONRpcRequest
+from aduib_rpc.utils.constant import DEFAULT_RPC_PATH
 
 logger=logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ class AduibRPCFastAPIApp(JsonRpcApp):
         """
         super().__init__(context_builder, request_handler)
 
-    def add_routes(self, app: AduibFastAPI, rpc_path: str = "/") -> None:
+    def add_routes(self, app: AduibFastAPI, rpc_path: str = DEFAULT_RPC_PATH) -> None:
         """Adds the RPC routes to the FastAPI application.
 
         Args:
@@ -73,7 +74,7 @@ class AduibRPCFastAPIApp(JsonRpcApp):
 
     def build(
         self,
-        rpc_path: str = "/",
+        rpc_path: str = DEFAULT_RPC_PATH,
         **kwargs: Any,
     ) -> FastAPI:
         """Builds and returns the FastAPI application with RPC routes.

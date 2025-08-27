@@ -6,7 +6,6 @@ import grpc
 
 from aduib_rpc.grpc import aduib_rpc_pb2
 from aduib_rpc.grpc.aduib_rpc_pb2_grpc import AduibRpcServiceServicer
-from aduib_rpc.grpc.chat_completion_response_pb2 import ChatCompletionResponse
 from aduib_rpc.server.context import ServerContext
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
 from aduib_rpc.utils import proto_utils
@@ -59,9 +58,7 @@ class GrpcHandler(AduibRpcServiceServicer):
         try:
             server_context = self.context_builder.build_context(context)
             chat_completion_request=proto_utils.FromProto.rpc_request(request)
-            async for response in self.request_handler.on_stream_message(
-                chat_completion_request, server_context
-            ):
+            async for response in self.request_handler.on_stream_message(chat_completion_request, server_context):
                 yield proto_utils.ToProto.rpc_response(response)
         except Exception as e:
             await context.abort(

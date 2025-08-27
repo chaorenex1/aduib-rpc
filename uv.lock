@@ -23,14 +23,23 @@ name = "aduib-rpc"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "a2a-sdk" },
+    { name = "cryptography" },
+    { name = "fastapi" },
+    { name = "grpcio" },
+    { name = "grpcio-reflection" },
+    { name = "grpcio-tools" },
     { name = "httpx" },
     { name = "httpx-sse" },
     { name = "protobuf" },
     { name = "pydantic" },
+    { name = "sse-starlette" },
+    { name = "starlette" },
 ]
 
 [package.optional-dependencies]
+a2a = [
+    { name = "a2a-sdk" },
+]
 encryption = [
     { name = "cryptography" },
 ]
@@ -60,11 +69,16 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "a2a-sdk", specifier = ">=0.2.4" },
+    { name = "a2a-sdk", marker = "extra == 'a2a'", specifier = ">=0.2.4" },
+    { name = "cryptography", specifier = ">=43.0.0" },
     { name = "cryptography", marker = "extra == 'encryption'", specifier = ">=43.0.0" },
+    { name = "fastapi", specifier = ">=0.115.2" },
     { name = "fastapi", marker = "extra == 'http-server'", specifier = ">=0.115.2" },
+    { name = "grpcio", specifier = ">=1.66.1" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = ">=1.66.1" },
+    { name = "grpcio-reflection", specifier = ">=1.66.1" },
     { name = "grpcio-reflection", marker = "extra == 'grpc'", specifier = ">=1.66.1" },
+    { name = "grpcio-tools", specifier = ">=1.66.1" },
     { name = "grpcio-tools", marker = "extra == 'grpc'", specifier = ">=1.66.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "httpx-sse", specifier = ">=0.4.0" },
@@ -73,10 +87,12 @@ requires-dist = [
     { name = "opentelemetry-sdk", marker = "extra == 'telemetry'", specifier = ">=1.33.0" },
     { name = "protobuf", specifier = ">=4.24.3" },
     { name = "pydantic", specifier = ">=2.11.7" },
+    { name = "sse-starlette" },
     { name = "sse-starlette", marker = "extra == 'http-server'" },
+    { name = "starlette" },
     { name = "starlette", marker = "extra == 'http-server'" },
 ]
-provides-extras = ["http-server", "encryption", "grpc", "telemetry", "nacos"]
+provides-extras = ["http-server", "encryption", "grpc", "telemetry", "nacos", "a2a"]
 
 [package.metadata.requires-dev]
 dev = [

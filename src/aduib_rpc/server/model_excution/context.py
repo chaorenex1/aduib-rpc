@@ -12,7 +12,9 @@ class RequestContext:
         request_id: str | None = None,
         context_id: str | None = None,
         model_name: str | None = None,
+        method: str | None = None,
         stream: bool = False,
+        metadata: dict | None = None,
         ):
         """Initializes the RequestContext.
         Args:
@@ -26,23 +28,33 @@ class RequestContext:
         self.request_id = request_id
         self.context_id = context_id
         self.model_name = model_name
+        self.method = method
         self.stream = stream
+        if metadata is None:
+            self.metadata = request.meta
         if not self.context_id:
             self.context_id = str(uuid.uuid4())
 
+        data_dict = request.data.model_dump(exclude_none=True)
         if not self.model_name:
             self.model_name = request.meta["model"] if request and request.meta and "model" in request.meta else None
 
             if not self.model_name:
-                with request.data.model_dump(exclude_none=True) as data:
+                with data_dict as data:
                     self.model_name = data["model"] if "model" in data else None
+        if not self.method:
+            self.method = request.method
+            if not self.method:
+                with data_dict as data:
+                    self.method = data["method"] if "method" in data else None
 
         if not self.stream:
             self.stream = request.stream if request and request.meta and "stream" in request.meta else False
 
             if not self.stream:
-                with request.data.model_dump(exclude_none=True) as data:
+                with data_dict as data:
                     self.stream = data["stream"] if "stream" in data else False
+
 
 
     def to_dict(self) -> dict:
@@ -98,3 +110,17 @@ class RequestContext:
             True if the request is a stream request, False otherwise.
         """
         return self.stream
+
+    def get_method(self) -> str:
+        """Returns the method name.
+        Returns:
+            The method name.
+        """
+        return self.method
+
+    def get_metadata(self) -> dict | None:
+        """Returns the metadata.
+        Returns:
+            The metadata.
+        """
+        return self.metadata
