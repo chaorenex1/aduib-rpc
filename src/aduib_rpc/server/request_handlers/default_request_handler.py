@@ -15,13 +15,8 @@ logger = logging.getLogger(__name__)
 class DefaultRequestHandler(RequestHandler):
     """Default implementation of RequestHandler with no-op methods."""
 
-    def __init__(self,
-                 model_executor: ModelExecutor):
-        """Initializes the DefaultRequestHandler.
-        Args:
-            model_executor: The ModelExecutor instance to handle model operations.
-        """
-        self.model_executor = model_executor
+    def __init__(self):
+        self.model_executor = None
 
     async def on_message(
             self,
@@ -48,7 +43,7 @@ class DefaultRequestHandler(RequestHandler):
                         break
             if not intercepted:
                 context:RequestContext=self._setup_request_context(message,context)
-                self.model_executor=self._validate_model_executor(self.model_executor,context)
+                self.model_executor=self._validate_model_executor(context)
                 response = await self.model_executor.execute(context)
                 return AduibRpcResponse(id=context.request_id, result=response)
             else:
@@ -79,7 +74,7 @@ class DefaultRequestHandler(RequestHandler):
                     intercepted = await interceptor.intercept(message, context)
             if not intercepted:
                 context:RequestContext=self._setup_request_context(message,context)
-                self.model_executor=self._validate_model_executor(self.model_executor,context)
+                self.model_executor=self._validate_model_executor(context)
                 async for response in self.model_executor.execute(context):
                     yield AduibRpcResponse(id=context.request_id, result=response)
             else:
@@ -103,7 +98,7 @@ class DefaultRequestHandler(RequestHandler):
         )
         return request_context
 
-    def _validate_model_executor(self, model_executor: ModelExecutor,context:RequestContext) -> ModelExecutor:
+    def _validate_model_executor(self, context:RequestContext) -> ModelExecutor:
         """Validates and returns the ModelExecutor instance."""
         model_executor: ModelExecutor = get_model_executor(
             model_id=context.model_name,model_type=context.method)

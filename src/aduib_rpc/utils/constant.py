@@ -12,6 +12,15 @@ class SecuritySchemes(StrEnum):
     OAuth2="OAuth2"
     OpenIDConnect="OpenIDConnect"
 
+class LoadBalancePolicy(IntEnum):
+    """Load balancer policies for the gRPC client
+    RoundRobin
+    PickFirst
+    """
+    Random=0
+    WeightedRoundRobin=1
+    CONSISTENT_HASHING=2
+
 
 class TransportSchemes(StrEnum):
     """Transport schemes for the OpenAPI specification
@@ -19,7 +28,7 @@ class TransportSchemes(StrEnum):
     WebSocket
     """
     HTTP="http"
-    GRPC=""
+    GRPC="grpc"
     JSONRPC="http"
 
 

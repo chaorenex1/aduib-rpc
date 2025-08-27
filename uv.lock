@@ -47,6 +47,9 @@ telemetry = [
     { name = "opentelemetry-api" },
     { name = "opentelemetry-sdk" },
 ]
+uvicorn = [
+    { name = "uvicorn" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -71,8 +74,9 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "sse-starlette" },
     { name = "starlette" },
+    { name = "uvicorn", marker = "extra == 'uvicorn'", specifier = ">=0.1.5" },
 ]
-provides-extras = ["telemetry", "nacos", "a2a"]
+provides-extras = ["telemetry", "nacos", "uvicorn", "a2a"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -508,6 +512,18 @@ wheels = [
     { url = "http://mirrors.aliyun.com/pypi/packages/50/ee/f4704bad8201de513fdc8aac1cabc87e38c5818c93857140e06e772b5892/charset_normalizer-3.4.3-cp312-cp312-win32.whl", hash = "sha256:fb6fecfd65564f208cbf0fba07f107fb661bcd1a7c389edbced3f7a493f70e37" },
     { url = "http://mirrors.aliyun.com/pypi/packages/39/f5/3b3836ca6064d0992c58c7561c6b6eee1b3892e9665d650c803bd5614522/charset_normalizer-3.4.3-cp312-cp312-win_amd64.whl", hash = "sha256:86df271bf921c2ee3818f0522e9a5b8092ca2ad8b065ece5d7d9d0e9f4849bcc" },
     { url = "http://mirrors.aliyun.com/pypi/packages/8a/1f/f041989e93b001bc4e44bb1669ccdcf54d3f00e628229a85b08d330615c5/charset_normalizer-3.4.3-py3-none-any.whl", hash = "sha256:ce571ab16d890d23b5c278547ba694193a45011ff86a9162a71307ed9f86759a" },
+]
+
+[[package]]
+name = "click"
+version = "8.2.1"
+source = { registry = "http://mirrors.aliyun.com/pypi/simple/" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "http://mirrors.aliyun.com/pypi/packages/60/6c/8ca2efa64cf75a977a0d7fac081354553ebe483345c734fb6b6515d96bbc/click-8.2.1.tar.gz", hash = "sha256:27c491cc05d968d271d5a1db13e3b5a184636d9d930f148c50b038f0d0646202" }
+wheels = [
+    { url = "http://mirrors.aliyun.com/pypi/packages/85/32/10bb5764d90a8eee674e9dc6f4db6a0ab47c8c4d0d83c27f7c39ac415a4d/click-8.2.1-py3-none-any.whl", hash = "sha256:61a3265b914e850b85317d0b3109c7f8cd35a670f963866005d6ef1d5175a12b" },
 ]
 
 [[package]]
@@ -1536,6 +1552,20 @@ source = { registry = "http://mirrors.aliyun.com/pypi/simple/" }
 sdist = { url = "http://mirrors.aliyun.com/pypi/packages/15/22/9ee70a2574a4f4599c47dd506532914ce044817c7752a79b6a51286319bc/urllib3-2.5.0.tar.gz", hash = "sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760" }
 wheels = [
     { url = "http://mirrors.aliyun.com/pypi/packages/a7/c2/fe1e52489ae3122415c51f387e221dd0773709bad6c6cdaa599e8a2c5185/urllib3-2.5.0-py3-none-any.whl", hash = "sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc" },
+]
+
+[[package]]
+name = "uvicorn"
+version = "0.35.0"
+source = { registry = "http://mirrors.aliyun.com/pypi/simple/" }
+dependencies = [
+    { name = "click" },
+    { name = "h11" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "http://mirrors.aliyun.com/pypi/packages/5e/42/e0e305207bb88c6b8d3061399c6a961ffe5fbb7e2aa63c9234df7259e9cd/uvicorn-0.35.0.tar.gz", hash = "sha256:bc662f087f7cf2ce11a1d7fd70b90c9f98ef2e2831556dd078d131b96cc94a01" }
+wheels = [
+    { url = "http://mirrors.aliyun.com/pypi/packages/d2/e2/dc81b1bd1dcfe91735810265e9d26bc8ec5da45b4c0f6237e286819194c3/uvicorn-0.35.0-py3-none-any.whl", hash = "sha256:197535216b25ff9b785e29a0b79199f55222193d47f820816e7da751e9bc8d4a" },
 ]
 
 [[package]]
