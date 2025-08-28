@@ -1,0 +1,76 @@
+syntax = "proto3";
+package src.aduib_rpc.proto;
+import "json_schema.proto";
+import "google/protobuf/struct.proto";
+
+message Properties {
+  map<string, JSONSchema> properties = 1;
+}
+
+message PromptMessages {
+    google.protobuf.Struct content = 1;
+    string role = 2;
+  }
+
+message ChatCompletion {
+  message Response_format {
+    message Json_schema {
+      message Schema {
+
+        optional Properties properties = 1;
+        repeated string required = 2;
+        string type = 3;
+      }
+
+      string description = 1;
+      string name = 2;
+      Schema schema = 3;
+    }
+
+    Json_schema json_schema = 1;
+    string type = 2;
+    map<string,JSONSchema> properties=3;
+  }
+
+  message Tools {
+    message Function {
+      message Parameters {
+        optional Properties properties = 1;
+        repeated string required = 2;
+        string type = 3;
+      }
+
+      string description = 1;
+      string name = 2;
+      Parameters parameters = 3;
+    }
+
+    Function function = 1;
+    string type = 2;
+  }
+
+  string enable_thinking = 1;
+  int64 frequency_penalty = 2;
+  string include_reasoning = 3;
+  int64 max_completion_tokens = 4;
+  int64 max_tokens = 5;
+  repeated PromptMessages messages = 6;
+  string model = 7;
+  int64 n = 8;
+  int64 presence_penalty = 9;
+  string prompt = 10;
+  string reasoning_effort = 11;
+  Response_format response_format = 12;
+  string stop = 13;
+  string stream = 14;
+  map<string, string> stream_options = 15;
+  double temperature = 16;
+  string tool_choice = 17;
+  repeated Tools tools = 18;
+  int64 top_k = 19;
+  int64 top_p = 20;
+  string user = 21;
+  google.protobuf.Struct audio= 22;
+  google.protobuf.Struct modalities= 23;
+  google.protobuf.Struct prompt_embeds=24;
+}

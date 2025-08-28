@@ -5,7 +5,7 @@ from aduib_rpc.discover.load_balance import LoadBalancerFactory
 from aduib_rpc.discover.registry import ServiceRegistry
 from aduib_rpc.discover.registry.nacos.client import NacosClient
 from aduib_rpc.utils.async_utils import AsyncUtils
-from aduib_rpc.utils.constant import LoadBalancePolicy
+from aduib_rpc.utils.constant import LoadBalancePolicy, AIProtocols, TransportSchemes
 
 
 class NacosServiceRegistry(ServiceRegistry):
@@ -36,7 +36,7 @@ class NacosServiceRegistry(ServiceRegistry):
     async def register_service(self, service_info: ServiceInstance) -> None:
         """Register a service instance with the registry."""
         await self.init_naming_service()
-        await self.client.register_instance(service_info.service_name, service_info.host, service_info.port, service_info.weight, service_info.metadata)
+        await self.client.register_instance(service_info.service_name, service_info.host, service_info.port, service_info.weight, metadata=service_info.get_service_info())
 
 
     def unregister_service(self, service_name: str) -> None:
@@ -49,16 +49,18 @@ class NacosServiceRegistry(ServiceRegistry):
         services = await self.client.list_instances(service_name)
         if len(services) == 0:
             return None
-        Service_instances: list[ServiceInstance] = []
+        service_instances: list[ServiceInstance] = []
         for service in services:
             service_instance = ServiceInstance(
-                service_name=service,
+                service_name=service.serviceName,
+                protocol=AIProtocols.to_original(service.metadata.get('protocol')),
+                scheme=TransportSchemes.to_original(service.metadata.get('scheme')),
                 host=service.ip,
                 port=service.port,
-                weight=service.weight,
+                weight=int(service.weight),
                 metadata=service.metadata or {}
             )
-            Service_instances.append(service_instance)
-        instance = LoadBalancerFactory.get_load_balancer(self.policy).select_instance(Service_instances)
+            service_instances.append(service_instance)
+        instance = LoadBalancerFactory.get_load_balancer(self.policy).select_instance(service_instances)
         self.state[service_name] = instance
         return instance

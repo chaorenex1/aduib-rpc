@@ -1,0 +1,53 @@
+syntax = "proto3";
+package src.aduib_rpc.proto;
+import "google/protobuf/struct.proto";
+import "chat_completion.proto";
+import "chat_completion_response.proto";
+import "embedding.proto";
+
+message TaskData {
+  oneof Kind {
+    ChatCompletion chat_completion = 4;
+    EmbeddingRequest embedding = 5;
+  }
+}
+
+message TaskResponseData {
+  oneof Kind {
+    ChatCompletionResponse chat_completion_response = 4;
+    EmbeddingResponse embedding_response = 5;
+  }
+}
+
+message RpcError {
+  google.protobuf.Struct data = 1;
+  string message = 2;
+  string code = 3;
+}
+
+message RpcTask {
+  string id = 1;
+  string method = 2;
+  google.protobuf.Struct meta = 4;
+  TaskData data = 5;
+}
+
+message RpcTaskResponse {
+  string id = 1;
+  string status = 2;
+  TaskResponseData result = 3;
+  RpcError error = 4;
+}
+
+message RpcTaskStream{
+  oneof body {
+    RpcTask task = 1;
+    RpcTaskResponse task_response = 2;
+  }
+}
+
+service AduibRpcService {
+  rpc stream_completion(RpcTask) returns (stream RpcTaskResponse);
+  rpc completion(RpcTask) returns (RpcTaskResponse);
+//  rpc bidi_stream_completion(stream RpcTask) returns (stream RpcTaskResponse);
+}

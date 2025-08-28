@@ -10,8 +10,8 @@ class ServiceInstance(BaseModel):
     port: int
     weight: int=1
     metadata: dict[str, str] | None = {}
-    protocol: AIProtocols
-    scheme: TransportSchemes
+    protocol: AIProtocols = AIProtocols.AduibRpc
+    scheme: TransportSchemes = TransportSchemes.GRPC
 
     @property
     def url(self) -> str:
@@ -28,3 +28,13 @@ class ServiceInstance(BaseModel):
         if self.metadata and key in self.metadata:
             return self.metadata[key]
         return None
+    def get_service_info(self) -> dict[str, str | int | dict[str, str]]:
+        """Returns a dictionary representation of the service instance."""
+        return self.metadata|{
+            "service_name": self.service_name,
+            "host": self.host,
+            "port": str(self.port),
+            "weight": str(self.weight),
+            "protocol": self.protocol.value,
+            "scheme": self.scheme.value,
+        }

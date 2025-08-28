@@ -15,8 +15,8 @@ async def main():
                                          namespace='eeb6433f-d68c-4b3b-a4a7-eeff19110e4d', group_name='DEFAULT_GROUP',
                                          username='nacos', password='nacos11.')
     factory = AduibServiceFactory(service_instance=service)
-    await registry.register_service(service)
-    await factory.run_server()
+    service = await registry.discover_service(service.service_name)
+    print(service)
 
 if __name__ == '__main__':
     asyncio.run(main())

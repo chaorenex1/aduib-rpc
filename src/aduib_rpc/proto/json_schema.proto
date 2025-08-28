@@ -1,0 +1,42 @@
+syntax = "proto3";
+package src.aduib_rpc.proto;
+
+// 通用 JSON Schema 定义
+message JSONSchema {
+  // 基本字段
+  string type = 1;                   // "string", "number", "boolean", "object", "array", etc.
+  string description = 2;            // 字段描述
+  string default_value = 3;          // 默认值（序列化成字符串存储）
+
+  // 枚举值
+  repeated string enum = 4;
+
+  // object 类型的属性定义
+  map<string, JSONSchema> properties = 5;
+
+  // array 类型
+  JSONSchema items = 6;              // 数组的元素类型
+
+  // 校验约束
+  int32 min_length = 7;
+  int32 max_length = 8;
+  double minimum = 9;
+  double maximum = 10;
+
+  // 必填字段（仅 object 类型适用）
+  repeated string required = 11;
+
+  // 额外属性是否允许
+  bool additional_properties = 12;
+
+  // oneOf / anyOf / allOf 支持
+  repeated JSONSchema one_of = 13;
+  repeated JSONSchema any_of = 14;
+  repeated JSONSchema all_of = 15;
+
+  // pattern (字符串正则约束)
+  string pattern = 16;
+
+  // 额外扩展：如果遇到不认识的 schema 关键字，可以放在 extensions 里
+  map<string, string> extensions = 17;
+}

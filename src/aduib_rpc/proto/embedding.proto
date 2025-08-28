@@ -1,0 +1,22 @@
+syntax = "proto3";
+package src.aduib_rpc.proto;
+
+message EmbeddingRequest {
+  string prompt = 1;
+  string model = 2;
+  string encoding_format = 3;
+  repeated string prompts = 4;
+}
+
+message EmbeddingBatchResult {
+  repeated float embedding = 1;
+  int64 index = 2;
+}
+
+message EmbeddingResponse {
+  string object = 1;
+  string model = 2;
+  repeated float embedding = 3;
+  repeated EmbeddingBatchResult embeddings = 4;
+  int64 index = 5;
+}

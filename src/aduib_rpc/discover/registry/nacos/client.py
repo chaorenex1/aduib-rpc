@@ -7,8 +7,6 @@ import nacos
 from v2.nacos import ClientConfigBuilder, GRPCConfig, NacosConfigService, NacosNamingService, ConfigParam, \
     RegisterInstanceParam, DeregisterInstanceParam, ListInstanceParam, Instance, Service, GetServiceParam
 
-from aduib_rpc.utils.async_utils import AsyncUtils
-
 logger = logging.getLogger(__name__)
 
 
@@ -95,9 +93,9 @@ class NacosClient:
         await self.naming_service.register_instance(
             RegisterInstanceParam(service_name=service_name, ip=ip, port=port, weight=weight, metadata=metadata))
 
-        def remove_instance_signal(signal, frame):
+        async def remove_instance_signal(signal, frame):
             logger.debug(f"remove_instance_signal:{signal},{frame}")
-            self.remove_instance(service_name=service_name, ip=ip, port=port)
+            await self.remove_instance(service_name=service_name, ip=ip, port=port)
 
         signal.signal(signal.SIGINT, remove_instance_signal)
         signal.signal(signal.SIGTERM, remove_instance_signal)

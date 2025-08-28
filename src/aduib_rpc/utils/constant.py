@@ -31,8 +31,30 @@ class TransportSchemes(StrEnum):
     GRPC="grpc"
     JSONRPC="http"
 
+    @classmethod
+    def to_original(cls,value: str):
+        match value:
+            case "http":
+                return TransportSchemes.HTTP
+            case "grpc":
+                return TransportSchemes.GRPC
+            case "jsonrpc":
+                return TransportSchemes.JSONRPC
+            case _:
+                raise ValueError(f"Unsupported transport scheme: {value}")
+
 
 class AIProtocols(StrEnum):
     """AI protocol specification for the OpenAPI specification"""
     A2A="A2A"
     AduibRpc="AduibRpc"
+
+    @classmethod
+    def to_original(cls,value: str):
+        match value:
+            case "A2A":
+                return AIProtocols.A2A
+            case "AduibRpc":
+                return AIProtocols.AduibRpc
+            case _:
+                raise ValueError(f"Unsupported AI protocol: {value}")
