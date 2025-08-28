@@ -33,22 +33,10 @@ aduib_rpc/
 └── tests/                 # 测试用例
 ```
 
-## 安装方法
+## 使用方法
 
-1. 克隆仓库：
-   ```
-   git clone https://github.com/chaorenex1/aduib_rpc.git
-   cd aduib_rpc
-   ```
-
-2. 安装依赖：
-   ```
-   uv sync
-   ```
-
-3. 编译 proto 文件（如需更新）：
-   ```
-   python scripts/compile_protos.py
+   ```bash
+    pip install aduib_rpc aduib_rpc[nacos]
    ```
 
 ## 使用示例
@@ -149,14 +137,24 @@ if __name__ == '__main__':
 
 ## 开发
 
-1. 安装开发依赖：
+1. 克隆仓库：
+   ```
+   git clone https://github.com/chaorenex1/aduib_rpc.git
+   cd aduib_rpc
+   ```
+
+2. 安装开发依赖：
    ```
    uv sync  --all-extras --dev
    ```
 
-2. 运行测试：
+3. 运行测试：
    ```
    pytest tests/
+   ```
+4. 编译 proto 文件（如需更新）：
+   ```
+   python scripts/compile_protos.py
    ```
 
 ## 协议支持
