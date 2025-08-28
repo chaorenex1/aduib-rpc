@@ -4,7 +4,6 @@ from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.load_balance import LoadBalancerFactory
 from aduib_rpc.discover.registry import ServiceRegistry
 from aduib_rpc.discover.registry.nacos.client import NacosClient
-from aduib_rpc.utils.async_utils import AsyncUtils
 from aduib_rpc.utils.constant import LoadBalancePolicy, AIProtocols, TransportSchemes
 
 

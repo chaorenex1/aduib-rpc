@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 class DefaultRequestHandler(RequestHandler):
     """Default implementation of RequestHandler with no-op methods."""
 
-    def __init__(self):
+    def __init__(self,interceptors: list[ServerInterceptor] | None = None):
         self.model_executor = None
+        self.interceptors= interceptors or []
 
     async def on_message(
             self,
             message: AduibRpcRequest,
             context: ServerContext | None = None,
-            interceptors: list[ServerInterceptor] | None = None
 
     )-> AduibRpcResponse:
         """Handles the 'message' method.
@@ -36,8 +36,8 @@ class DefaultRequestHandler(RequestHandler):
         """
         try:
             intercepted: AduibRPCError= None
-            if interceptors:
-                for interceptor in interceptors:
+            if self.interceptors:
+                for interceptor in self.interceptors:
                     intercepted = await interceptor.intercept(message, context)
                     if intercepted:
                         break
@@ -55,7 +55,6 @@ class DefaultRequestHandler(RequestHandler):
 
     async def on_stream_message(self, message: AduibRpcRequest,
                                 context: ServerContext | None = None,
-                                interceptors: list[ServerInterceptor] | None = None
                                 ) -> AsyncGenerator[AduibRpcResponse]:
         """Handles the 'stream_message' method.
 
@@ -69,8 +68,8 @@ class DefaultRequestHandler(RequestHandler):
         """
         try:
             intercepted: AduibRPCError= None
-            if interceptors:
-                for interceptor in interceptors:
+            if self.interceptors:
+                for interceptor in self.interceptors:
                     intercepted = await interceptor.intercept(message, context)
             if not intercepted:
                 context:RequestContext=self._setup_request_context(message,context)

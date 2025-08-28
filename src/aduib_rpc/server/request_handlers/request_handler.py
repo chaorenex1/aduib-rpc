@@ -13,7 +13,6 @@ class RequestHandler(ABC):
             self,
             message: AduibRpcRequest,
             context: ServerContext | None = None,
-            interceptors: list[ServerInterceptor] | None = None
     )-> AduibRpcResponse:
         """Handles the 'message' method.
 
@@ -32,7 +31,6 @@ class RequestHandler(ABC):
             self,
             message: AduibRpcRequest,
             context: ServerContext | None = None,
-            interceptors: list[ServerInterceptor] | None = None
     )-> AsyncGenerator[AduibRpcResponse, None]:
         """Handles the 'stream_message' method.
 

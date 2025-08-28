@@ -6,7 +6,8 @@ from google.protobuf.json_format import ParseDict, MessageToDict
 from aduib_rpc.grpc import aduib_rpc_pb2, chat_completion_response_pb2, embedding_pb2, chat_completion_pb2
 from aduib_rpc.grpc.chat_completion_response_pb2 import ChatCompletionResponse
 from aduib_rpc.types import ChatCompletionRequest, CompletionRequest, AduibRpcRequest, EmbeddingRequest, \
-    AduibRpcResponse, ChatCompletionResponseChunk, EmbeddingsResponse
+    AduibRpcResponse, ChatCompletionResponseChunk, EmbeddingsResponse, PromptMessage
+from aduib_rpc.utils.encoders import jsonable_encoder
 
 
 class FromProto:
@@ -74,15 +75,16 @@ class ToProto:
         task_data = aduib_rpc_pb2.TaskData()
         if isinstance(data, CompletionRequest):
             chat_completion_request = chat_completion_pb2.ChatCompletion()
-            ParseDict(data.model_dump(exclude_none=True), chat_completion_request)
+            ParseDict(jsonable_encoder(obj=data), chat_completion_request,ignore_unknown_fields=True)
             task_data.chat_completion.CopyFrom(chat_completion_request)
         elif isinstance(data, ChatCompletionRequest):
+            data.messages=PromptMessage.convert_str_prompt_to_contents(data.messages)
             chat_completion_request = chat_completion_pb2.ChatCompletion()
-            ParseDict(data.model_dump(exclude_none=True), chat_completion_request)
+            ParseDict(jsonable_encoder(obj=data), chat_completion_request,ignore_unknown_fields=True)
             task_data.chat_completion.CopyFrom(chat_completion_request)
         elif isinstance(data, EmbeddingRequest):
             embedding_request = embedding_pb2.EmbeddingRequest()
-            ParseDict(data.model_dump(exclude_none=True), embedding_request)
+            ParseDict(jsonable_encoder(obj=data), embedding_request,ignore_unknown_fields=True)
             task_data.embedding.CopyFrom(embedding_request)
         return task_data
 

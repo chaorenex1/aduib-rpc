@@ -1,15 +1,18 @@
+import logging
 from typing import AsyncGenerator
 
 import grpc
 from grpc.aio import Channel
 
-from aduib_rpc.client import ClientContext, ClientRequestInterceptor
-from aduib_rpc.client.base_client import ClientConfig
+from aduib_rpc.client.config import ClientConfig
 from aduib_rpc.client.errors import ClientHTTPError
+from aduib_rpc.client import ClientContext, ClientRequestInterceptor
 from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.grpc import aduib_rpc_pb2_grpc, aduib_rpc_pb2
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse
 from aduib_rpc.utils import proto_utils
+
+logger = logging.getLogger(__name__)
 
 
 class GrpcTransport(ClientTransport):
@@ -58,7 +61,7 @@ class GrpcTransport(ClientTransport):
         return rpc_response
 
     async def completion_stream(self, request: AduibRpcRequest, *, context: ClientContext) -> AsyncGenerator[
-        AduibRpcResponse]:
+        AduibRpcResponse, None]:
         """Sends a streaming message to the agent and yields the responses."""
         grpc_metadata = []
         if request.meta:
@@ -82,4 +85,5 @@ class GrpcTransport(ClientTransport):
                     raise ClientHTTPError(rpc_response.error.code, rpc_response.error.message)
                 yield rpc_response
             except Exception as e:
+                logging.error(f"Error in gRPC stream: {e}")
                 break

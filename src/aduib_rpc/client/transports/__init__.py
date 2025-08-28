@@ -1,11 +1,11 @@
 from .base import ClientTransport
-from .grpc import GrpcTransport
 from .jsonrpc import JsonRpcTransport
 from .rest import RestTransport
+from .grpc import GrpcTransport
 
 __all__ = [
     'ClientTransport',
-    'GrpcTransport',
     'JsonRpcTransport',
     'RestTransport',
+    'GrpcTransport',
 ]

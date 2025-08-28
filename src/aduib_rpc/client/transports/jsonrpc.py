@@ -5,8 +5,8 @@ from uuid import uuid4
 import httpx
 from httpx_sse import SSEError, aconnect_sse
 
-from aduib_rpc.client import ClientContext, ClientRequestInterceptor, ClientJSONRPCError
 from aduib_rpc.client.errors import ClientHTTPError, ClientJSONError
+from aduib_rpc.client import ClientContext, ClientRequestInterceptor, ClientJSONRPCError
 from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse, JsonRpcMessageRequest, JsonRpcMessageResponse, \
     JSONRPCErrorResponse, JsonRpcStreamingMessageRequest, JsonRpcStreamingMessageResponse
@@ -77,7 +77,7 @@ class JsonRpcTransport(ClientTransport):
         return response.root.result
 
     async def completion_stream(self, request: AduibRpcRequest, *, context: ClientContext) -> AsyncGenerator[
-        AduibRpcResponse]:
+        AduibRpcResponse, None]:
         """Sends a streaming message request to the agent and yields responses as they arrive."""
         rpc_request = JsonRpcStreamingMessageRequest(
             params=request, id=str(uuid4())

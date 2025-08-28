@@ -339,14 +339,23 @@ class PromptMessage(ABC, BaseModel):
         """
         return not self.content
 
-    def convert_str_prompt_to_content(self):
+    @classmethod
+    def convert_str_prompt_to_contents(cls,str_contents:list['PromptMessage']) -> list['PromptMessage']:
         """
-        Convert string prompt to content.
+        Convert string prompt messages to content prompt messages.
 
-        :return: None
+        :param str_contents: list of string prompt messages
+        :return: list of content prompt messages
         """
-        if isinstance(self, str):
-            self.content = [TextPromptMessageContent(data=self.content)]
+        contents = []
+        for content in str_contents:
+            if isinstance(content.content, str):
+                contents.append(TextPromptMessageContent(data=content.content))
+            elif isinstance(content.content, PromptMessageContent):
+                contents.append(content)
+            else:
+                raise ValueError(f"Invalid prompt message content type {type(content)}")
+        return contents
 
 
 class UserPromptMessage(PromptMessage):

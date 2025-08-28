@@ -1,9 +1,9 @@
-import dataclasses
 import uuid
 from abc import ABC, abstractmethod
-from collections.abc import Callable, AsyncIterator
+from collections.abc import AsyncIterator, AsyncGenerator
 from typing import Optional, Any
 
+from aduib_rpc.client import ClientConfig
 from aduib_rpc.client.midwares import ClientRequestInterceptor, ClientContext
 from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse
@@ -15,23 +15,6 @@ except ImportError:
     httpx = None  # type: ignore
     Channel = None  # type: ignore
 
-from aduib_rpc.utils.constant import TransportSchemes
-
-
-@dataclasses.dataclass
-class ClientConfig:
-    """Client configuration class."""
-    streaming: bool = True
-    """Whether to use streaming mode for message sending."""
-    httpx_client: httpx.AsyncClient | None = None
-    """Http client to use to connect to agent."""
-
-    grpc_channel_factory: Callable[[str], Channel] | None = None
-    """Generates a grpc connection channel for a given url."""
-
-    supported_transports: list[TransportSchemes | str] = dataclasses.field(
-        default_factory=list
-    )
 
 class AduibRpcClient(ABC):
     """Abstract base class for a client."""

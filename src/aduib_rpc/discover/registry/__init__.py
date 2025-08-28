@@ -1,4 +1,4 @@
 from .service_registry import ServiceRegistry
 from .service_registry import InMemoryServiceRegistry
-
-__all__ = ["ServiceRegistry", "InMemoryServiceRegistry"]
+from .nacos.nacos_service_registry import NacosServiceRegistry
+__all__ = ["ServiceRegistry", "InMemoryServiceRegistry", "NacosServiceRegistry"]

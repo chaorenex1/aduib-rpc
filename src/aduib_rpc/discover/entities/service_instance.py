@@ -16,7 +16,7 @@ class ServiceInstance(BaseModel):
     @property
     def url(self) -> str:
         """Constructs the URL for the service instance."""
-        return f"{self.scheme.value}://{self.host}:{self.port}"
+        return f"{self.scheme.value}://{self.host}:{self.port}" if self.scheme!=TransportSchemes.GRPC else f"{self.host}:{self.port}"
 
     @property
     def instance_id(self) -> str:

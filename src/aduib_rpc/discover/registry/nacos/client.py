@@ -3,9 +3,23 @@ import logging
 import signal
 from typing import Callable
 
-import nacos
-from v2.nacos import ClientConfigBuilder, GRPCConfig, NacosConfigService, NacosNamingService, ConfigParam, \
+try:
+    import nacos
+    from v2.nacos import ClientConfigBuilder, GRPCConfig, NacosConfigService, NacosNamingService, ConfigParam, \
     RegisterInstanceParam, DeregisterInstanceParam, ListInstanceParam, Instance, Service, GetServiceParam
+except ImportError:
+    nacos = None
+    ClientConfigBuilder = None
+    GRPCConfig = None
+    NacosConfigService = None
+    NacosNamingService = None
+    ConfigParam = None
+    RegisterInstanceParam = None
+    DeregisterInstanceParam = None
+    ListInstanceParam = None
+    Instance = None
+    Service = None
+    GetServiceParam = None
 
 logger = logging.getLogger(__name__)
 

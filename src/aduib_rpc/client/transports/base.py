@@ -25,7 +25,7 @@ class ClientTransport(ABC):
     async def completion_stream(self,
                             request: AduibRpcRequest,
                             *,
-                            context: ClientContext) -> AsyncGenerator[AduibRpcResponse]:
+                            context: ClientContext) -> AsyncGenerator[AduibRpcResponse, None]:
         """Sends a request and returns an async generator for streaming responses.
         Args:
             request: The `AduibRpcRequest` object to be sent.

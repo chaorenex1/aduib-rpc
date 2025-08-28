@@ -67,7 +67,7 @@ class RestTransport(ClientTransport):
         return rpc_response
 
     async def completion_stream(self, request: AduibRpcRequest, *, context: ClientContext) -> AsyncGenerator[
-        AduibRpcResponse]:
+        AduibRpcResponse, None]:
         method = "/v1/message/completion/stream"
         data_, http_args = await self._setup_request_message(method,context, request)
         async with aconnect_sse(

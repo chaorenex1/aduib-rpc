@@ -7,9 +7,9 @@ import uvicorn
 from grpc_reflection.v1alpha import reflection
 
 from aduib_rpc.discover.entities import ServiceInstance
-from aduib_rpc.discover.registry import ServiceRegistry
 from aduib_rpc.discover.service import ServiceFactory, add_signal_handlers, get_ip_port
 from aduib_rpc.grpc import aduib_rpc_pb2_grpc, aduib_rpc_pb2
+from aduib_rpc.server.context import ServerInterceptor
 from aduib_rpc.server.protocols.rest import AduibRpcRestFastAPIApp
 from aduib_rpc.server.protocols.rpc import AduibRpcStarletteApp
 from aduib_rpc.server.request_handlers import DefaultRequestHandler, GrpcHandler
@@ -24,7 +24,9 @@ class AduibServiceFactory(ServiceFactory):
 
     def __init__(self,
                  service_instance: ServiceInstance,
+                 interceptors: list[ServerInterceptor] | None = None
                  ):
+        self.interceptors = interceptors or []
         self.service = service_instance
         self.server = None
 
@@ -48,7 +50,7 @@ class AduibServiceFactory(ServiceFactory):
         host, port = get_ip_port(self.service)
         grpc_server = grpc.aio.server()
         """Creates the gRPC server."""
-        request_handler = DefaultRequestHandler()
+        request_handler = DefaultRequestHandler(self.interceptors)
 
         server = grpc.aio.server()
         aduib_rpc_pb2_grpc.add_AduibRpcServiceServicer_to_server(
@@ -70,13 +72,13 @@ class AduibServiceFactory(ServiceFactory):
     async def run_jsonrpc_server(self, **kwargs: Any, ):
         """Run a JSON-RPC server for the given service instance."""
         host, port = get_ip_port(self.service)
-        request_handler = DefaultRequestHandler()
+        request_handler = DefaultRequestHandler(self.interceptors)
         server = AduibRpcStarletteApp(request_handler=request_handler)
         uvicorn.run(server.build(**kwargs), host=host, port=port)
 
     async def run_rest_server(self, **kwargs: Any, ):
         """Run a REST server for the given service instance."""
         host, port = get_ip_port(self.service)
-        request_handler = DefaultRequestHandler()
+        request_handler = DefaultRequestHandler(self.interceptors)
         server = AduibRpcRestFastAPIApp(request_handler=request_handler)
         uvicorn.run(server.build(**kwargs), host=host, port=port)
