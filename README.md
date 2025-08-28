@@ -37,7 +37,7 @@ aduib_rpc/
 
 1. 克隆仓库：
    ```
-   git clone <repository-url>
+   git clone https://github.com/chaorenex1/aduib_rpc.git
    cd aduib_rpc
    ```
 
