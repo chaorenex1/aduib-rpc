@@ -1,6 +1,7 @@
 [project]
 name = "aduib_rpc"
-version = "1.0.0"
+dynamic = ["version"]
+#version = "0.0.0"
 description = "Aduib RPC - A Python library for Aduib AI RPC framework."
 readme = "README.md"
 requires-python = ">=3.10,<=3.12"
@@ -69,7 +70,8 @@ exclude = ["tests/"]
 
 [tool.uv-dynamic-versioning]
 vcs = "git"
-style = "pep440"
+format = "{base}"
+
 
 [tool.uv]
 [dependency-groups]
