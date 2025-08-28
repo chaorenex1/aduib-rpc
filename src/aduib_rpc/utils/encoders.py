@@ -8,13 +8,14 @@ from ipaddress import IPv4Address, IPv4Interface, IPv4Network, IPv6Address, IPv6
 from pathlib import Path, PurePath
 from re import Pattern
 from types import GeneratorType
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Optional, Union, Sequence
 from uuid import UUID
 
 from pydantic import BaseModel
 from pydantic.networks import AnyUrl, NameEmail
 from pydantic.types import SecretBytes, SecretStr
 from pydantic_core import Url
+
 
 def _model_dump(model: BaseModel, mode: Literal["json", "python"] = "json", **kwargs: Any) -> Any:
     return model.model_dump(mode=mode, **kwargs)
@@ -173,7 +174,7 @@ def jsonable_encoder(
                 )
                 encoded_dict[encoded_key] = encoded_value
         return encoded_dict
-    if isinstance(obj, list | set | frozenset | GeneratorType | tuple | deque):
+    if isinstance(obj, list |Sequence| set | frozenset | GeneratorType | tuple | deque):
         encoded_list = []
         for item in obj:
             encoded_list.append(

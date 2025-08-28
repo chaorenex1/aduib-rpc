@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 from aduib_rpc.server.context import ServerContext, ServerInterceptor
 from aduib_rpc.server.model_excution import get_model_executor
 from aduib_rpc.server.model_excution.context import RequestContext
-from aduib_rpc.server.model_excution.model_executor import ModelExecutor, MODEL_EXECUTIONS
+from aduib_rpc.server.model_excution.model_executor import ModelExecutor, add_model_executor
 from aduib_rpc.server.request_handlers import RequestHandler
 from aduib_rpc.types import AduibRpcResponse, AduibRpcRequest, AduibRPCError
 
@@ -15,9 +15,15 @@ logger = logging.getLogger(__name__)
 class DefaultRequestHandler(RequestHandler):
     """Default implementation of RequestHandler with no-op methods."""
 
-    def __init__(self,interceptors: list[ServerInterceptor] | None = None):
-        self.model_executor = None
+    def __init__(self,
+                 model_executors: dict[str, ModelExecutor] | None = None,
+                 interceptors: list[ServerInterceptor] | None = None):
+        self.model_executors = model_executors or []
         self.interceptors= interceptors or []
+        if model_executors:
+            for model_id, executor in model_executors.items():
+                add_model_executor(model_id, executor)
+
 
     async def on_message(
             self,
@@ -43,8 +49,8 @@ class DefaultRequestHandler(RequestHandler):
                         break
             if not intercepted:
                 context:RequestContext=self._setup_request_context(message,context)
-                self.model_executor=self._validate_model_executor(context)
-                response = await self.model_executor.execute(context)
+                model_executor=self._validate_model_executor(context)
+                response = model_executor.execute(context)
                 return AduibRpcResponse(id=context.request_id, result=response)
             else:
                 return AduibRpcResponse(id=context.request_id, result=None, status='error',
@@ -73,8 +79,8 @@ class DefaultRequestHandler(RequestHandler):
                     intercepted = await interceptor.intercept(message, context)
             if not intercepted:
                 context:RequestContext=self._setup_request_context(message,context)
-                self.model_executor=self._validate_model_executor(context)
-                async for response in self.model_executor.execute(context):
+                model_executor=self._validate_model_executor(context)
+                async for response in model_executor.execute(context):
                     yield AduibRpcResponse(id=context.request_id, result=response)
             else:
                 yield AduibRpcResponse(id=context.request_id, result=None, status='error',

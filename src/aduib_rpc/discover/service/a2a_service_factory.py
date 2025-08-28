@@ -64,11 +64,11 @@ class A2aServiceFactory(ServiceFactory):
         """Run a server for the given service instance."""
         match self.service.scheme:
             case TransportSchemes.GRPC:
-                self.server=await self.run_grpc_server()
+                await self.run_grpc_server()
             case TransportSchemes.JSONRPC:
-                self.server=await self.run_jsonrpc_server(**kwargs)
+                await self.run_jsonrpc_server(**kwargs)
             case TransportSchemes.HTTP:
-                self.server=await self.run_rest_server(**kwargs)
+                await self.run_rest_server(**kwargs)
             case _:
                 raise ValueError(f"Unsupported transport scheme: {self.service.scheme}")
 
@@ -91,6 +91,7 @@ class A2aServiceFactory(ServiceFactory):
         loop = asyncio.get_running_loop()
         add_signal_handlers(loop, grpc_server.stop, 5)
         await grpc_server.start()
+        self.server = grpc_server
 
         await asyncio.gather(http_server.serve(), grpc_server.wait_for_termination())
 
@@ -114,7 +115,7 @@ class A2aServiceFactory(ServiceFactory):
             port=agent_card_port,
             log_config=None,
         )
-        logging.info(f'Starting HTTP server on port {agent_card_port}')
+        logger.info(f'Starting HTTP server on port {agent_card_port}')
         return uvicorn.Server(config)
 
     async def create_grpc_server(self, agent_card: AgentCard, host: str, port: int) -> grpc.aio.Server:
@@ -134,7 +135,7 @@ class A2aServiceFactory(ServiceFactory):
         )
         reflection.enable_server_reflection(SERVICE_NAMES, server)
         server.add_insecure_port(f'{host}:{port}')
-        logging.info(f'Starting gRPC server on port {port}')
+        logger.info(f'Starting gRPC server on port {port}')
         return server
 
     async def run_jsonrpc_server(self, **kwargs: Any, ):
@@ -147,6 +148,7 @@ class A2aServiceFactory(ServiceFactory):
         server = A2AStarletteApplication(
             agent_card=self.agent_card, http_handler=request_handler
         )
+        self.server = server
 
         uvicorn.run(server.build(**kwargs), host=host, port=port)
 
@@ -160,5 +162,6 @@ class A2aServiceFactory(ServiceFactory):
         server = A2ARESTFastAPIApplication(
             agent_card=self.agent_card, http_handler=request_handler
         )
+        self.server = server
 
         uvicorn.run(server.build(**kwargs), host=host, port=port)

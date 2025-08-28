@@ -62,4 +62,5 @@ class NacosServiceRegistry(ServiceRegistry):
             service_instances.append(service_instance)
         instance = LoadBalancerFactory.get_load_balancer(self.policy).select_instance(service_instances)
         self.state[service_name] = instance
+        await self.client.subscribe(service_name)
         return instance

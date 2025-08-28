@@ -1,4 +1,5 @@
 import uuid
+from distutils.util import strtobool
 
 from aduib_rpc.server.context import ServerContext
 from aduib_rpc.types import AduibRpcRequest
@@ -43,16 +44,9 @@ class RequestContext:
                     self.model_name = data["model"] if "model" in data else None
         if not self.method:
             self.method = request.method
-            if not self.method:
-                with data_dict as data:
-                    self.method = data["method"] if "method" in data else None
 
         if not self.stream:
-            self.stream = request.stream if request and request.meta and "stream" in request.meta else False
-
-            if not self.stream:
-                with data_dict as data:
-                    self.stream = data["stream"] if "stream" in data else False
+            self.stream = request.meta["stream"]=='true' if request and request.meta and "stream" in request.meta else False
 
 
 

@@ -350,7 +350,8 @@ class PromptMessage(ABC, BaseModel):
         contents = []
         for content in str_contents:
             if isinstance(content.content, str):
-                contents.append(TextPromptMessageContent(data=content.content))
+                content.content=[TextPromptMessageContent(data=content.content)]
+                contents.append(content)
             elif isinstance(content.content, PromptMessageContent):
                 contents.append(content)
             else:
@@ -828,7 +829,7 @@ class AduibRpcResponse(BaseModel):
     result: Union[ChatCompletionResponse, ChatCompletionResponseChunk, EmbeddingsResponse, dict[str, Any],Any, None] = None
     error: Optional[AduibRPCError] = None
     id: Union[str, int, None] = None
-    status: Literal['success', 'error'] = 'success'
+    status: str = 'success' # 'success' or 'error'
 
     def is_success(self) -> bool:
         return self.status == 'success' and self.error is None

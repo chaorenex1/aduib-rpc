@@ -56,8 +56,7 @@ class AduibRpcServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def completion(self, request, context):
-        """rpc bidi_stream_completion(stream RpcTask) returns (stream RpcTaskResponse);
-        """
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')

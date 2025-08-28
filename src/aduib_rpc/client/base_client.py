@@ -1,6 +1,7 @@
+import logging
 import uuid
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator, AsyncGenerator
+from collections.abc import AsyncIterator
 from typing import Optional, Any
 
 from aduib_rpc.client import ClientConfig
@@ -14,6 +15,8 @@ try:
 except ImportError:
     httpx = None  # type: ignore
     Channel = None  # type: ignore
+
+logger=logging.getLogger(__name__)
 
 
 class AduibRpcClient(ABC):
@@ -102,6 +105,10 @@ class BaseAduibRpcClient(AduibRpcClient):
         context.state['session_id'] = str(uuid.uuid4())
         context.state['http_kwargs'] = {'headers': meta['headers']} if meta and 'headers' in meta else {}
         context.state['schema'] = meta['schema'] if 'schema' in meta else None
+        if meta:
+            if 'stream' in meta:
+                logger.warning("The 'stream' meta field is managed by the client configuration and will be overridden.")
+            meta['stream'] = str(self._config.streaming).lower()
         request = AduibRpcRequest(method=method, data=data, meta=meta,id=str(uuid.uuid4()))
         if not self._config.streaming:
             response = await self._transport.completion(

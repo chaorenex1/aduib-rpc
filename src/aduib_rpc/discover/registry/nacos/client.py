@@ -6,7 +6,8 @@ from typing import Callable
 try:
     import nacos
     from v2.nacos import ClientConfigBuilder, GRPCConfig, NacosConfigService, NacosNamingService, ConfigParam, \
-    RegisterInstanceParam, DeregisterInstanceParam, ListInstanceParam, Instance, Service, GetServiceParam
+    RegisterInstanceParam, DeregisterInstanceParam, ListInstanceParam, Instance, Service, GetServiceParam, \
+    SubscribeServiceParam
 except ImportError:
     nacos = None
     ClientConfigBuilder = None
@@ -130,8 +131,10 @@ class NacosClient:
         return await self.naming_service.list_instances(ListInstanceParam(
             service_name=service_name,
             group_name=self.group,
-            healthy_only=True
+            healthy_only=True,
         ))
+    async def subscribe(self,service_name: str):
+        await self.naming_service.subscribe(SubscribeServiceParam(service_name=service_name, group_name=self.group))
 
 
 class ConfigWatcher(Callable):

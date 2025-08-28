@@ -10,7 +10,7 @@ class ModelExecutor(ABC):
     """Model Executor interface."""
 
     @abstractmethod
-    async def execute(self, context: RequestContext) -> Any:
+    def execute(self, context: RequestContext) -> Any:
         """Executes the model with the given context.
         Args:
             context: The request context containing the message, task ID, etc.
@@ -21,7 +21,7 @@ class ModelExecutor(ABC):
 
 
 
-MODEL_EXECUTIONS:dict[str, ModelExecutor|list[ModelExecutor]] = {}
+MODEL_EXECUTIONS:dict[str, ModelExecutor] = {}
 
 
 def model_execution(model_id:str,model_type:Optional[str]=None):
@@ -68,3 +68,15 @@ def get_model_executor(model_id:str,model_type:Optional[str]=None)->ModelExecuto
         if executor:
             return executor
     return None
+
+def add_model_executor(model_id:str,executor:ModelExecutor):
+    """Adds a model executor for the given model ID.
+    Args:
+        model_id: The model ID.
+        executor: The `ModelExecutor` instance to register.
+    """
+    if model_id in MODEL_EXECUTIONS:
+        logger.warning(f"Model executor for model_id '{model_id}' is already registered. Overwriting.")
+    else:
+        logger.info(f"Registering model executor for model_id '{model_id}'.")
+        MODEL_EXECUTIONS[model_id] = executor

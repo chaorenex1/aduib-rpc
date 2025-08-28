@@ -1,7 +1,4 @@
 from google.protobuf import struct_pb2 as _struct_pb2
-from . import chat_completion_pb2 as _chat_completion_pb2
-from . import chat_completion_response_pb2 as _chat_completion_response_pb2
-from . import embedding_pb2 as _embedding_pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional, Union as _Union
@@ -12,17 +9,17 @@ class TaskData(_message.Message):
     __slots__ = ("chat_completion", "embedding")
     CHAT_COMPLETION_FIELD_NUMBER: _ClassVar[int]
     EMBEDDING_FIELD_NUMBER: _ClassVar[int]
-    chat_completion: _chat_completion_pb2.ChatCompletion
-    embedding: _embedding_pb2.EmbeddingRequest
-    def __init__(self, chat_completion: _Optional[_Union[_chat_completion_pb2.ChatCompletion, _Mapping]] = ..., embedding: _Optional[_Union[_embedding_pb2.EmbeddingRequest, _Mapping]] = ...) -> None: ...
+    chat_completion: bytes
+    embedding: bytes
+    def __init__(self, chat_completion: _Optional[bytes] = ..., embedding: _Optional[bytes] = ...) -> None: ...
 
 class TaskResponseData(_message.Message):
     __slots__ = ("chat_completion_response", "embedding_response")
     CHAT_COMPLETION_RESPONSE_FIELD_NUMBER: _ClassVar[int]
     EMBEDDING_RESPONSE_FIELD_NUMBER: _ClassVar[int]
-    chat_completion_response: _chat_completion_response_pb2.ChatCompletionResponse
-    embedding_response: _embedding_pb2.EmbeddingResponse
-    def __init__(self, chat_completion_response: _Optional[_Union[_chat_completion_response_pb2.ChatCompletionResponse, _Mapping]] = ..., embedding_response: _Optional[_Union[_embedding_pb2.EmbeddingResponse, _Mapping]] = ...) -> None: ...
+    chat_completion_response: bytes
+    embedding_response: bytes
+    def __init__(self, chat_completion_response: _Optional[bytes] = ..., embedding_response: _Optional[bytes] = ...) -> None: ...
 
 class RpcError(_message.Message):
     __slots__ = ("data", "message", "code")
@@ -42,9 +39,9 @@ class RpcTask(_message.Message):
     DATA_FIELD_NUMBER: _ClassVar[int]
     id: str
     method: str
-    meta: _struct_pb2.Struct
+    meta: str
     data: TaskData
-    def __init__(self, id: _Optional[str] = ..., method: _Optional[str] = ..., meta: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., data: _Optional[_Union[TaskData, _Mapping]] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., method: _Optional[str] = ..., meta: _Optional[str] = ..., data: _Optional[_Union[TaskData, _Mapping]] = ...) -> None: ...
 
 class RpcTaskResponse(_message.Message):
     __slots__ = ("id", "status", "result", "error")
