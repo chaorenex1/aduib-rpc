@@ -1,9 +1,9 @@
 import asyncio
 import logging
+import platform
 import signal
 from abc import ABC, abstractmethod
-from collections.abc import Coroutine
-from typing import Any
+from typing import Any, Callable
 
 from aduib_rpc.utils.net_utils import NetUtils
 
@@ -16,6 +16,7 @@ try:
     from a2a.server.agent_execution import AgentExecutor
     from a2a.server.request_handlers import DefaultRequestHandler, GrpcHandler
     from a2a.server.apps import A2ARESTFastAPIApplication, A2AStarletteApplication
+
     is_a2a_installed = True
 except ImportError:
     AgentExecutor = None  # type: ignore # pyright: ignore
@@ -32,7 +33,7 @@ except ImportError:
 
 from aduib_rpc.discover.entities import ServiceInstance
 
-logger=logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def get_ip_port(service: ServiceInstance) -> tuple[str, int]:
@@ -45,26 +46,28 @@ def get_ip_port(service: ServiceInstance) -> tuple[str, int]:
     port = service.port
     return host, port
 
-def add_signal_handlers(loop: asyncio.AbstractEventLoop, shutdown_coro: Coroutine) -> None:
-    async def shutdown(sig: signal.Signals) -> None:
+
+def add_signal_handlers(loop, shutdown_coro: Callable[..., Any], *args, **kwargs) -> None:
+    """Add signal handlers for graceful shutdown."""
+    if platform.system() == 'Windows':
+        return
+
+    def shutdown(sig: signal.Signals) -> None:
         logger.warning('Received shutdown signal %s', sig)
-        await shutdown_coro
+        shutdown_coro(*args, **kwargs)
         logger.warning('shutdown complete')
+
     for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown(s)))
+        loop.add_signal_handler(sig, lambda s=sig: shutdown(s))
+
 
 class ServiceFactory(ABC):
     """Class for discovering services on the network."""
 
     @abstractmethod
-    async def run_server(self,**kwargs: Any):
+    async def run_server(self, **kwargs: Any):
         """Run a server for the given service instance."""
 
     @abstractmethod
-    async def register_service(self):
-        """Discover services by name."""
-
-    @abstractmethod
-    async def deregister_service(self):
-        """Deregister a service from the discovery system."""
-
+    def get_server(self) -> Any:
+        """Get the server instance."""

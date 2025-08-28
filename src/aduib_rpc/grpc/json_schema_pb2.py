@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11json_schema.proto\x12\x14src.aduib_rpc.protos\"\xbb\x05\n\nJSONSchema\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\x12\x15\n\rdefault_value\x18\x03 \x01(\t\x12\x0c\n\x04\x65num\x18\x04 \x03(\t\x12\x44\n\nproperties\x18\x05 \x03(\x0b\x32\x30.src.aduib_rpc.protos.JSONSchema.PropertiesEntry\x12/\n\x05items\x18\x06 \x01(\x0b\x32 .src.aduib_rpc.protos.JSONSchema\x12\x12\n\nmin_length\x18\x07 \x01(\x05\x12\x12\n\nmax_length\x18\x08 \x01(\x05\x12\x0f\n\x07minimum\x18\t \x01(\x01\x12\x0f\n\x07maximum\x18\n \x01(\x01\x12\x10\n\x08required\x18\x0b \x03(\t\x12\x1d\n\x15\x61\x64\x64itional_properties\x18\x0c \x01(\x08\x12\x30\n\x06one_of\x18\r \x03(\x0b\x32 .src.aduib_rpc.protos.JSONSchema\x12\x30\n\x06\x61ny_of\x18\x0e \x03(\x0b\x32 .src.aduib_rpc.protos.JSONSchema\x12\x30\n\x06\x61ll_of\x18\x0f \x03(\x0b\x32 .src.aduib_rpc.protos.JSONSchema\x12\x0f\n\x07pattern\x18\x10 \x01(\t\x12\x44\n\nextensions\x18\x11 \x03(\x0b\x32\x30.src.aduib_rpc.protos.JSONSchema.ExtensionsEntry\x1aS\n\x0fPropertiesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12/\n\x05value\x18\x02 \x01(\x0b\x32 .src.aduib_rpc.protos.JSONSchema:\x02\x38\x01\x1a\x31\n\x0f\x45xtensionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11json_schema.proto\x12\x13src.aduib_rpc.proto\"\xb4\x05\n\nJSONSchema\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\x12\x15\n\rdefault_value\x18\x03 \x01(\t\x12\x0c\n\x04\x65num\x18\x04 \x03(\t\x12\x43\n\nproperties\x18\x05 \x03(\x0b\x32/.src.aduib_rpc.proto.JSONSchema.PropertiesEntry\x12.\n\x05items\x18\x06 \x01(\x0b\x32\x1f.src.aduib_rpc.proto.JSONSchema\x12\x12\n\nmin_length\x18\x07 \x01(\x05\x12\x12\n\nmax_length\x18\x08 \x01(\x05\x12\x0f\n\x07minimum\x18\t \x01(\x01\x12\x0f\n\x07maximum\x18\n \x01(\x01\x12\x10\n\x08required\x18\x0b \x03(\t\x12\x1d\n\x15\x61\x64\x64itional_properties\x18\x0c \x01(\x08\x12/\n\x06one_of\x18\r \x03(\x0b\x32\x1f.src.aduib_rpc.proto.JSONSchema\x12/\n\x06\x61ny_of\x18\x0e \x03(\x0b\x32\x1f.src.aduib_rpc.proto.JSONSchema\x12/\n\x06\x61ll_of\x18\x0f \x03(\x0b\x32\x1f.src.aduib_rpc.proto.JSONSchema\x12\x0f\n\x07pattern\x18\x10 \x01(\t\x12\x43\n\nextensions\x18\x11 \x03(\x0b\x32/.src.aduib_rpc.proto.JSONSchema.ExtensionsEntry\x1aR\n\x0fPropertiesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12.\n\x05value\x18\x02 \x01(\x0b\x32\x1f.src.aduib_rpc.proto.JSONSchema:\x02\x38\x01\x1a\x31\n\x0f\x45xtensionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,10 +35,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_JSONSCHEMA_PROPERTIESENTRY']._serialized_options = b'8\001'
   _globals['_JSONSCHEMA_EXTENSIONSENTRY']._loaded_options = None
   _globals['_JSONSCHEMA_EXTENSIONSENTRY']._serialized_options = b'8\001'
-  _globals['_JSONSCHEMA']._serialized_start=44
-  _globals['_JSONSCHEMA']._serialized_end=743
-  _globals['_JSONSCHEMA_PROPERTIESENTRY']._serialized_start=609
-  _globals['_JSONSCHEMA_PROPERTIESENTRY']._serialized_end=692
-  _globals['_JSONSCHEMA_EXTENSIONSENTRY']._serialized_start=694
-  _globals['_JSONSCHEMA_EXTENSIONSENTRY']._serialized_end=743
+  _globals['_JSONSCHEMA']._serialized_start=43
+  _globals['_JSONSCHEMA']._serialized_end=735
+  _globals['_JSONSCHEMA_PROPERTIESENTRY']._serialized_start=602
+  _globals['_JSONSCHEMA_PROPERTIESENTRY']._serialized_end=684
+  _globals['_JSONSCHEMA_EXTENSIONSENTRY']._serialized_start=686
+  _globals['_JSONSCHEMA_EXTENSIONSENTRY']._serialized_end=735
 # @@protoc_insertion_point(module_scope)

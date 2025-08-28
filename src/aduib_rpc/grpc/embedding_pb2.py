@@ -24,17 +24,17 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x65mbedding.proto\x12\x14src.aduib_rpc.protos\"[\n\x10\x45mbeddingRequest\x12\x0e\n\x06prompt\x18\x01 \x01(\t\x12\r\n\x05model\x18\x02 \x01(\t\x12\x17\n\x0f\x65ncoding_format\x18\x03 \x01(\t\x12\x0f\n\x07prompts\x18\x04 \x03(\t\"8\n\x14\x45mbeddingBatchResult\x12\x11\n\tembedding\x18\x01 \x03(\x02\x12\r\n\x05index\x18\x02 \x01(\x03\"\x94\x01\n\x11\x45mbeddingResponse\x12\x0e\n\x06object\x18\x01 \x01(\t\x12\r\n\x05model\x18\x02 \x01(\t\x12\x11\n\tembedding\x18\x03 \x03(\x02\x12>\n\nembeddings\x18\x04 \x03(\x0b\x32*.src.aduib_rpc.protos.EmbeddingBatchResult\x12\r\n\x05index\x18\x05 \x01(\x03\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x65mbedding.proto\x12\x13src.aduib_rpc.proto\"[\n\x10\x45mbeddingRequest\x12\x0e\n\x06prompt\x18\x01 \x01(\t\x12\r\n\x05model\x18\x02 \x01(\t\x12\x17\n\x0f\x65ncoding_format\x18\x03 \x01(\t\x12\x0f\n\x07prompts\x18\x04 \x03(\t\"8\n\x14\x45mbeddingBatchResult\x12\x11\n\tembedding\x18\x01 \x03(\x02\x12\r\n\x05index\x18\x02 \x01(\x03\"\x93\x01\n\x11\x45mbeddingResponse\x12\x0e\n\x06object\x18\x01 \x01(\t\x12\r\n\x05model\x18\x02 \x01(\t\x12\x11\n\tembedding\x18\x03 \x03(\x02\x12=\n\nembeddings\x18\x04 \x03(\x0b\x32).src.aduib_rpc.proto.EmbeddingBatchResult\x12\r\n\x05index\x18\x05 \x01(\x03\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'embedding_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_EMBEDDINGREQUEST']._serialized_start=41
-  _globals['_EMBEDDINGREQUEST']._serialized_end=132
-  _globals['_EMBEDDINGBATCHRESULT']._serialized_start=134
-  _globals['_EMBEDDINGBATCHRESULT']._serialized_end=190
-  _globals['_EMBEDDINGRESPONSE']._serialized_start=193
-  _globals['_EMBEDDINGRESPONSE']._serialized_end=341
+  _globals['_EMBEDDINGREQUEST']._serialized_start=40
+  _globals['_EMBEDDINGREQUEST']._serialized_end=131
+  _globals['_EMBEDDINGBATCHRESULT']._serialized_start=133
+  _globals['_EMBEDDINGBATCHRESULT']._serialized_end=189
+  _globals['_EMBEDDINGRESPONSE']._serialized_start=192
+  _globals['_EMBEDDINGRESPONSE']._serialized_end=339
 # @@protoc_insertion_point(module_scope)

@@ -1,20 +1,23 @@
-import asyncio
 import json
 import logging
 import signal
 from typing import Callable
 
 import nacos
-from v2.nacos import ClientConfigBuilder, GRPCConfig, NacosConfigService, NacosNamingService, ConfigParam
+from v2.nacos import ClientConfigBuilder, GRPCConfig, NacosConfigService, NacosNamingService, ConfigParam, \
+    RegisterInstanceParam, DeregisterInstanceParam, ListInstanceParam, Instance, Service, GetServiceParam
+
+from aduib_rpc.utils.async_utils import AsyncUtils
 
 logger = logging.getLogger(__name__)
+
 
 class NacosClient:
     def __init__(self, server_addr: str,
                  namespace: str,
                  group: str,
-                 user_name:str,
-                 password:str,
+                 user_name: str,
+                 password: str,
                  log_level: str = "INFO"):
         self.naming_service = None
         self.config_service = None
@@ -26,28 +29,29 @@ class NacosClient:
         self.cache = {}
         self.log_level = log_level
         self.client_config = (ClientConfigBuilder()
-                         .username(self.user_name)
-                         .password(self.password)
-                         .server_address(self.server_addr)
-                         .log_level(self.log_level)
-                         .namespace_id(self.namespace)
-                         .grpc_config(GRPCConfig(grpc_timeout=5000))
-                         .build())
+                              .username(self.user_name)
+                              .password(self.password)
+                              .server_address(self.server_addr)
+                              .log_level(self.log_level)
+                              .namespace_id(self.namespace)
+                              .grpc_config(GRPCConfig(grpc_timeout=5000))
+                              .build())
         self.client = nacos.NacosClient(server_addresses=server_addr, namespace=namespace, username=user_name,
-                                   password=password)
+                                        password=password)
         self.config_watcher = ConfigWatcher(self)
+        self.config_service: NacosConfigService = None
+        self.naming_service: NacosNamingService = None
 
     async def create_config_service(self):
-        self.config_service= await NacosConfigService.create_config_service(self.client_config)
-        await self.config_service.server_health()
+        self.config_service = await NacosConfigService.create_config_service(self.client_config)
 
     async def create_naming_service(self):
-        self.naming_service=await NacosNamingService.create_naming_service(self.client_config)
-        await self.naming_service.server_health()
+        self.naming_service = await NacosNamingService.create_naming_service(self.client_config)
 
     """
     get config value from nacos
     """
+
     async def get_all_dicts(self, data_id: str):
         data = self.cache.get(data_id)
         # data is none or is ''
@@ -58,7 +62,7 @@ class NacosClient:
                 self.cache[data_id] = json.loads(data)
         return self.cache.get(data_id)
 
-    async def register_config_listener(self,data_id: str):
+    async def register_config_listener(self, data_id: str):
         try:
             # context = multiprocessing.get_context("spawn")
             # context.Process(target=(self.client.add_config_watcher(data_id=data_id,group=self.group,cb=ConfigWatcher(self))),
@@ -79,33 +83,43 @@ class NacosClient:
         except Exception as e:
             logger.error(f"register_config_watcher error:{e}")
 
-
-
     def publish_config(self, data_id: str, data: str):
         logger.debug(f"publish_config:{data_id},{data}")
-        self.client.publish_config(data_id=data_id, group=self.group,content=data,config_type="json")
+        self.client.publish_config(data_id=data_id, group=self.group, content=data, config_type="json")
 
-    async def register_instance(self, service_name: str, ip: str, port: int,weight: int = 1,metadata: dict = None):
+    async def register_instance(self, service_name: str, ip: str, port: int, weight: int = 1, metadata=None):
+        if metadata is None:
+            metadata = {}
         logger.debug(f"register_instance:{service_name},{ip},{port},{weight}")
-        self.client.add_naming_instance(service_name=service_name, ip=ip, port=port,weight=weight,metadata=metadata)
-        async def remove_instance_signal(signal, frame):
+        # self.naming_service.register_instance(service_name=service_name, ip=ip, port=port,weight=weight,metadata=metadata)
+        await self.naming_service.register_instance(
+            RegisterInstanceParam(service_name=service_name, ip=ip, port=port, weight=weight, metadata=metadata))
+
+        def remove_instance_signal(signal, frame):
             logger.debug(f"remove_instance_signal:{signal},{frame}")
-            await self.remove_instance(service_name=service_name, ip=ip, port=port)
+            self.remove_instance(service_name=service_name, ip=ip, port=port)
 
         signal.signal(signal.SIGINT, remove_instance_signal)
         signal.signal(signal.SIGTERM, remove_instance_signal)
-        self.client.subscribe(listener_fn=NameInstanceWatcher,service_name=service_name, namespace_id =self.namespace,group_name=self.group)
+        # self.client.subscribe(listener_fn=NameInstanceWatcher,service_name=service_name, namespace_id =self.namespace,group_name=self.group)
 
-    async def remove_instance(self, service_name: str, ip: str, port: int):
-        self.client.unsubscribe(service_name=service_name,listener_name="NameInstanceWatcher")
-        self.client.stop_subscribe()
-        self.client.remove_naming_instance(service_name=service_name, ip=ip, port=port)
+    async def remove_instance(self, service_name: str, ip: str = None, port: int = None):
+        # self.client.unsubscribe(service_name=service_name,listener_name="NameInstanceWatcher")
+        # self.client.stop_subscribe()
+        # self.client.remove_naming_instance(service_name=service_name, ip=ip, port=port)
+        await self.naming_service.deregister_instance(
+            DeregisterInstanceParam(service_name=service_name, ip=ip, port=port))
 
-    async def get_instance(self, service_name: str, ip: str, port: int):
-        return self.client.get_naming_instance(service_name=service_name, ip=ip, port=port)
+    async def get_service(self, service_name: str)-> Service:
+        return self.naming_service.get_service(GetServiceParam(service_name=service_name, group_name=self.group))
 
-    async def list_services(self,service_name: str):
-        return self.client.list_naming_instance(service_name=service_name,namespace_id=self.namespace,group_name=self.group,healthy_only=True)
+    async def list_instances(self, service_name: str)-> list[Instance]:
+        # return self.naming_service.list_instances(service_name=service_name, namespace_id=self.namespace,group_name=self.group, healthy_only=True)
+        return await self.naming_service.list_instances(ListInstanceParam(
+            service_name=service_name,
+            group_name=self.group,
+            healthy_only=True
+        ))
 
 
 class ConfigWatcher(Callable):
@@ -113,6 +127,7 @@ class ConfigWatcher(Callable):
 
     def __init__(self, client: NacosClient):
         self.client = client
+
     def __call__(self, data_id: str, group: str, data: str):
         logger.info(f"ConfigWatcher data_id:{data_id},group:{group},data:{data}")
         self.client.cache[data_id] = json.loads(data)

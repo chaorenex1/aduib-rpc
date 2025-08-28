@@ -1,8 +1,7 @@
 import uuid
 
 from aduib_rpc.server.context import ServerContext
-from aduib_rpc.server.model_excution.model_executor import ModelExecutor
-from aduib_rpc.types import AduibRpcRequest, ChatCompletionRequest
+from aduib_rpc.types import AduibRpcRequest
 
 
 class RequestContext:

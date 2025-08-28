@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import aduib_rpc_pb2 as aduib__rpc__pb2
+from . import aduib_rpc_pb2 as aduib__rpc__pb2
 
 GRPC_GENERATED_VERSION = '1.66.1'
 GRPC_VERSION = grpc.__version__
@@ -35,12 +35,12 @@ class AduibRpcServiceStub(object):
             channel: A grpc.Channel.
         """
         self.stream_completion = channel.unary_stream(
-                '/src.aduib_rpc.protos.AduibRpcService/stream_completion',
+                '/src.aduib_rpc.proto.AduibRpcService/stream_completion',
                 request_serializer=aduib__rpc__pb2.RpcTask.SerializeToString,
                 response_deserializer=aduib__rpc__pb2.RpcTaskResponse.FromString,
                 _registered_method=True)
         self.completion = channel.unary_unary(
-                '/src.aduib_rpc.protos.AduibRpcService/completion',
+                '/src.aduib_rpc.proto.AduibRpcService/completion',
                 request_serializer=aduib__rpc__pb2.RpcTask.SerializeToString,
                 response_deserializer=aduib__rpc__pb2.RpcTaskResponse.FromString,
                 _registered_method=True)
@@ -77,9 +77,9 @@ def add_AduibRpcServiceServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'src.aduib_rpc.protos.AduibRpcService', rpc_method_handlers)
+            'src.aduib_rpc.proto.AduibRpcService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('src.aduib_rpc.protos.AduibRpcService', rpc_method_handlers)
+    server.add_registered_method_handlers('src.aduib_rpc.proto.AduibRpcService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -100,7 +100,7 @@ class AduibRpcService(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/src.aduib_rpc.protos.AduibRpcService/stream_completion',
+            '/src.aduib_rpc.proto.AduibRpcService/stream_completion',
             aduib__rpc__pb2.RpcTask.SerializeToString,
             aduib__rpc__pb2.RpcTaskResponse.FromString,
             options,
@@ -127,7 +127,7 @@ class AduibRpcService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/src.aduib_rpc.protos.AduibRpcService/completion',
+            '/src.aduib_rpc.proto.AduibRpcService/completion',
             aduib__rpc__pb2.RpcTask.SerializeToString,
             aduib__rpc__pb2.RpcTaskResponse.FromString,
             options,

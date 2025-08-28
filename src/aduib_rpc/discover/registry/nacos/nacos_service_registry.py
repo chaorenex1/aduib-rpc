@@ -1,9 +1,10 @@
-from typing import List, Any
+from typing import Any
 
 from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.load_balance import LoadBalancerFactory
 from aduib_rpc.discover.registry import ServiceRegistry
 from aduib_rpc.discover.registry.nacos.client import NacosClient
+from aduib_rpc.utils.async_utils import AsyncUtils
 from aduib_rpc.utils.constant import LoadBalancePolicy
 
 
@@ -24,26 +25,40 @@ class NacosServiceRegistry(ServiceRegistry):
         self.password = password
         self.policy = policy
         self.client = NacosClient(server_addresses, namespace,group_name, username, password)
-        self.client.create_config_service()
-        self.client.create_naming_service()
+        # AsyncUtils.run_async(self.client.create_config_service())
+        # AsyncUtils.run_async(self.client.create_naming_service())
+        self.state:dict[str,ServiceInstance]={}
+
+    async def init_naming_service(self):
+        if self.client.naming_service is None:
+            await self.client.create_naming_service()
 
     async def register_service(self, service_info: ServiceInstance) -> None:
         """Register a service instance with the registry."""
+        await self.init_naming_service()
         await self.client.register_instance(service_info.service_name, service_info.host, service_info.port, service_info.weight, service_info.metadata)
 
-    async def unregister_service(self, service_info: ServiceInstance) -> None:
-        await self.client.remove_instance(service_info.service_name, service_info.host, service_info.port)
 
-    async def discover_service(self, service_info:ServiceInstance) -> ServiceInstance| dict[str,Any] | None:
-        services = self.client.list_services(service_info.service_name)
+    def unregister_service(self, service_name: str) -> None:
+        if service_name in self.state:
+            service = self.state.get(service_name)
+            self.client.remove_instance(service_name, service.host, service.port)
+
+    async def discover_service(self, service_name:str) -> ServiceInstance| dict[str,Any] | None:
+        await self.init_naming_service()
+        services = await self.client.list_instances(service_name)
+        if len(services) == 0:
+            return None
         Service_instances: list[ServiceInstance] = []
         for service in services:
             service_instance = ServiceInstance(
                 service_name=service,
-                host=service['ip'],
-                port=service['port'],
-                weight=service.get('weight', 1.0),
-                metadata=service.get('metadata', {})
+                host=service.ip,
+                port=service.port,
+                weight=service.weight,
+                metadata=service.metadata or {}
             )
             Service_instances.append(service_instance)
-        return await LoadBalancerFactory.get_load_balancer(self.policy).select_instance(Service_instances)
+        instance = LoadBalancerFactory.get_load_balancer(self.policy).select_instance(Service_instances)
+        self.state[service_name] = instance
+        return instance

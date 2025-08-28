@@ -1,7 +1,7 @@
 from google.protobuf import struct_pb2 as _struct_pb2
-import chat_completion_pb2 as _chat_completion_pb2
-import chat_completion_response_pb2 as _chat_completion_response_pb2
-import embedding_pb2 as _embedding_pb2
+from . import chat_completion_pb2 as _chat_completion_pb2
+from . import chat_completion_response_pb2 as _chat_completion_response_pb2
+from . import embedding_pb2 as _embedding_pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional, Union as _Union

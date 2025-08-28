@@ -12,6 +12,7 @@ from starlette.routing import Route
 
 from aduib_rpc.discover.service import ServiceFactory, add_signal_handlers, get_ip_port
 from aduib_rpc.discover.registry import ServiceRegistry
+from aduib_rpc.utils.async_utils import AsyncUtils
 from aduib_rpc.utils.constant import TransportSchemes
 from aduib_rpc.utils.net_utils import NetUtils
 
@@ -24,6 +25,7 @@ try:
     from a2a.server.agent_execution import AgentExecutor
     from a2a.server.request_handlers import DefaultRequestHandler, GrpcHandler
     from a2a.server.apps import A2ARESTFastAPIApplication, A2AStarletteApplication
+
     is_a2a_installed = True
 except ImportError:
     AgentExecutor = None  # type: ignore # pyright: ignore
@@ -40,45 +42,38 @@ except ImportError:
 
 from aduib_rpc.discover.entities import ServiceInstance
 
-logger=logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
 
 class A2aServiceFactory(ServiceFactory):
     """Class for discovering A2A services on the network."""
 
     def __init__(self,
                  service: ServiceInstance,
-                 registry: ServiceRegistry|None,
                  agent_card: AgentCard,
                  agent_executor: AgentExecutor,
                  task_store: TaskStore
                  ):
         self.service = service
-        self.registry = registry
         self.agent_card = agent_card
         self.agent_executor = agent_executor
         self.task_store = task_store
+        self.server = None
 
-    async def run_server(self,**kwargs: Any):
+    async def run_server(self, **kwargs: Any):
         """Run a server for the given service instance."""
         match self.service.scheme:
             case TransportSchemes.GRPC:
-                await self.run_grpc_server()
+                self.server=await self.run_grpc_server()
             case TransportSchemes.JSONRPC:
-                await self.run_jsonrpc_server(**kwargs)
+                self.server=await self.run_jsonrpc_server(**kwargs)
             case TransportSchemes.HTTP:
-                await self.run_rest_server(**kwargs)
+                self.server=await self.run_rest_server(**kwargs)
             case _:
                 raise ValueError(f"Unsupported transport scheme: {self.service.scheme}")
 
-    async def register_service(self):
-        """Discover services by name."""
-        loop = asyncio.get_running_loop()
-        add_signal_handlers(loop, self.deregister_service())
-        await self.registry.register_service(self.service)
-
-    async def deregister_service(self):
-        """Deregister a service from the discovery system."""
-        await self.registry.discover_service(self.service.instance_id)
+    def get_server(self) -> Any:
+        return self.server
 
     async def run_grpc_server(self):
         # Create gRPC server
@@ -94,7 +89,7 @@ class A2aServiceFactory(ServiceFactory):
         http_server = self.create_agent_card_server(self.agent_card, host, agent_card_port)
 
         loop = asyncio.get_running_loop()
-        add_signal_handlers(loop, grpc_server.stop(5))
+        add_signal_handlers(loop, grpc_server.stop, 5)
         await grpc_server.start()
 
         await asyncio.gather(http_server.serve(), grpc_server.wait_for_termination())
@@ -142,7 +137,7 @@ class A2aServiceFactory(ServiceFactory):
         logging.info(f'Starting gRPC server on port {port}')
         return server
 
-    async def run_jsonrpc_server(self,**kwargs: Any,):
+    async def run_jsonrpc_server(self, **kwargs: Any, ):
         """Run a JSON-RPC server for the given service instance."""
         host, port = get_ip_port(self.service)
         request_handler = DefaultRequestHandler(
@@ -155,7 +150,7 @@ class A2aServiceFactory(ServiceFactory):
 
         uvicorn.run(server.build(**kwargs), host=host, port=port)
 
-    async def run_rest_server(self,**kwargs: Any,):
+    async def run_rest_server(self, **kwargs: Any, ):
         """Run a JSON-RPC server for the given service instance."""
         host, port = get_ip_port(self.service)
         request_handler = DefaultRequestHandler(

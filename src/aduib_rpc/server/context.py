@@ -1,9 +1,8 @@
 import collections
 from abc import ABC, abstractmethod
-from dataclasses import Field
-from typing import Any, Tuple
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from aduib_rpc.types import AduibRpcRequest, AduibRPCError
 
@@ -16,7 +15,7 @@ class ServerContext(BaseModel):
 
     state: State = Field(default={})
 
-    metadata: dict[str,Any] = Field(default_factory={})
+    metadata: dict[str,Any] = Field(default={})
 
 
 class ServerInterceptor(ABC):

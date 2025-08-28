@@ -35,7 +35,7 @@ class GrpcHandler(AduibRpcServiceServicer):
 
     def __init__(
         self,
-        context_builder: ServerContentBuilder,
+        context_builder: ServerContentBuilder | None,
         request_handler: RequestHandler,
     ):
         """Initializes the GrpcHandler.

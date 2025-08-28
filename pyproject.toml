@@ -45,6 +45,18 @@ documentation = "https://github.com/chaorenex1/aduib_rpc"
 [tool.hatch.build.targets.wheel]
 packages = ["src/aduib_rpc"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "-ra --strict-markers"
+markers = [
+  "asyncio: mark a test as a coroutine that should be run by pytest-asyncio",
+]
+
+[tool.pytest-asyncio]
+mode = "strict"
+
 [build-system]
 requires = ["hatchling","uv-dynamic-versioning"]
 build-backend = "hatchling.build"
@@ -56,16 +68,34 @@ source = "uv-dynamic-versioning"
 exclude = ["tests/"]
 
 [tool.uv-dynamic-versioning]
-version_pattern = "^(\\d+\\.\\d+\\.\\d+.*)$"
-version_source = "tag"
+vcs = "git"
+style = "pep440"
 
 [tool.uv]
 [dependency-groups]
 dev= [
     "alembic==1.16.4",
     "pytest==8.4.1",
+    "pytest-asyncio>=0.22.0",
 ]
 
 [[tool.uv.index]]
 url = "http://mirrors.aliyun.com/pypi/simple/"
 default = true
+
+[tool.mypy]
+plugins = ['pydantic.mypy']
+
+[tool.pyright]
+include = ["src"]
+exclude = [
+  "**/__pycache__",
+  "**/dist",
+  "**/build",
+  "**/node_modules",
+  "**/venv",
+  "**/.venv",
+  "src/aduib_rpc/grpc/",
+]
+reportMissingImports = "none"
+reportMissingModuleSource = "none"

@@ -282,7 +282,7 @@ class JsonRpcApp(ABC):
         response: (
                 JSONRPCErrorResponse
                 | AduibJSONRPCResponse
-                | AsyncGenerator[JsonRpcStreamingMessageResponse]
+                | AsyncGenerator[JsonRpcStreamingMessageResponse, None]
         ),
         context: ServerContext) -> Response:
         """Creates a JSON-RPC response.

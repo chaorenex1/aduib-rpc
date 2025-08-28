@@ -48,7 +48,7 @@ class RESTHandler:
             self,
             request: Request,
             context: ServerContext | None = None
-    ) -> AsyncGenerator[str]:
+    ) -> AsyncGenerator[str, None]:
         """Handles the 'stream_message' method.
 
         Args:

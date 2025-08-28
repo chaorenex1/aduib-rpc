@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Union, Any
 
@@ -5,12 +6,14 @@ from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.load_balance import LoadBalancerFactory
 from aduib_rpc.utils.constant import LoadBalancePolicy
 
+logger=logging.getLogger(__name__)
+
 
 class ServiceRegistry(ABC):
     """Abstract base class for a service registry."""
 
     @abstractmethod
-    async def register_service(self,service_info: ServiceInstance) -> None:
+    def register_service(self,service_info: ServiceInstance) -> None:
         """Registers a service with the registry.
 
         Args:
@@ -18,19 +21,19 @@ class ServiceRegistry(ABC):
         """
 
     @abstractmethod
-    async def unregister_service(self, service_info: Union[str,ServiceInstance]) -> None:
+    def unregister_service(self, service_name: str) -> None:
         """Unregisters a service from the registry.
 
         Args:
-            service_info: The name of the service to unregister or a ServiceInstance object.
+            service_info: The name of the service to unregister
         """
 
     @abstractmethod
-    async def discover_service(self, service_info: Union[str,ServiceInstance]) -> ServiceInstance |dict[str,Any] | None:
+    def discover_service(self, service_name: str) -> ServiceInstance |dict[str,Any] | None:
         """Discovers a service by its name.
 
         Args:
-            service_info: The name of the service to discover or a ServiceInstance object.
+            service_info: The name of the service to discover
 
         Returns:
             A object containing information about the service, or None if not found.
@@ -44,12 +47,13 @@ class InMemoryServiceRegistry(ServiceRegistry):
         self.policy = policy
         self._services: dict[str, list[ServiceInstance]] = {}
 
-    async def register_service(self, service_info: ServiceInstance) -> None:
+    def register_service(self, service_info: ServiceInstance) -> None:
         if service_info.service_name not in self._services:
             self._services[service_info.service_name] = []
         self._services[service_info.service_name].append(service_info)
+        logger.info(f"Registered service: {service_info.service_name}")
 
-    async def unregister_service(self, service_name: str) -> None:
+    def unregister_service(self, service_name: str) -> None:
         if service_name in self._services:
             del self._services[service_name]
         else:
@@ -58,7 +62,11 @@ class InMemoryServiceRegistry(ServiceRegistry):
                 if instance.instance_id == service_name:
                     instances.remove(instance)
                     break
+        logger.info(f"Unregistered service: {service_name}")
 
 
-    async def discover_service(self, service_name: str) -> ServiceInstance | None:
-       return await LoadBalancerFactory.get_load_balancer(self.policy).select_instance(self._services.get(service_name))
+    def discover_service(self, service_name: str) -> ServiceInstance | None:
+        if service_name not in self._services:
+            return None
+        instances = self._services.get(service_name)
+        return  LoadBalancerFactory.get_load_balancer(self.policy).select_instance(instances)

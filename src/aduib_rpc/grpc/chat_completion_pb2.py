@@ -22,11 +22,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-import json_schema_pb2 as json__schema__pb2
+from . import json_schema_pb2 as json__schema__pb2
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x63hat_completion.proto\x12\x14src.aduib_rpc.protos\x1a\x11json_schema.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa7\x01\n\nProperties\x12\x44\n\nproperties\x18\x01 \x03(\x0b\x32\x30.src.aduib_rpc.protos.Properties.PropertiesEntry\x1aS\n\x0fPropertiesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12/\n\x05value\x18\x02 \x01(\x0b\x32 .src.aduib_rpc.protos.JSONSchema:\x02\x38\x01\"H\n\x0ePromptMessages\x12(\n\x07\x63ontent\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x0c\n\x04role\x18\x02 \x01(\t\"\xb5\r\n\x0e\x43hatCompletion\x12\x17\n\x0f\x65nable_thinking\x18\x01 \x01(\t\x12\x19\n\x11\x66requency_penalty\x18\x02 \x01(\x03\x12\x19\n\x11include_reasoning\x18\x03 \x01(\t\x12\x1d\n\x15max_completion_tokens\x18\x04 \x01(\x03\x12\x12\n\nmax_tokens\x18\x05 \x01(\x03\x12\x36\n\x08messages\x18\x06 \x03(\x0b\x32$.src.aduib_rpc.protos.PromptMessages\x12\r\n\x05model\x18\x07 \x01(\t\x12\t\n\x01n\x18\x08 \x01(\x03\x12\x18\n\x10presence_penalty\x18\t \x01(\x03\x12\x0e\n\x06prompt\x18\n \x01(\t\x12\x18\n\x10reasoning_effort\x18\x0b \x01(\t\x12M\n\x0fresponse_format\x18\x0c \x01(\x0b\x32\x34.src.aduib_rpc.protos.ChatCompletion.Response_format\x12\x0c\n\x04stop\x18\r \x01(\t\x12\x0e\n\x06stream\x18\x0e \x01(\t\x12O\n\x0estream_options\x18\x0f \x03(\x0b\x32\x37.src.aduib_rpc.protos.ChatCompletion.StreamOptionsEntry\x12\x13\n\x0btemperature\x18\x10 \x01(\x01\x12\x13\n\x0btool_choice\x18\x11 \x01(\t\x12\x39\n\x05tools\x18\x12 \x03(\x0b\x32*.src.aduib_rpc.protos.ChatCompletion.Tools\x12\r\n\x05top_k\x18\x13 \x01(\x03\x12\r\n\x05top_p\x18\x14 \x01(\x03\x12\x0c\n\x04user\x18\x15 \x01(\t\x12&\n\x05\x61udio\x18\x16 \x01(\x0b\x32\x17.google.protobuf.Struct\x12+\n\nmodalities\x18\x17 \x01(\x0b\x32\x17.google.protobuf.Struct\x12.\n\rprompt_embeds\x18\x18 \x01(\x0b\x32\x17.google.protobuf.Struct\x1a\xa5\x04\n\x0fResponse_format\x12U\n\x0bjson_schema\x18\x01 \x01(\x0b\x32@.src.aduib_rpc.protos.ChatCompletion.Response_format.Json_schema\x12\x0c\n\x04type\x18\x02 \x01(\t\x12X\n\nproperties\x18\x03 \x03(\x0b\x32\x44.src.aduib_rpc.protos.ChatCompletion.Response_format.PropertiesEntry\x1a\xfd\x01\n\x0bJson_schema\x12\x13\n\x0b\x64\x65scription\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12W\n\x06schema\x18\x03 \x01(\x0b\x32G.src.aduib_rpc.protos.ChatCompletion.Response_format.Json_schema.Schema\x1ar\n\x06Schema\x12\x39\n\nproperties\x18\x01 \x01(\x0b\x32 .src.aduib_rpc.protos.PropertiesH\x00\x88\x01\x01\x12\x10\n\x08required\x18\x02 \x03(\t\x12\x0c\n\x04type\x18\x03 \x01(\tB\r\n\x0b_properties\x1aS\n\x0fPropertiesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12/\n\x05value\x18\x02 \x01(\x0b\x32 .src.aduib_rpc.protos.JSONSchema:\x02\x38\x01\x1a\xd8\x02\n\x05Tools\x12\x45\n\x08\x66unction\x18\x01 \x01(\x0b\x32\x33.src.aduib_rpc.protos.ChatCompletion.Tools.Function\x12\x0c\n\x04type\x18\x02 \x01(\t\x1a\xf9\x01\n\x08\x46unction\x12\x13\n\x0b\x64\x65scription\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12R\n\nparameters\x18\x03 \x01(\x0b\x32>.src.aduib_rpc.protos.ChatCompletion.Tools.Function.Parameters\x1av\n\nParameters\x12\x39\n\nproperties\x18\x01 \x01(\x0b\x32 .src.aduib_rpc.protos.PropertiesH\x00\x88\x01\x01\x12\x10\n\x08required\x18\x02 \x03(\t\x12\x0c\n\x04type\x18\x03 \x01(\tB\r\n\x0b_properties\x1a\x34\n\x12StreamOptionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x63hat_completion.proto\x12\x13src.aduib_rpc.proto\x1a\x11json_schema.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa5\x01\n\nProperties\x12\x43\n\nproperties\x18\x01 \x03(\x0b\x32/.src.aduib_rpc.proto.Properties.PropertiesEntry\x1aR\n\x0fPropertiesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12.\n\x05value\x18\x02 \x01(\x0b\x32\x1f.src.aduib_rpc.proto.JSONSchema:\x02\x38\x01\"H\n\x0ePromptMessages\x12(\n\x07\x63ontent\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x0c\n\x04role\x18\x02 \x01(\t\"\xa9\r\n\x0e\x43hatCompletion\x12\x17\n\x0f\x65nable_thinking\x18\x01 \x01(\t\x12\x19\n\x11\x66requency_penalty\x18\x02 \x01(\x03\x12\x19\n\x11include_reasoning\x18\x03 \x01(\t\x12\x1d\n\x15max_completion_tokens\x18\x04 \x01(\x03\x12\x12\n\nmax_tokens\x18\x05 \x01(\x03\x12\x35\n\x08messages\x18\x06 \x03(\x0b\x32#.src.aduib_rpc.proto.PromptMessages\x12\r\n\x05model\x18\x07 \x01(\t\x12\t\n\x01n\x18\x08 \x01(\x03\x12\x18\n\x10presence_penalty\x18\t \x01(\x03\x12\x0e\n\x06prompt\x18\n \x01(\t\x12\x18\n\x10reasoning_effort\x18\x0b \x01(\t\x12L\n\x0fresponse_format\x18\x0c \x01(\x0b\x32\x33.src.aduib_rpc.proto.ChatCompletion.Response_format\x12\x0c\n\x04stop\x18\r \x01(\t\x12\x0e\n\x06stream\x18\x0e \x01(\t\x12N\n\x0estream_options\x18\x0f \x03(\x0b\x32\x36.src.aduib_rpc.proto.ChatCompletion.StreamOptionsEntry\x12\x13\n\x0btemperature\x18\x10 \x01(\x01\x12\x13\n\x0btool_choice\x18\x11 \x01(\t\x12\x38\n\x05tools\x18\x12 \x03(\x0b\x32).src.aduib_rpc.proto.ChatCompletion.Tools\x12\r\n\x05top_k\x18\x13 \x01(\x03\x12\r\n\x05top_p\x18\x14 \x01(\x03\x12\x0c\n\x04user\x18\x15 \x01(\t\x12&\n\x05\x61udio\x18\x16 \x01(\x0b\x32\x17.google.protobuf.Struct\x12+\n\nmodalities\x18\x17 \x01(\x0b\x32\x17.google.protobuf.Struct\x12.\n\rprompt_embeds\x18\x18 \x01(\x0b\x32\x17.google.protobuf.Struct\x1a\xa0\x04\n\x0fResponse_format\x12T\n\x0bjson_schema\x18\x01 \x01(\x0b\x32?.src.aduib_rpc.proto.ChatCompletion.Response_format.Json_schema\x12\x0c\n\x04type\x18\x02 \x01(\t\x12W\n\nproperties\x18\x03 \x03(\x0b\x32\x43.src.aduib_rpc.proto.ChatCompletion.Response_format.PropertiesEntry\x1a\xfb\x01\n\x0bJson_schema\x12\x13\n\x0b\x64\x65scription\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12V\n\x06schema\x18\x03 \x01(\x0b\x32\x46.src.aduib_rpc.proto.ChatCompletion.Response_format.Json_schema.Schema\x1aq\n\x06Schema\x12\x38\n\nproperties\x18\x01 \x01(\x0b\x32\x1f.src.aduib_rpc.proto.PropertiesH\x00\x88\x01\x01\x12\x10\n\x08required\x18\x02 \x03(\t\x12\x0c\n\x04type\x18\x03 \x01(\tB\r\n\x0b_properties\x1aR\n\x0fPropertiesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12.\n\x05value\x18\x02 \x01(\x0b\x32\x1f.src.aduib_rpc.proto.JSONSchema:\x02\x38\x01\x1a\xd5\x02\n\x05Tools\x12\x44\n\x08\x66unction\x18\x01 \x01(\x0b\x32\x32.src.aduib_rpc.proto.ChatCompletion.Tools.Function\x12\x0c\n\x04type\x18\x02 \x01(\t\x1a\xf7\x01\n\x08\x46unction\x12\x13\n\x0b\x64\x65scription\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12Q\n\nparameters\x18\x03 \x01(\x0b\x32=.src.aduib_rpc.proto.ChatCompletion.Tools.Function.Parameters\x1au\n\nParameters\x12\x38\n\nproperties\x18\x01 \x01(\x0b\x32\x1f.src.aduib_rpc.proto.PropertiesH\x00\x88\x01\x01\x12\x10\n\x08required\x18\x02 \x03(\t\x12\x0c\n\x04type\x18\x03 \x01(\tB\r\n\x0b_properties\x1a\x34\n\x12StreamOptionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,28 +39,28 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CHATCOMPLETION_RESPONSE_FORMAT_PROPERTIESENTRY']._serialized_options = b'8\001'
   _globals['_CHATCOMPLETION_STREAMOPTIONSENTRY']._loaded_options = None
   _globals['_CHATCOMPLETION_STREAMOPTIONSENTRY']._serialized_options = b'8\001'
-  _globals['_PROPERTIES']._serialized_start=97
-  _globals['_PROPERTIES']._serialized_end=264
-  _globals['_PROPERTIES_PROPERTIESENTRY']._serialized_start=181
-  _globals['_PROPERTIES_PROPERTIESENTRY']._serialized_end=264
-  _globals['_PROMPTMESSAGES']._serialized_start=266
-  _globals['_PROMPTMESSAGES']._serialized_end=338
-  _globals['_CHATCOMPLETION']._serialized_start=341
-  _globals['_CHATCOMPLETION']._serialized_end=2058
-  _globals['_CHATCOMPLETION_RESPONSE_FORMAT']._serialized_start=1108
-  _globals['_CHATCOMPLETION_RESPONSE_FORMAT']._serialized_end=1657
-  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_JSON_SCHEMA']._serialized_start=1319
-  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_JSON_SCHEMA']._serialized_end=1572
-  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_JSON_SCHEMA_SCHEMA']._serialized_start=1458
-  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_JSON_SCHEMA_SCHEMA']._serialized_end=1572
-  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_PROPERTIESENTRY']._serialized_start=181
-  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_PROPERTIESENTRY']._serialized_end=264
-  _globals['_CHATCOMPLETION_TOOLS']._serialized_start=1660
-  _globals['_CHATCOMPLETION_TOOLS']._serialized_end=2004
-  _globals['_CHATCOMPLETION_TOOLS_FUNCTION']._serialized_start=1755
-  _globals['_CHATCOMPLETION_TOOLS_FUNCTION']._serialized_end=2004
-  _globals['_CHATCOMPLETION_TOOLS_FUNCTION_PARAMETERS']._serialized_start=1886
-  _globals['_CHATCOMPLETION_TOOLS_FUNCTION_PARAMETERS']._serialized_end=2004
-  _globals['_CHATCOMPLETION_STREAMOPTIONSENTRY']._serialized_start=2006
-  _globals['_CHATCOMPLETION_STREAMOPTIONSENTRY']._serialized_end=2058
+  _globals['_PROPERTIES']._serialized_start=96
+  _globals['_PROPERTIES']._serialized_end=261
+  _globals['_PROPERTIES_PROPERTIESENTRY']._serialized_start=179
+  _globals['_PROPERTIES_PROPERTIESENTRY']._serialized_end=261
+  _globals['_PROMPTMESSAGES']._serialized_start=263
+  _globals['_PROMPTMESSAGES']._serialized_end=335
+  _globals['_CHATCOMPLETION']._serialized_start=338
+  _globals['_CHATCOMPLETION']._serialized_end=2043
+  _globals['_CHATCOMPLETION_RESPONSE_FORMAT']._serialized_start=1101
+  _globals['_CHATCOMPLETION_RESPONSE_FORMAT']._serialized_end=1645
+  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_JSON_SCHEMA']._serialized_start=1310
+  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_JSON_SCHEMA']._serialized_end=1561
+  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_JSON_SCHEMA_SCHEMA']._serialized_start=1448
+  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_JSON_SCHEMA_SCHEMA']._serialized_end=1561
+  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_PROPERTIESENTRY']._serialized_start=179
+  _globals['_CHATCOMPLETION_RESPONSE_FORMAT_PROPERTIESENTRY']._serialized_end=261
+  _globals['_CHATCOMPLETION_TOOLS']._serialized_start=1648
+  _globals['_CHATCOMPLETION_TOOLS']._serialized_end=1989
+  _globals['_CHATCOMPLETION_TOOLS_FUNCTION']._serialized_start=1742
+  _globals['_CHATCOMPLETION_TOOLS_FUNCTION']._serialized_end=1989
+  _globals['_CHATCOMPLETION_TOOLS_FUNCTION_PARAMETERS']._serialized_start=1872
+  _globals['_CHATCOMPLETION_TOOLS_FUNCTION_PARAMETERS']._serialized_end=1989
+  _globals['_CHATCOMPLETION_STREAMOPTIONSENTRY']._serialized_start=1991
+  _globals['_CHATCOMPLETION_STREAMOPTIONSENTRY']._serialized_end=2043
 # @@protoc_insertion_point(module_scope)

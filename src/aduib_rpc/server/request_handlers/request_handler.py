@@ -33,7 +33,7 @@ class RequestHandler(ABC):
             message: AduibRpcRequest,
             context: ServerContext | None = None,
             interceptors: list[ServerInterceptor] | None = None
-    )-> AsyncGenerator[AduibRpcResponse]:
+    )-> AsyncGenerator[AduibRpcResponse, None]:
         """Handles the 'stream_message' method.
 
         Args:

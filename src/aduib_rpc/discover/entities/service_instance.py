@@ -8,8 +8,8 @@ class ServiceInstance(BaseModel):
     service_name: str
     host: str
     port: int
-    weight: int
-    metadata: dict[str, str] | None = None
+    weight: int=1
+    metadata: dict[str, str] | None = {}
     protocol: AIProtocols
     scheme: TransportSchemes
 
@@ -21,7 +21,7 @@ class ServiceInstance(BaseModel):
     @property
     def instance_id(self) -> str:
         """Returns the service instance ID."""
-        return f"{self.service_name}_{self.host}_{self.port}"
+        return f"{self.service_name}:{self.host}:{self.port}"
 
     def get_metadata_value(self, key: str) -> str | None:
         """Retrieves a metadata value by key."""

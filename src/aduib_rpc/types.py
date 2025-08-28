@@ -339,7 +339,6 @@ class PromptMessage(ABC, BaseModel):
         """
         return not self.content
 
-    @field_validator("content", mode="before")
     def convert_str_prompt_to_content(self):
         """
         Convert string prompt to content.

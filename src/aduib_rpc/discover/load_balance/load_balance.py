@@ -11,7 +11,7 @@ class LoadBalancer(ABC):
     """Abstract base class for a load balancer."""
 
     @abstractmethod
-    async def select_instance(self,instances: list[ServiceInstance],key: str | None = None) -> ServiceInstance | None:
+    def select_instance(self,instances: list[ServiceInstance],key: str | None = None) -> ServiceInstance | None:
         """Selects an instance from the available instances.
 
         Returns:
@@ -28,7 +28,7 @@ class WeightedRoundRobinLB(LoadBalancer):
         self._iter = None
         self._pool = None
 
-    async def select_instance(self,instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
+    def select_instance(self,instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
         self._pool = list(itertools.chain.from_iterable(
             [inst] * inst.weight for inst in instances
         ))
@@ -41,7 +41,7 @@ class RandomLB(LoadBalancer):
     This load balancer selects instances randomly from the available instances.
     """
 
-    async def select_instance(self,instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
+    def select_instance(self,instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
         if not instances:
             return None
         return random.choice(instances)
@@ -73,7 +73,7 @@ class ConsistentHashLB(LoadBalancer):
     def _hash(self, key: str) -> int:
         return int(hashlib.md5(key.encode("utf-8")).hexdigest(), 16)
 
-    async def select_instance(self,instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
+    def select_instance(self,instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
         self.init_hash_ring(instances, self.virtual_nodes)
         if not self.ring:
             return None

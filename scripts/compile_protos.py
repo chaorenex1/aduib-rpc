@@ -1,4 +1,6 @@
+import os
 import platform
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -65,12 +67,33 @@ def ensure_pkg_inits(root: Path):
                 init_file.touch()
             cur = cur.parent
 
+def fix_imports(out: str):
+    for filename in os.listdir(out):
+        if filename.endswith("_pb2.pyi") or filename.endswith("_pb2_grpc.py") or filename.endswith("_pb2.py"):
+            path = os.path.join(out, filename)
+            with open(path, "r", encoding="utf-8") as f:
+                code = f.read()
+
+            # 修改 import xxx_pb2 => from . import xxx_pb2
+            fixed_code = re.sub(
+                r"^import (\w+_pb2)(.*)$",
+                r"from . import \1\2",
+                code,
+                flags=re.MULTILINE,
+            )
+
+            if code != fixed_code:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(fixed_code)
+                print(f"Fixed imports in {filename}")
+
+
 def main():
     check_version()
     clean:bool=True
     mypy:bool=False
     include:list[str]=[]
-    src = Path("../src/aduib_rpc/protos").resolve()
+    src = Path("../src/aduib_rpc/proto").resolve()
     out = Path("../src/aduib_rpc/grpc").resolve()
     out.mkdir(parents=True, exist_ok=True)
 
@@ -110,6 +133,7 @@ def main():
         return res.returncode
 
     ensure_pkg_inits(out)
+    fix_imports(out)
     print(f"Done. Generated to: {out}")
     return 0
 
