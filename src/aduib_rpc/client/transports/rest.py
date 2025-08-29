@@ -41,19 +41,21 @@ class RestTransport(ClientTransport):
         http_args = self.get_http_args(context)
         data_ = aduib_rpc_pb2.RpcTask(id=request.id, method=request.method,
                                       meta=proto_utils.ToProto.metadata(request.meta),
-                                      data=proto_utils.ToProto.taskData(request.data)),
+                                      data=proto_utils.ToProto.taskData(request.data))
+        final_request_payload = request.model_dump(exclude_none=True)
+        final_http_kwargs = http_args or {}
         for interceptor in self.interceptors:
             (
                 final_request_payload,
                 final_http_kwargs,
-            ) = await interceptor.intercept(
+            ) = await interceptor.intercept_request(
                 method,
                 final_request_payload,
                 final_http_kwargs,
                 context,
                 context.get_schema()
             )
-        return MessageToDict(data_), http_args
+        return MessageToDict(data_), final_http_kwargs
 
     async def completion(self, request: AduibRpcRequest, *, context: ClientContext) -> AduibRpcResponse:
         method = "/v1/message/completion"

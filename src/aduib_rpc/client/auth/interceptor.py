@@ -24,6 +24,8 @@ class AuthInterceptor(ClientRequestInterceptor):
             A tuple containing the modified request body and HTTP keyword arguments.
         """
         session_id = context.state["session_id"]
+        if schema is None:
+            return request_body, http_kwargs
         token = await self.credentialProvider.get_credentials(schema, session_id)
         match schema:
             case SecuritySchemes.APIKey:

@@ -102,9 +102,9 @@ class BaseAduibRpcClient(AduibRpcClient):
         """
         if context is None:
             context = ClientContext()
-        context.state['session_id'] = str(uuid.uuid4())
-        context.state['http_kwargs'] = {'headers': meta['headers']} if meta and 'headers' in meta else {}
-        context.state['schema'] = meta['schema'] if 'schema' in meta else None
+        context.state['session_id'] = str(uuid.uuid4()) if not context.state.get('session_id') else context.state.get('session_id')
+        context.state['http_kwargs'] = {'headers': meta['headers']} if meta and 'headers' in meta else context.state.get('http_kwargs')
+        context.state['security_schema'] = meta['security_schema'] if 'security_schema' in meta else context.state.get('security_schema')
         if meta:
             if 'stream' in meta:
                 logger.warning("The 'stream' meta field is managed by the client configuration and will be overridden.")

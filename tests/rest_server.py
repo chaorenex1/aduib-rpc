@@ -30,8 +30,8 @@ class TestModelExecutor(ModelExecutor):
             return response
 
 async def main():
-    service = ServiceInstance(service_name='test_grpc_app', host='10.0.0.124', port=5001,
-                                   protocol=AIProtocols.AduibRpc, weight=1, scheme=TransportSchemes.GRPC)
+    service = ServiceInstance(service_name='test_rest_app', host='10.0.0.124', port=5001,
+                                   protocol=AIProtocols.AduibRpc, weight=1, scheme=TransportSchemes.HTTP)
     registry = NacosServiceRegistry(server_addresses='10.0.0.96:8848',
                                          namespace='eeb6433f-d68c-4b3b-a4a7-eeff19110e4d', group_name='DEFAULT_GROUP',
                                          username='nacos', password='nacos11.')

@@ -80,7 +80,8 @@ class AduibServiceFactory(ServiceFactory):
         request_handler = DefaultRequestHandler(self.interceptors, self.model_executors)
         server = AduibRpcStarletteApp(request_handler=request_handler)
         self.server = server
-        uvicorn.run(server.build(**kwargs), host=host, port=port)
+        config = uvicorn.Config(app=server.build(**kwargs), host=host, port=port, **kwargs)
+        await uvicorn.Server(config).serve()
 
     async def run_rest_server(self, **kwargs: Any, ):
         """Run a REST server for the given service instance."""
@@ -88,4 +89,5 @@ class AduibServiceFactory(ServiceFactory):
         request_handler = DefaultRequestHandler(self.interceptors, self.model_executors)
         server = AduibRpcRestFastAPIApp(request_handler=request_handler)
         self.server = server
-        uvicorn.run(server.build(**kwargs), host=host, port=port)
+        config = uvicorn.Config(app=server.build(**kwargs), host=host, port=port, **kwargs)
+        await uvicorn.Server(config).serve()

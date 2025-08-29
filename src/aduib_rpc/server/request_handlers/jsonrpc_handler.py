@@ -3,9 +3,9 @@ from collections.abc import AsyncIterable
 
 from aduib_rpc.server.context import ServerContext
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
-from aduib_rpc.types import ChatCompletionResponseChunk, ChatCompletionResponse, JsonRpcMessageRequest, \
+from aduib_rpc.types import JsonRpcMessageRequest, \
     JsonRpcMessageResponse, JsonRpcMessageSuccessResponse, JsonRpcStreamingMessageRequest, \
-    JsonRpcStreamingMessageSuccessResponse, JsonRpcStreamingMessageResponse, JSONRPCErrorResponse
+    JsonRpcStreamingMessageSuccessResponse, JsonRpcStreamingMessageResponse, JSONRPCErrorResponse, AduibRpcResponse
 from aduib_rpc.utils.jsonrpc_helper import prepare_response_object
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class JSONRPCHandler:
             return prepare_response_object(
                 request.id,
                 message,
-                (ChatCompletionResponse,),
+                (AduibRpcResponse,),
                 JsonRpcMessageSuccessResponse,
                 JsonRpcMessageResponse,
             )
@@ -84,7 +84,7 @@ class JSONRPCHandler:
                     request.id,
                     event,
                     (
-                        ChatCompletionResponseChunk,
+                        AduibRpcResponse,
                     ),
                     JsonRpcStreamingMessageSuccessResponse,
                     JsonRpcStreamingMessageResponse,

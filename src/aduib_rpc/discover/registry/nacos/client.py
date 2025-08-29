@@ -103,8 +103,7 @@ class NacosClient:
     async def register_instance(self, service_name: str, ip: str, port: int, weight: int = 1, metadata=None):
         if metadata is None:
             metadata = {}
-        logger.debug(f"register_instance:{service_name},{ip},{port},{weight}")
-        # self.naming_service.register_instance(service_name=service_name, ip=ip, port=port,weight=weight,metadata=metadata)
+        logger.debug(f"register_instance:{service_name},{ip},{port},{weight},{metadata}")
         await self.naming_service.register_instance(
             RegisterInstanceParam(service_name=service_name, ip=ip, port=port, weight=weight, metadata=metadata))
 
@@ -134,7 +133,10 @@ class NacosClient:
             healthy_only=True,
         ))
     async def subscribe(self,service_name: str):
-        await self.naming_service.subscribe(SubscribeServiceParam(service_name=service_name, group_name=self.group))
+        await self.naming_service.subscribe(SubscribeServiceParam(service_name=service_name, group_name=self.group,subscribe_callback=NameInstanceWatcher))
+
+    async def unsubscribe(self,service_name: str):
+        await self.naming_service.unsubscribe(SubscribeServiceParam(service_name=service_name, group_name=self.group,subscribe_callback=NameInstanceWatcher))
 
 
 class ConfigWatcher(Callable):

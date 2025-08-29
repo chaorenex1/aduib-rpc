@@ -26,18 +26,16 @@ class InMemoryCredentialsProvider(CredentialsProvider):
         """Initializes the InMemoryCredentialsProvider with optional credentials."""
         self._store: dict[str, Any] = {}
 
-    async def get_credentials(self,scheme: str,context: ClientContext) -> str | None:
+    async def get_credentials(self,scheme: str,session_id: str) -> str | None:
         """Returns the stored credentials.
 
         Args:
             scheme: The authentication scheme (e.g., "Bearer", "Basic").
-            context: The client context containing request-specific information.
+            session_id: The session ID to retrieve credentials for. If None, uses a default key.
         Returns:
             The stored credentials as a string, or None if not set.
         """
-        if not context or "session_id" not in context:
-            return None
-        return self._store.get(context["session_id"]).get(scheme)
+        return self._store.get(session_id).get(scheme)
 
 
     def set_credentials(self,scheme: str,credentials: str,session_id: str | None = None) -> None:

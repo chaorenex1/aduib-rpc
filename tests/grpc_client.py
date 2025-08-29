@@ -16,7 +16,7 @@ async def main():
     registry = NacosServiceRegistry(server_addresses='10.0.0.96:8848',
                                          namespace='eeb6433f-d68c-4b3b-a4a7-eeff19110e4d', group_name='DEFAULT_GROUP',
                                          username='nacos', password='nacos11.')
-    service_name = 'test_jsonrpc_app'
+    service_name = 'test_grpc_app'
     discover_service = await registry.discover_service(service_name)
     logging.debug(f'Service: {discover_service}')
     logging.debug(f'Service URL: {discover_service.url}')

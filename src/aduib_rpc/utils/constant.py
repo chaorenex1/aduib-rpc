@@ -12,6 +12,18 @@ class SecuritySchemes(StrEnum):
     OAuth2="OAuth2"
     OpenIDConnect="OpenIDConnect"
 
+    @classmethod
+    def to_original(cls,value: str):
+        match value:
+            case "APIKey":
+                return SecuritySchemes.APIKey
+            case "OAuth2":
+                return SecuritySchemes.OAuth2
+            case "OpenIDConnect":
+                return SecuritySchemes.OpenIDConnect
+            case _:
+                raise ValueError(f"Unsupported security scheme: {value}")
+
 class LoadBalancePolicy(IntEnum):
     """Load balancer policies for the gRPC client
     RoundRobin
@@ -29,7 +41,7 @@ class TransportSchemes(StrEnum):
     """
     HTTP="http"
     GRPC="grpc"
-    JSONRPC="http"
+    JSONRPC="jsonrpc"
 
     @classmethod
     def to_original(cls,value: str):
@@ -42,6 +54,17 @@ class TransportSchemes(StrEnum):
                 return TransportSchemes.JSONRPC
             case _:
                 raise ValueError(f"Unsupported transport scheme: {value}")
+    @classmethod
+    def get_real_scheme(cls,scheme: 'TransportSchemes'):
+        match scheme:
+            case TransportSchemes.HTTP:
+                return "http"
+            case TransportSchemes.GRPC:
+                return ""
+            case TransportSchemes.JSONRPC:
+                return "http"
+            case _:
+                raise ValueError(f"Unsupported transport scheme: {scheme}")
 
 
 class AIProtocols(StrEnum):

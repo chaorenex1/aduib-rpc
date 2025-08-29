@@ -10,6 +10,7 @@ from aduib_rpc.client import ClientContext, ClientRequestInterceptor, ClientJSON
 from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse, JsonRpcMessageRequest, JsonRpcMessageResponse, \
     JSONRPCErrorResponse, JsonRpcStreamingMessageRequest, JsonRpcStreamingMessageResponse
+from aduib_rpc.utils.constant import DEFAULT_RPC_PATH
 
 
 class JsonRpcTransport(ClientTransport):
@@ -27,6 +28,8 @@ class JsonRpcTransport(ClientTransport):
             raise ValueError('Must provide  url')
         if self.url.endswith('/'):
             self.url = self.url[:-1]
+        if not self.url.endswith(DEFAULT_RPC_PATH):
+            self.url = f"{self.url}{DEFAULT_RPC_PATH}"
         self.httpx_client = httpx_client
         self.interceptors = interceptors or []
 
@@ -45,7 +48,7 @@ class JsonRpcTransport(ClientTransport):
             (
                 final_request_payload,
                 final_http_kwargs,
-            ) = await interceptor.intercept(
+            ) = await interceptor.intercept_request(
                 method_name,
                 final_request_payload,
                 final_http_kwargs,
@@ -89,7 +92,7 @@ class JsonRpcTransport(ClientTransport):
             context,
         )
 
-        modified_kwargs.setdefault('timeout', None)
+        modified_kwargs.setdefault('timeout', 60.0)  # default timeout of 60 seconds
 
         async with aconnect_sse(
                 self.httpx_client,

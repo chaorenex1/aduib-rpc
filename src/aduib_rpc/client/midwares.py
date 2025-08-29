@@ -14,7 +14,11 @@ class ClientContext(BaseModel):
 
     def get_schema(self) -> SecuritySchemes:
         """Retrieve the security scheme from the context state."""
-        return self.state.get('schema')
+        return SecuritySchemes.to_original(self.state.get('security_schema'))
+
+    def get_session_id(self) -> str:
+        """Retrieve the session ID from the context state."""
+        return self.state.get('session_id', None)
 
 
 

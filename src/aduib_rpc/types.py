@@ -1026,7 +1026,7 @@ class AduibJSONRpcRequest(
     RootModel[JsonRpcMessageRequest
               |JsonRpcStreamingMessageRequest
               ]):
-    root: (JSONRPCRequest
+    root: (JsonRpcMessageRequest
            | JsonRpcStreamingMessageRequest)
     """
     Represents a JSON-RPC request envelope.

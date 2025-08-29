@@ -17,7 +17,6 @@ class RESTHandler:
         """
         self.request_handler = request_handler
 
-    @staticmethod
     async def on_message(
             self,
             request: Request,
@@ -43,7 +42,6 @@ class RESTHandler:
         )
         return MessageToDict(proto_utils.ToProto.rpc_response(message))
 
-    @staticmethod
     async def on_stream_message(
             self,
             request: Request,

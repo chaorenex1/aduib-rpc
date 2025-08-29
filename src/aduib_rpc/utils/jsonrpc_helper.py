@@ -3,7 +3,7 @@ from typing import TypeVar
 
 from aduib_rpc.types import ChatCompletionResponse, ChatCompletionResponseChunk, JsonRpcMessageSuccessResponse, \
     JsonRpcStreamingMessageSuccessResponse, JsonRpcMessageResponse, JsonRpcStreamingMessageResponse, JSONRPCError, \
-    JSONRPCErrorResponse
+    JSONRPCErrorResponse, AduibRpcResponse
 
 RT = TypeVar(
     'RT',
@@ -22,7 +22,8 @@ SPT = TypeVar(
 
 # result types
 EventTypes = (
-    ChatCompletionResponse
+    AduibRpcResponse
+    | ChatCompletionResponse
     | ChatCompletionResponseChunk
 )
 """Type alias for possible event types produced by handlers."""
@@ -71,6 +72,7 @@ def prepare_response_object(
         return response_type(
             root=success_payload_type(id=request_id, result=response)  # type:ignore
         )
+
 
     if isinstance(response,JSONRPCError):
         return build_error_response(request_id, response, response_type)

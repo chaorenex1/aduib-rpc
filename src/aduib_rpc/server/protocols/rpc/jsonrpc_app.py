@@ -297,8 +297,8 @@ class JsonRpcApp(ABC):
         """
         if isinstance(response, AsyncGenerator):
             async def event_generator(
-                    stream: AsyncGenerator[JsonRpcStreamingMessageResponse],
-            ) -> AsyncGenerator[dict[str, str]]:
+                    stream: AsyncGenerator[JsonRpcStreamingMessageResponse, None],
+            ) -> AsyncGenerator[dict[str, str], None]:
                 async for item in stream:
                     yield {'data': item.root.model_dump_json(exclude_none=True)}
 
