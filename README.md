@@ -34,10 +34,15 @@ aduib_rpc/
 ```
 
 ## 使用方法
-
+- 安装依赖：
    ```bash
     pip install aduib_rpc aduib_rpc[nacos]
    ```
+- 或者使用 `uv` 安装（推荐）：
+
+    ```bash
+    uv add aduib_rpc aduib_rpc[nacos]
+    ```
 
 ## 使用示例
 
