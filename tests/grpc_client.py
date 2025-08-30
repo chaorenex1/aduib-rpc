@@ -34,8 +34,6 @@ async def main():
     async for r in resp:
         logging.debug(f'Response: {r}')
 
-    # await factory.run_server()
-
 
 if __name__ == '__main__':
     asyncio.run(main())
