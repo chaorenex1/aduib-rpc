@@ -3,9 +3,9 @@ import uuid
 from collections.abc import AsyncGenerator
 
 from aduib_rpc.server.context import ServerContext, ServerInterceptor
-from aduib_rpc.server.model_excution import get_model_executor
-from aduib_rpc.server.model_excution.context import RequestContext
-from aduib_rpc.server.model_excution.model_executor import ModelExecutor, add_model_executor
+from aduib_rpc.server.request_excution import get_request_executor
+from aduib_rpc.server.request_excution.context import RequestContext
+from aduib_rpc.server.request_excution.request_executor import RequestExecutor, add_request_executor
 from aduib_rpc.server.request_handlers import RequestHandler
 from aduib_rpc.types import AduibRpcResponse, AduibRpcRequest, AduibRPCError
 
@@ -16,13 +16,13 @@ class DefaultRequestHandler(RequestHandler):
     """Default implementation of RequestHandler with no-op methods."""
 
     def __init__(self,
-                 model_executors: dict[str, ModelExecutor] | None = None,
+                 request_executors: dict[str, RequestExecutor] | None = None,
                  interceptors: list[ServerInterceptor] | None = None):
-        self.model_executors = model_executors or []
+        self.request_executors = request_executors or []
         self.interceptors= interceptors or []
-        if model_executors:
-            for model_id, executor in model_executors.items():
-                add_model_executor(model_id, executor)
+        if request_executors:
+            for method, executor in request_executors.items():
+                add_request_executor(method, executor)
 
 
     async def on_message(
@@ -49,8 +49,8 @@ class DefaultRequestHandler(RequestHandler):
                         break
             if not intercepted:
                 context:RequestContext=self._setup_request_context(message,context)
-                model_executor=self._validate_model_executor(context)
-                response = model_executor.execute(context)
+                request_executor=self._validate_request_executor(context)
+                response = request_executor.execute(context)
                 return AduibRpcResponse(id=context.request_id, result=response)
             else:
                 return AduibRpcResponse(id=context.request_id, result=None, status='error',
@@ -79,8 +79,8 @@ class DefaultRequestHandler(RequestHandler):
                     intercepted = await interceptor.intercept(message, context)
             if not intercepted:
                 context:RequestContext=self._setup_request_context(message,context)
-                model_executor=self._validate_model_executor(context)
-                async for response in model_executor.execute(context):
+                request_executor=self._validate_request_executor(context)
+                async for response in request_executor.execute(context):
                     yield AduibRpcResponse(id=context.request_id, result=response)
             else:
                 yield AduibRpcResponse(id=context.request_id, result=None, status='error',
@@ -103,13 +103,13 @@ class DefaultRequestHandler(RequestHandler):
         )
         return request_context
 
-    def _validate_model_executor(self, context:RequestContext) -> ModelExecutor:
-        """Validates and returns the ModelExecutor instance."""
-        model_executor: ModelExecutor = get_model_executor(
-            model_id=context.model_name,model_type=context.method)
-        if model_executor is None:
-            logger.error(f"ModelExecutor for {context.model_name} not found")
+    def _validate_request_executor(self, context:RequestContext) -> RequestExecutor:
+        """Validates and returns the RequestExecutor instance."""
+        request_executor: RequestExecutor = get_request_executor(
+            method=context.method)
+        if request_executor is None:
+            logger.error(f"RequestExecutor for {context.model_name} not found")
             raise ValueError(f"No model executor found for model '{context.model_name}' with method '{context.method}'")
-        return model_executor
+        return request_executor
 
 

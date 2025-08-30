@@ -5,22 +5,6 @@ from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Opti
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class TaskData(_message.Message):
-    __slots__ = ("chat_completion", "embedding")
-    CHAT_COMPLETION_FIELD_NUMBER: _ClassVar[int]
-    EMBEDDING_FIELD_NUMBER: _ClassVar[int]
-    chat_completion: bytes
-    embedding: bytes
-    def __init__(self, chat_completion: _Optional[bytes] = ..., embedding: _Optional[bytes] = ...) -> None: ...
-
-class TaskResponseData(_message.Message):
-    __slots__ = ("chat_completion_response", "embedding_response")
-    CHAT_COMPLETION_RESPONSE_FIELD_NUMBER: _ClassVar[int]
-    EMBEDDING_RESPONSE_FIELD_NUMBER: _ClassVar[int]
-    chat_completion_response: bytes
-    embedding_response: bytes
-    def __init__(self, chat_completion_response: _Optional[bytes] = ..., embedding_response: _Optional[bytes] = ...) -> None: ...
-
 class RpcError(_message.Message):
     __slots__ = ("data", "message", "code")
     DATA_FIELD_NUMBER: _ClassVar[int]
@@ -40,8 +24,8 @@ class RpcTask(_message.Message):
     id: str
     method: str
     meta: str
-    data: TaskData
-    def __init__(self, id: _Optional[str] = ..., method: _Optional[str] = ..., meta: _Optional[str] = ..., data: _Optional[_Union[TaskData, _Mapping]] = ...) -> None: ...
+    data: bytes
+    def __init__(self, id: _Optional[str] = ..., method: _Optional[str] = ..., meta: _Optional[str] = ..., data: _Optional[bytes] = ...) -> None: ...
 
 class RpcTaskResponse(_message.Message):
     __slots__ = ("id", "status", "result", "error")
@@ -51,9 +35,9 @@ class RpcTaskResponse(_message.Message):
     ERROR_FIELD_NUMBER: _ClassVar[int]
     id: str
     status: str
-    result: TaskResponseData
+    result: bytes
     error: RpcError
-    def __init__(self, id: _Optional[str] = ..., status: _Optional[str] = ..., result: _Optional[_Union[TaskResponseData, _Mapping]] = ..., error: _Optional[_Union[RpcError, _Mapping]] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., status: _Optional[str] = ..., result: _Optional[bytes] = ..., error: _Optional[_Union[RpcError, _Mapping]] = ...) -> None: ...
 
 class RpcTaskStream(_message.Message):
     __slots__ = ("task", "task_response")

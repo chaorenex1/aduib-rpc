@@ -2,11 +2,13 @@ import time
 from abc import ABC
 from decimal import Decimal
 from enum import StrEnum, Enum
-from typing import List
+from typing import List, cast, TypeVar
 from typing import Optional, Sequence, Annotated, Union, Literal, Any
 
 from pydantic import BaseModel, Field, field_validator, RootModel
 from pydantic import model_validator
+
+T=TypeVar('T')
 
 
 class ModelUsage(BaseModel):
@@ -822,6 +824,12 @@ class AduibRpcRequest(BaseModel):
         if self.meta is None:
             self.meta = {}
         self.meta[key] = value
+    def cast(self, typ: type) -> Any:
+        if self.data is None:
+            return None
+        if isinstance(self.data, typ):
+            return self.data
+        return typ(**self.data)
 
 
 class AduibRpcResponse(BaseModel):
@@ -834,12 +842,12 @@ class AduibRpcResponse(BaseModel):
     def is_success(self) -> bool:
         return self.status == 'success' and self.error is None
 
-    def cast(self, to_type: Any) -> Any:
+    def cast(self, typ: type) -> Any:
         if self.result is None:
             return None
-        if isinstance(self.result, to_type):
+        if isinstance(self.result, typ):
             return self.result
-        return to_type(**self.result)
+        return typ(**self.result)
 
 """
 jsonrpc types

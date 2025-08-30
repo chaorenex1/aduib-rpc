@@ -19,14 +19,7 @@ class FromProto:
         request_dict = MessageToDict(request)
         rpc_request = AduibRpcRequest(id=request.id, method=request.method)
         rpc_request.meta=json.loads(request_dict['meta']) if request.meta else {}
-        if request.data.chat_completion:
-            chat_completion_request:ChatCompletionRequest = pickle.loads(request.data.chat_completion)
-            if not chat_completion_request.messages:
-                rpc_request.data = CompletionRequest(**chat_completion_request.model_dump(exclude_none=True))
-            else:
-                rpc_request.data=chat_completion_request
-        elif request.data.embedding:
-            rpc_request.data=pickle.loads(request.data.embedding).model_dump(exclude_none=True)
+        rpc_request.data=pickle.loads(request.data)
         return rpc_request
 
     @classmethod
@@ -35,11 +28,7 @@ class FromProto:
         if not rpc_response.is_success():
             rpc_response.error = AduibRPCError(**MessageToDict(response.error))
         else:
-            # Determine if the response is a ChatCompletionResponse or ChatCompletionResponseChunk
-            if response.result.chat_completion_response:
-                rpc_response.result = pickle.loads(response.result.chat_completion_response)
-            elif response.result.embedding_response:
-                rpc_response.result = pickle.loads(response.result.chat_completion_response)
+            rpc_response.result = pickle.loads(response.result)
         return rpc_response
 
 
@@ -53,12 +42,7 @@ class ToProto:
             ParseDict(jsonable_encoder(response.error), rpc_error)
             rpc_response.error = rpc_error
         else:
-            if isinstance(response.result, ChatCompletionResponse):
-                rpc_response.result.chat_completion_response=pickle.dumps(response.result)
-            if isinstance(response.result, ChatCompletionResponseChunk):
-                rpc_response.result.chat_completion_response=pickle.dumps(response.result)
-            elif isinstance(response.result, EmbeddingsResponse):
-                rpc_response.result.embedding_response=pickle.dumps(response.result)
+            rpc_response.result=pickle.dumps(response.result)
         return rpc_response
 
     @classmethod
@@ -68,15 +52,8 @@ class ToProto:
         return json.dumps(obj=metadata)
 
     @classmethod
-    def taskData(cls, data: Any) -> aduib_rpc_pb2.TaskData:
-        task_data = aduib_rpc_pb2.TaskData()
-        if isinstance(data, CompletionRequest):
-            task_data.chat_completion=pickle.dumps(data)
-        elif isinstance(data, ChatCompletionRequest):
-            task_data.chat_completion=pickle.dumps(data)
-        elif isinstance(data, EmbeddingRequest):
-            task_data.embedding=pickle.dumps(data)
-        return task_data
+    def taskData(cls, data: Any) -> bytes:
+        return pickle.dumps(data)
 
 
 def dict_to_struct(dictionary: dict[str, Any]) -> struct_pb2.Struct:

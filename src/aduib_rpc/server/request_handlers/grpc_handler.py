@@ -57,8 +57,8 @@ class GrpcHandler(AduibRpcServiceServicer):
         """
         try:
             server_context = self.context_builder.build_context(context)
-            chat_completion_request=proto_utils.FromProto.rpc_request(request)
-            async for response in self.request_handler.on_stream_message(chat_completion_request, server_context):
+            request=proto_utils.FromProto.rpc_request(request)
+            async for response in self.request_handler.on_stream_message(request, server_context):
                 yield proto_utils.ToProto.rpc_response(response)
         except Exception as e:
             await context.abort(
@@ -78,9 +78,9 @@ class GrpcHandler(AduibRpcServiceServicer):
         """
         try:
             server_context = self.context_builder.build_context(context)
-            chat_completion_request=proto_utils.FromProto.rpc_request(request)
+            request=proto_utils.FromProto.rpc_request(request)
             response = await self.request_handler.on_message(
-                chat_completion_request, server_context
+                request, server_context
             )
             return proto_utils.ToProto.rpc_response(response)
         except Exception as e:

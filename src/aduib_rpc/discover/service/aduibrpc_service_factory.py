@@ -11,7 +11,7 @@ from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.service import ServiceFactory, add_signal_handlers, get_ip_port
 from aduib_rpc.grpc import aduib_rpc_pb2_grpc, aduib_rpc_pb2
 from aduib_rpc.server.context import ServerInterceptor
-from aduib_rpc.server.model_excution import ModelExecutor
+from aduib_rpc.server.request_excution import RequestExecutor
 from aduib_rpc.server.protocols.rest import AduibRpcRestFastAPIApp
 from aduib_rpc.server.protocols.rpc import AduibRpcStarletteApp
 from aduib_rpc.server.request_handlers import DefaultRequestHandler, GrpcHandler
@@ -27,10 +27,10 @@ class AduibServiceFactory(ServiceFactory):
     def __init__(self,
                  service_instance: ServiceInstance,
                  interceptors: list[ServerInterceptor] | None = None,
-                 model_executors: dict[str, ModelExecutor] | None = None,
+                 request_executors: dict[str, RequestExecutor] | None = None,
                  ):
         self.interceptors = interceptors or []
-        self.model_executors = model_executors or []
+        self.request_executors = request_executors or []
         self.service = service_instance
         self.server = None
 
@@ -53,7 +53,7 @@ class AduibServiceFactory(ServiceFactory):
         # Create gRPC server
         host, port = get_ip_port(self.service)
         """Creates the gRPC server."""
-        request_handler = DefaultRequestHandler(self.interceptors,self.model_executors)
+        request_handler = DefaultRequestHandler(self.interceptors,self.request_executors)
 
         server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=100))
         aduib_rpc_pb2_grpc.add_AduibRpcServiceServicer_to_server(
@@ -77,7 +77,7 @@ class AduibServiceFactory(ServiceFactory):
     async def run_jsonrpc_server(self, **kwargs: Any, ):
         """Run a JSON-RPC server for the given service instance."""
         host, port = get_ip_port(self.service)
-        request_handler = DefaultRequestHandler(self.interceptors, self.model_executors)
+        request_handler = DefaultRequestHandler(self.interceptors, self.request_executors)
         server = AduibRpcStarletteApp(request_handler=request_handler)
         self.server = server
         config = uvicorn.Config(app=server.build(**kwargs), host=host, port=port, **kwargs)
@@ -86,7 +86,7 @@ class AduibServiceFactory(ServiceFactory):
     async def run_rest_server(self, **kwargs: Any, ):
         """Run a REST server for the given service instance."""
         host, port = get_ip_port(self.service)
-        request_handler = DefaultRequestHandler(self.interceptors, self.model_executors)
+        request_handler = DefaultRequestHandler(self.interceptors, self.request_executors)
         server = AduibRpcRestFastAPIApp(request_handler=request_handler)
         self.server = server
         config = uvicorn.Config(app=server.build(**kwargs), host=host, port=port, **kwargs)

@@ -25,25 +25,21 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x61\x64uib_rpc.proto\x12\x13src.aduib_rpc.proto\x1a\x1cgoogle/protobuf/struct.proto\"B\n\x08TaskData\x12\x19\n\x0f\x63hat_completion\x18\x01 \x01(\x0cH\x00\x12\x13\n\tembedding\x18\x02 \x01(\x0cH\x00\x42\x06\n\x04Kind\"\\\n\x10TaskResponseData\x12\"\n\x18\x63hat_completion_response\x18\x01 \x01(\x0cH\x00\x12\x1c\n\x12\x65mbedding_response\x18\x02 \x01(\x0cH\x00\x42\x06\n\x04Kind\"P\n\x08RpcError\x12%\n\x04\x64\x61ta\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x0c\n\x04\x63ode\x18\x03 \x01(\t\"`\n\x07RpcTask\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06method\x18\x02 \x01(\t\x12\x0c\n\x04meta\x18\x04 \x01(\t\x12+\n\x04\x64\x61ta\x18\x05 \x01(\x0b\x32\x1d.src.aduib_rpc.proto.TaskData\"\x92\x01\n\x0fRpcTaskResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x35\n\x06result\x18\x03 \x01(\x0b\x32%.src.aduib_rpc.proto.TaskResponseData\x12,\n\x05\x65rror\x18\x04 \x01(\x0b\x32\x1d.src.aduib_rpc.proto.RpcError\"\x84\x01\n\rRpcTaskStream\x12,\n\x04task\x18\x01 \x01(\x0b\x32\x1c.src.aduib_rpc.proto.RpcTaskH\x00\x12=\n\rtask_response\x18\x02 \x01(\x0b\x32$.src.aduib_rpc.proto.RpcTaskResponseH\x00\x42\x06\n\x04\x62ody2\xbe\x01\n\x0f\x41\x64uibRpcService\x12Y\n\x11stream_completion\x12\x1c.src.aduib_rpc.proto.RpcTask\x1a$.src.aduib_rpc.proto.RpcTaskResponse0\x01\x12P\n\ncompletion\x12\x1c.src.aduib_rpc.proto.RpcTask\x1a$.src.aduib_rpc.proto.RpcTaskResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x61\x64uib_rpc.proto\x12\x13src.aduib_rpc.proto\x1a\x1cgoogle/protobuf/struct.proto\"P\n\x08RpcError\x12%\n\x04\x64\x61ta\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x0c\n\x04\x63ode\x18\x03 \x01(\t\"A\n\x07RpcTask\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06method\x18\x02 \x01(\t\x12\x0c\n\x04meta\x18\x04 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x05 \x01(\x0c\"k\n\x0fRpcTaskResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x0e\n\x06result\x18\x03 \x01(\x0c\x12,\n\x05\x65rror\x18\x04 \x01(\x0b\x32\x1d.src.aduib_rpc.proto.RpcError\"\x84\x01\n\rRpcTaskStream\x12,\n\x04task\x18\x01 \x01(\x0b\x32\x1c.src.aduib_rpc.proto.RpcTaskH\x00\x12=\n\rtask_response\x18\x02 \x01(\x0b\x32$.src.aduib_rpc.proto.RpcTaskResponseH\x00\x42\x06\n\x04\x62ody2\xbe\x01\n\x0f\x41\x64uibRpcService\x12Y\n\x11stream_completion\x12\x1c.src.aduib_rpc.proto.RpcTask\x1a$.src.aduib_rpc.proto.RpcTaskResponse0\x01\x12P\n\ncompletion\x12\x1c.src.aduib_rpc.proto.RpcTask\x1a$.src.aduib_rpc.proto.RpcTaskResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'aduib_rpc_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_TASKDATA']._serialized_start=70
-  _globals['_TASKDATA']._serialized_end=136
-  _globals['_TASKRESPONSEDATA']._serialized_start=138
-  _globals['_TASKRESPONSEDATA']._serialized_end=230
-  _globals['_RPCERROR']._serialized_start=232
-  _globals['_RPCERROR']._serialized_end=312
-  _globals['_RPCTASK']._serialized_start=314
-  _globals['_RPCTASK']._serialized_end=410
-  _globals['_RPCTASKRESPONSE']._serialized_start=413
-  _globals['_RPCTASKRESPONSE']._serialized_end=559
-  _globals['_RPCTASKSTREAM']._serialized_start=562
-  _globals['_RPCTASKSTREAM']._serialized_end=694
-  _globals['_ADUIBRPCSERVICE']._serialized_start=697
-  _globals['_ADUIBRPCSERVICE']._serialized_end=887
+  _globals['_RPCERROR']._serialized_start=70
+  _globals['_RPCERROR']._serialized_end=150
+  _globals['_RPCTASK']._serialized_start=152
+  _globals['_RPCTASK']._serialized_end=217
+  _globals['_RPCTASKRESPONSE']._serialized_start=219
+  _globals['_RPCTASKRESPONSE']._serialized_end=326
+  _globals['_RPCTASKSTREAM']._serialized_start=329
+  _globals['_RPCTASKSTREAM']._serialized_end=461
+  _globals['_ADUIBRPCSERVICE']._serialized_start=464
+  _globals['_ADUIBRPCSERVICE']._serialized_end=654
 # @@protoc_insertion_point(module_scope)

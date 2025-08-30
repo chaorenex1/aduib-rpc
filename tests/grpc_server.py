@@ -5,15 +5,15 @@ from typing import Any
 from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.registry.nacos.nacos_service_registry import NacosServiceRegistry
 from aduib_rpc.discover.service import AduibServiceFactory
-from aduib_rpc.server.model_excution import ModelExecutor, RequestContext
-from aduib_rpc.server.model_excution.model_executor import model_execution
+from aduib_rpc.server.request_excution import RequestExecutor, RequestContext
+from aduib_rpc.server.request_excution.request_executor import request_execution
 from aduib_rpc.types import ChatCompletionResponse
 from aduib_rpc.utils.constant import AIProtocols, TransportSchemes
 
 logging.basicConfig(level=logging.DEBUG)
 
-@model_execution(model_id="gpt-3.5-turbo")
-class TestModelExecutor(ModelExecutor):
+@request_execution(method="chat.completions")
+class TestRequestExecutor(RequestExecutor):
     def execute(self, context: RequestContext) -> Any:
         print(f"Received prompt: {context}")
         response = ChatCompletionResponse(id="chatcmpl-123", object="chat.completion", created=1677652288,

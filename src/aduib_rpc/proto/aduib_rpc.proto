@@ -2,20 +2,6 @@ syntax = "proto3";
 package src.aduib_rpc.proto;
 import "google/protobuf/struct.proto";
 
-message TaskData {
-  oneof Kind {
-    bytes chat_completion = 1;
-    bytes embedding = 2;
-  }
-}
-
-message TaskResponseData {
-  oneof Kind {
-    bytes chat_completion_response = 1;
-    bytes embedding_response = 2;
-  }
-}
-
 message RpcError {
   google.protobuf.Struct data = 1;
   string message = 2;
@@ -26,13 +12,13 @@ message RpcTask {
   string id = 1;
   string method = 2;
   string meta = 4;
-  TaskData data = 5;
+  bytes data = 5;
 }
 
 message RpcTaskResponse {
   string id = 1;
   string status = 2;
-  TaskResponseData result = 3;
+  bytes result = 3;
   RpcError error = 4;
 }
 

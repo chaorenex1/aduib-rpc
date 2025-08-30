@@ -6,13 +6,13 @@ import grpc
 
 from aduib_rpc.grpc import aduib_rpc_pb2_grpc
 from aduib_rpc.grpc import helloworld_pb2_grpc, helloworld_pb2
-from aduib_rpc.server.model_excution import ModelExecutor, RequestContext
+from aduib_rpc.server.request_excution import RequestExecutor, RequestContext
 from aduib_rpc.server.request_handlers import GrpcHandler, DefaultRequestHandler
 from aduib_rpc.server.request_handlers.grpc_handler import DefaultServerContentBuilder
 from aduib_rpc.types import ChatCompletionResponse
 
 
-class TestModelExecutor(ModelExecutor):
+class TestRequestExecutor(RequestExecutor):
     def execute(self, context: RequestContext) -> Any:
         print(f"Received prompt: {context}")
         response = ChatCompletionResponse(id="chatcmpl-123", object="chat.completion", created=1677652288,
@@ -34,8 +34,9 @@ class Greeter(helloworld_pb2_grpc.GreeterServicer):
 
 async def serve():
     server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
-    aduib_rpc_pb2_grpc.add_AduibRpcServiceServicer_to_server(GrpcHandler(context_builder=DefaultServerContentBuilder(),request_handler=DefaultRequestHandler(model_executors={
-        "gpt-3.5-turbo":TestModelExecutor()
+    aduib_rpc_pb2_grpc.add_AduibRpcServiceServicer_to_server(GrpcHandler(context_builder=DefaultServerContentBuilder(),request_handler=DefaultRequestHandler(
+        request_executors={
+        "gpt-3.5-turbo":TestRequestExecutor()
     })), server)
     # SERVICE_NAMES = (
     #     helloworld_pb2.DESCRIPTOR.services_by_name['Greeter'].full_name,

@@ -67,7 +67,7 @@ class RequestContext:
         Returns:
             The `AduibRpcRequest` object.
         """
-        return self.request
+        return self.request.data
 
     def get_server_context(self) -> ServerContext | None:
         """Returns the server context object.
