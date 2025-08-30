@@ -20,7 +20,6 @@ wheels = [
 
 [[package]]
 name = "aduib-rpc"
-version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
@@ -72,12 +71,12 @@ requires-dist = [
     { name = "opentelemetry-api", marker = "extra == 'telemetry'", specifier = ">=1.33.0" },
     { name = "opentelemetry-sdk", marker = "extra == 'telemetry'", specifier = ">=1.33.0" },
     { name = "protobuf", specifier = ">=4.24.3" },
-    { name = "pydantic", specifier = ">=2.11.7" },
+    { name = "pydantic", specifier = ">=2.11.0" },
     { name = "sse-starlette" },
     { name = "starlette" },
     { name = "uvicorn", marker = "extra == 'uvicorn'", specifier = ">=0.1.5" },
 ]
-provides-extras = ["telemetry", "nacos", "uvicorn", "a2a"]
+provides-extras = ["a2a", "nacos", "telemetry", "uvicorn"]
 
 [package.metadata.requires-dev]
 dev = [
