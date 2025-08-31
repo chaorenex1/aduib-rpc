@@ -1,7 +1,7 @@
-# aduib_rpc
+# Aduib RPC
 
 ## 项目简介
-aduib_rpc 是一个基于 Python 的远程过程调用（RPC）框架，支持 gRPC、JSON-RPC 和 REST 协议。该框架提供了客户端和服务端的完整实现，支持服务发现、负载均衡和认证等功能，特别适用于 AI 服务集成场景。
+Aduib RPC 是一个基于 Python 的远程过程调用（RPC）框架，支持 gRPC、JSON-RPC 和 REST 协议。该框架提供了客户端和服务端的完整实现，支持服务发现、负载均衡和认证等功能，特别适用于 AI 服务集成场景。
 
 ## 核心功能
 
