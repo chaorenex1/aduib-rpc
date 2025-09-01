@@ -1,5 +1,6 @@
 import asyncio
-
+from concurrent import futures
+from types import CoroutineType, FunctionType
 
 async_thread_pool = futures.ThreadPoolExecutor(thread_name_prefix='async_thread_pool')
 
