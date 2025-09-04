@@ -1,5 +1,5 @@
 [project]
-name = "aduib_rpc"
+name = "aduib-rpc"
 dynamic = ["version"]
 #version = "0.0.0"
 description = "Aduib RPC - A Python library for Aduib AI RPC framework."
