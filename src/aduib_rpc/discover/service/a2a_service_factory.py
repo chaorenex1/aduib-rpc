@@ -77,7 +77,7 @@ class A2aServiceFactory(ServiceFactory):
 
     async def run_grpc_server(self):
         # Create gRPC server
-        host, port = get_ip_port(self.service)
+        host, port = self.service.host, self.service.port
         grpc_server = await self.create_grpc_server(self.agent_card, host, port)
         agent_card_port = NetUtils.find_free_port(start_port=port)
 
@@ -140,7 +140,7 @@ class A2aServiceFactory(ServiceFactory):
 
     async def run_jsonrpc_server(self, **kwargs: Any, ):
         """Run a JSON-RPC server for the given service instance."""
-        host, port = get_ip_port(self.service)
+        host, port = self.service.host, self.service.port
         request_handler = DefaultRequestHandler(
             agent_executor=self.agent_executor, task_store=self.task_store
         )
@@ -154,7 +154,7 @@ class A2aServiceFactory(ServiceFactory):
 
     async def run_rest_server(self, **kwargs: Any, ):
         """Run a JSON-RPC server for the given service instance."""
-        host, port = get_ip_port(self.service)
+        host, port = self.service.host, self.service.port
         request_handler = DefaultRequestHandler(
             agent_executor=self.agent_executor, task_store=self.task_store
         )

@@ -816,7 +816,7 @@ class AduibRPCError(BaseModel):
 class AduibRpcRequest(BaseModel):
     aduib_rpc: Literal['1.0'] = '1.0'
     method: str
-    data: Union[ChatCompletionRequest, CompletionRequest, EmbeddingRequest, dict[str, Any],Any, None] = None
+    data: Union[dict[str, Any],Any, None] = None
     meta: Optional[dict[str, Any]] = None
     id: Union[str, int, None] = None
 
@@ -834,7 +834,7 @@ class AduibRpcRequest(BaseModel):
 
 class AduibRpcResponse(BaseModel):
     aduib_rpc: Literal['1.0'] = '1.0'
-    result: Union[ChatCompletionResponse, ChatCompletionResponseChunk, EmbeddingsResponse, dict[str, Any],Any, None] = None
+    result: Union[dict[str, Any],Any, None] = None
     error: Optional[AduibRPCError] = None
     id: Union[str, int, None] = None
     status: str = 'success' # 'success' or 'error'

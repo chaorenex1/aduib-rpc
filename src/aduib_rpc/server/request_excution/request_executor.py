@@ -1,12 +1,11 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Optional
-
-from starlette.requests import Request
+from typing import Any
 
 from aduib_rpc.server.request_excution.context import RequestContext
 
-logger=logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
 
 class RequestExecutor(ABC):
     """Abstract base class for executing requests."""
@@ -20,11 +19,14 @@ class RequestExecutor(ABC):
             The result of the request execution.
         """
 
-REQUEST_EXECUTIONS:dict[str, RequestExecutor] = {}
 
-def request_execution(method:str):
+REQUEST_EXECUTIONS: dict[str, RequestExecutor] = {}
+
+
+def request_execution(method: str):
     """Decorator to register a request executor class."""
-    def decorator(cls:Any):
+
+    def decorator(cls: Any):
         if method:
             if method in REQUEST_EXECUTIONS:
                 logger.warning(f"Request executor for method '{method}' is already registered. Overwriting.")
@@ -34,10 +36,10 @@ def request_execution(method:str):
         else:
             logger.warning("Method is empty. Cannot register request executor.")
         return cls
+
     return decorator
 
-
-def get_request_executor(method:str)-> RequestExecutor | None:
+def get_request_executor(method: str) -> RequestExecutor | None:
     """Retrieves the request executor for the given model ID or type.
     Args:
         method: request method.
@@ -50,7 +52,8 @@ def get_request_executor(method:str)-> RequestExecutor | None:
             return executor
     return None
 
-def add_request_executor(method:str, executor:RequestExecutor):
+
+def add_request_executor(method: str, executor: RequestExecutor):
     """Adds a request executor for the given method.
     Args:
         method: request method.

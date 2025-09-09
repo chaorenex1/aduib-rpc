@@ -3,7 +3,7 @@ import unittest
 
 from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.registry import InMemoryServiceRegistry
-from aduib_rpc.discover.registry.nacos.nacos_service_registry import NacosServiceRegistry
+from aduib_rpc.discover.registry.nacos.nacos import NacosServiceRegistry
 from aduib_rpc.discover.service import AduibServiceFactory
 from aduib_rpc.utils.constant import AIProtocols, TransportSchemes
 logging.basicConfig(level=logging.DEBUG)

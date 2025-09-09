@@ -6,6 +6,9 @@ from typing import Any
 import grpc
 import uvicorn
 from grpc_reflection.v1alpha import reflection
+from thrift.protocol import TBinaryProtocol
+from thrift.server import TServer
+from thrift.transport import TSocket, TTransport
 
 from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.service import ServiceFactory, add_signal_handlers, get_ip_port
@@ -16,6 +19,8 @@ from aduib_rpc.server.protocols.rest import AduibRpcRestFastAPIApp
 from aduib_rpc.server.protocols.rpc import AduibRpcStarletteApp
 from aduib_rpc.server.request_handlers import DefaultRequestHandler, GrpcHandler
 from aduib_rpc.server.request_handlers.grpc_handler import DefaultServerContentBuilder
+from aduib_rpc.server.request_handlers.thrift_handler import ThriftHandler
+from aduib_rpc.thrift import AduibRpcService
 from aduib_rpc.utils.constant import TransportSchemes
 
 logger = logging.getLogger(__name__)
@@ -43,15 +48,28 @@ class AduibServiceFactory(ServiceFactory):
                 await self.run_jsonrpc_server(**kwargs)
             case TransportSchemes.HTTP:
                 await self.run_rest_server(**kwargs)
+            case TransportSchemes.THRIFT:
+                await self.run_thrift_server()
             case _:
                 raise ValueError(f"Unsupported transport scheme: {self.service.scheme}")
 
     def get_server(self) -> Any:
         return self.server
 
+    async def run_thrift_server(self):
+        host, port = self.service.host, self.service.port
+        handler = ThriftHandler(request_handler=DefaultRequestHandler(self.interceptors, self.request_executors))
+        processor = AduibRpcService.Processor(handler)
+        transport = TSocket.TServerSocket(host, port)
+        tfactory = TTransport.TBufferedTransportFactory()
+        pfactory = TBinaryProtocol.TBinaryProtocolFactory()
+        server = TServer.TThreadPoolServer(processor, transport, tfactory, pfactory)
+        logger.info(f"Starting Thrift server on {host}:{port}")
+        server.serve()
+
     async def run_grpc_server(self):
         # Create gRPC server
-        host, port = get_ip_port(self.service)
+        host, port = self.service.host, self.service.port
         """Creates the gRPC server."""
         request_handler = DefaultRequestHandler(self.interceptors,self.request_executors)
 
@@ -76,7 +94,7 @@ class AduibServiceFactory(ServiceFactory):
 
     async def run_jsonrpc_server(self, **kwargs: Any, ):
         """Run a JSON-RPC server for the given service instance."""
-        host, port = get_ip_port(self.service)
+        host, port = self.service.host, self.service.port
         request_handler = DefaultRequestHandler(self.interceptors, self.request_executors)
         server = AduibRpcStarletteApp(request_handler=request_handler)
         self.server = server
@@ -85,7 +103,7 @@ class AduibServiceFactory(ServiceFactory):
 
     async def run_rest_server(self, **kwargs: Any, ):
         """Run a REST server for the given service instance."""
-        host, port = get_ip_port(self.service)
+        host, port = self.service.host, self.service.port
         request_handler = DefaultRequestHandler(self.interceptors, self.request_executors)
         server = AduibRpcRestFastAPIApp(request_handler=request_handler)
         self.server = server

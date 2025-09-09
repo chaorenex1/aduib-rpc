@@ -10,7 +10,7 @@ from aduib_rpc.client.auth.interceptor import AuthInterceptor
 from aduib_rpc.client.base_client import ClientConfig, AduibRpcClient
 from aduib_rpc.client.client_factory import AduibRpcClientFactory
 from aduib_rpc.discover.entities import ServiceInstance
-from aduib_rpc.discover.registry.nacos.nacos_service_registry import NacosServiceRegistry
+from aduib_rpc.discover.registry.nacos.nacos import NacosServiceRegistry
 from aduib_rpc.utils.constant import TransportSchemes, SecuritySchemes, AIProtocols
 
 logging.basicConfig(level=logging.DEBUG)
@@ -46,9 +46,6 @@ async def main():
                                             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0"} | discover_service.get_service_info())
     async for r in resp:
         logging.debug(f'Response: {r}')
-
-    # await factory.run_server()
-
 
 if __name__ == '__main__':
     asyncio.run(main())

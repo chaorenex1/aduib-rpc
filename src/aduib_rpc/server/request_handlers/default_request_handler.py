@@ -6,6 +6,7 @@ from aduib_rpc.server.context import ServerContext, ServerInterceptor
 from aduib_rpc.server.request_excution import get_request_executor
 from aduib_rpc.server.request_excution.context import RequestContext
 from aduib_rpc.server.request_excution.request_executor import RequestExecutor, add_request_executor
+from aduib_rpc.server.request_excution.service_call import ServiceCaller
 from aduib_rpc.server.request_handlers import RequestHandler
 from aduib_rpc.types import AduibRpcResponse, AduibRpcRequest, AduibRPCError
 
@@ -50,8 +51,15 @@ class DefaultRequestHandler(RequestHandler):
             if not intercepted:
                 context:RequestContext=self._setup_request_context(message,context)
                 request_executor=self._validate_request_executor(context)
-                response = request_executor.execute(context)
-                return AduibRpcResponse(id=context.request_id, result=response)
+                if request_executor is None:
+                    service_name= context.method.split('.')[0]
+                    function_name= context.method.split('.')[1]
+                    service_caller = ServiceCaller.from_service_caller(service_name)
+                    response=await service_caller.call(function_name,context.request.data)
+                    return AduibRpcResponse(id=context.request_id, result=response)
+                else:
+                    response = request_executor.execute(context)
+                    return AduibRpcResponse(id=context.request_id, result=response)
             else:
                 return AduibRpcResponse(id=context.request_id, result=None, status='error',
                                        error=intercepted)
@@ -80,8 +88,16 @@ class DefaultRequestHandler(RequestHandler):
             if not intercepted:
                 context:RequestContext=self._setup_request_context(message,context)
                 request_executor=self._validate_request_executor(context)
-                async for response in request_executor.execute(context):
+                if request_executor is None:
+                    service_name= context.method.split('.')[0]
+                    function_class_name= context.method.split('.')[1]
+                    function_name= context.method.split('.')[2]
+                    service_caller = ServiceCaller.from_service_caller(function_class_name)
+                    response=await service_caller.call(function_name,**context.request.data)
                     yield AduibRpcResponse(id=context.request_id, result=response)
+                else:
+                    async for response in request_executor.execute(context):
+                        yield AduibRpcResponse(id=context.request_id, result=response)
             else:
                 yield AduibRpcResponse(id=context.request_id, result=None, status='error',
                                        error=intercepted)
@@ -109,7 +125,6 @@ class DefaultRequestHandler(RequestHandler):
             method=context.method)
         if request_executor is None:
             logger.error(f"RequestExecutor for {context.model_name} not found")
-            raise ValueError(f"No model executor found for model '{context.model_name}' with method '{context.method}'")
         return request_executor
 
 

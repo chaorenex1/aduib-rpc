@@ -38,10 +38,10 @@ logger = logging.getLogger(__name__)
 
 def get_ip_port(service: ServiceInstance) -> tuple[str, int]:
     ip, port = NetUtils.get_ip_and_free_port()
-    if not service.host:
+    if ip:
         service.host = ip
     host = service.host
-    if not service.port:
+    if port:
         service.port = port
     port = service.port
     return host, port

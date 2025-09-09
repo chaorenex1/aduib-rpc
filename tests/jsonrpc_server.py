@@ -3,7 +3,7 @@ import logging
 from typing import Any
 
 from aduib_rpc.discover.entities import ServiceInstance
-from aduib_rpc.discover.registry.nacos.nacos_service_registry import NacosServiceRegistry
+from aduib_rpc.discover.registry.nacos.nacos import NacosServiceRegistry
 from aduib_rpc.discover.service import AduibServiceFactory
 from aduib_rpc.server.request_excution import RequestExecutor, RequestContext
 from aduib_rpc.server.request_excution.request_executor import request_execution

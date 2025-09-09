@@ -19,6 +19,7 @@ dependencies = [
     "grpcio>=1.66.1",
     "grpcio-tools>=1.66.1",
     "grpcio_reflection>=1.66.1",
+    "thrift"
 ]
 
 classifiers = [
@@ -33,7 +34,7 @@ classifiers = [
 
 [project.optional-dependencies]
 telemetry = ["opentelemetry-api>=1.33.0", "opentelemetry-sdk>=1.33.0"]
-nacos = ["nacos-sdk-python==2.0.1"]
+nacos = ["nacos-sdk-python>2.0.1"]
 uvicorn = ["uvicorn>=0.1.5"]
 a2a = ["a2a-sdk>=0.2.4"]
 

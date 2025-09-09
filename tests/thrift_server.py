@@ -2,16 +2,18 @@ import asyncio
 import logging
 from typing import Any
 
-from pydantic import BaseModel
-
+from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.registry.registry_factory import ServiceRegistryFactory
 from aduib_rpc.discover.service import AduibServiceFactory
 from aduib_rpc.server.request_excution import RequestExecutor, RequestContext
 from aduib_rpc.server.request_excution.request_executor import request_execution
-from aduib_rpc.server.request_excution.service_call import service
 from aduib_rpc.types import ChatCompletionResponse
+from aduib_rpc.utils.constant import AIProtocols, TransportSchemes
 
 logging.basicConfig(level=logging.DEBUG)
+logging.getLogger("requests").setLevel(logging.DEBUG)
+logging.getLogger("urllib3").setLevel(logging.DEBUG)
+logging.getLogger("v2").setLevel(logging.DEBUG)
 
 @request_execution(method="chat.completions")
 class TestRequestExecutor(RequestExecutor):
@@ -30,29 +32,6 @@ class TestRequestExecutor(RequestExecutor):
         else:
             return response
 
-class test_add(BaseModel):
-    x: int = 1
-    y: int = 2
-
-@service(service_name='CaculService')
-class caculService:
-    def add(self, x, y):
-        """同步加法"""
-        return x + y
-
-    def add2(self, data:test_add):
-        """同步加法"""
-        return data.x + data.y
-
-    async def async_mul(self, x, y):
-        """异步乘法"""
-        await asyncio.sleep(0.1)
-        return x * y
-
-    def fail(self, x):
-        """会失败的函数"""
-        raise RuntimeError("Oops!")
-
 async def main():
     registry_config = {
         "server_addresses": "10.0.0.96:8848",
@@ -60,20 +39,13 @@ async def main():
         "group_name": "DEFAULT_GROUP",
         "username": "nacos",
         "password": "nacos11.",
-        "max_retry": 3,
-        "DISCOVERY_SERVICE_ENABLED": True,
-        "DISCOVERY_SERVICE_TYPE": "nacos",
-        "APP_NAME": "CaculService"
+        "max_retry": 3
     }
-    service = await ServiceRegistryFactory.start_service_registry(registry_config)
-    # ip,port = NetUtils.get_ip_and_free_port()
-    # service = ServiceInstance(service_name='test_grpc', host=ip, port=port,
-    #                                protocol=AIProtocols.AduibRpc, weight=1, scheme=TransportSchemes.GRPC)
-    # registry = NacosServiceRegistry(server_addresses='10.0.0.96:8848',
-    #                                      namespace='eeb6433f-d68c-4b3b-a4a7-eeff19110e4d', group_name='DEFAULT_GROUP',
-    #                                      username='nacos', password='nacos11.')
+    registry=ServiceRegistryFactory.from_service_registry('nacos', **registry_config)
+    service = ServiceInstance(service_name='test_thrift_app', host='10.0.0.169', port=5009,
+                                   protocol=AIProtocols.AduibRpc, weight=1, scheme=TransportSchemes.THRIFT)
     factory = AduibServiceFactory(service_instance=service)
-    # await registry.register_service(service)
+    await registry.register_service(service)
     await factory.run_server()
 
 if __name__ == '__main__':

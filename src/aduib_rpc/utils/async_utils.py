@@ -25,7 +25,7 @@ class AsyncUtils:
                     raise TypeError("func_or_coro must be an async function or coroutine object")
                 return loop.run_until_complete(coro)
             finally:
-                loop.close()
+                ...
 
         # 在线程池中执行协程
         future = async_thread_pool.submit(run_in_thread)

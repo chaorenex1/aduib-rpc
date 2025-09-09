@@ -1,5 +1,7 @@
+import logging
 from collections.abc import Callable
 
+import grpc
 import httpx
 
 from aduib_rpc.client import ClientRequestInterceptor
@@ -15,19 +17,22 @@ TransportProducer = Callable[
     ClientTransport,
 ]
 
+logger = logging.getLogger(__name__)
+
+
 class AduibRpcClientFactory:
     """Factory class for creating AduibRpcClient instances."""
 
     def __init__(
-        self,
-        config: ClientConfig,
+            self,
+            config: ClientConfig,
     ):
         self._config = config
         self._registry: dict[str, TransportProducer] = {}
         self._register_defaults(config.supported_transports)
 
     def _register_defaults(
-        self, supported: list[str | TransportSchemes]
+            self, supported: list[str | TransportSchemes]
     ) -> None:
         # Empty support list implies JSON-RPC only.
         if TransportSchemes.JSONRPC in supported or not supported:
@@ -59,10 +64,10 @@ class AduibRpcClientFactory:
         self._registry[label] = generator
 
     def create(
-        self,
-        url: str,
-        server_preferred: str = TransportSchemes.JSONRPC,
-        interceptors: list[ClientRequestInterceptor] | None = None,
+            self,
+            url: str,
+            server_preferred: str = TransportSchemes.JSONRPC,
+            interceptors: list[ClientRequestInterceptor] | None = None,
     ) -> AduibRpcClient:
         """Create a new `Client` for the provided `AgentCard`.
 
@@ -103,3 +108,46 @@ class AduibRpcClientFactory:
         return BaseAduibRpcClient(
             self._config, transport, interceptors or []
         )
+
+    @classmethod
+    def create_client(
+            cls,
+            url: str,
+            stream: bool = False,
+            server_preferred: str = TransportSchemes.JSONRPC,
+            interceptors: list[ClientRequestInterceptor] | None = None,
+    ) -> AduibRpcClient:
+        match server_preferred:
+            case TransportSchemes.GRPC:
+                def create_channel(url: str) -> grpc.aio.Channel:
+                    logging.debug(f'Channel URL: {url}')
+                    return grpc.aio.insecure_channel(url)
+
+                client_factory = AduibRpcClientFactory(
+                    config=ClientConfig(streaming=stream, grpc_channel_factory=create_channel,
+                                        supported_transports=[TransportSchemes.GRPC]))
+                aduib_rpc_client: AduibRpcClient = client_factory.create(url,
+                                                                         server_preferred=TransportSchemes.GRPC,
+                                                                         interceptors=interceptors)
+                return aduib_rpc_client
+            case TransportSchemes.JSONRPC:
+                client_factory = AduibRpcClientFactory(
+                    config=ClientConfig(streaming=stream,
+                                        httpx_client=httpx.AsyncClient(),
+                                        supported_transports=[TransportSchemes.JSONRPC]))
+                aduib_rpc_client: AduibRpcClient = client_factory.create(url,
+                                                                         server_preferred=TransportSchemes.JSONRPC,
+                                                                         interceptors=interceptors)
+                return aduib_rpc_client
+            case TransportSchemes.HTTP:
+                client_factory = AduibRpcClientFactory(
+                    config=ClientConfig(streaming=stream,
+                                        httpx_client=httpx.AsyncClient(),
+                                        supported_transports=[TransportSchemes.GRPC, TransportSchemes.JSONRPC,
+                                                              TransportSchemes.HTTP]))
+                aduib_rpc_client: AduibRpcClient = client_factory.create(url,
+                                                                         server_preferred=TransportSchemes.HTTP,
+                                                                         interceptors=interceptors)
+                return aduib_rpc_client
+            case _:
+                raise ValueError(f'Unsupported transport scheme: {server_preferred}')

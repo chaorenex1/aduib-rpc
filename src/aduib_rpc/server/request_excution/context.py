@@ -1,5 +1,4 @@
 import uuid
-from distutils.util import strtobool
 
 from aduib_rpc.server.context import ServerContext
 from aduib_rpc.types import AduibRpcRequest
@@ -34,14 +33,13 @@ class RequestContext:
             self.metadata = request.meta
         if not self.context_id:
             self.context_id = str(uuid.uuid4())
-
-        data_dict = request.data.model_dump(exclude_none=True)
+        if isinstance(request.data,dict):
+            data_dict = request.data
+        else:
+            data_dict = request.data.model_dump(exclude_none=True)
         if not self.model_name:
             self.model_name = request.meta["model"] if request and request.meta and "model" in request.meta else None
 
-            if not self.model_name:
-                with data_dict as data:
-                    self.model_name = data["model"] if "model" in data else None
         if not self.method:
             self.method = request.method
 

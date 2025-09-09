@@ -1,5 +1,4 @@
 import socket
-from lib2to3.fixer_util import find_root
 
 
 class NetUtils:
@@ -29,8 +28,8 @@ class NetUtils:
                 try:
                     s.bind(("", port))  # 绑定测试
                     return port
-                except OSError:
-                    find_root(start_port+1, max_port)
+                except Exception:
+                    cls.find_free_port(start_port+1, max_port)
         raise RuntimeError("没有找到可用端口")
 
     @classmethod

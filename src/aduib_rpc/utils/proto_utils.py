@@ -6,9 +6,7 @@ from google.protobuf import struct_pb2
 from google.protobuf.json_format import ParseDict, MessageToDict
 
 from aduib_rpc.grpc import aduib_rpc_pb2
-from aduib_rpc.types import ChatCompletionRequest, CompletionRequest, AduibRpcRequest, EmbeddingRequest, \
-    AduibRpcResponse, ChatCompletionResponseChunk, EmbeddingsResponse, PromptMessage, AduibRPCError, \
-    ChatCompletionResponse
+from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse, AduibRPCError
 from aduib_rpc.utils.encoders import jsonable_encoder
 
 
