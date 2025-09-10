@@ -54,6 +54,19 @@ class FuncCallContext:
         return list(client_funcs.keys())
 
 
+import importlib
+import pkgutil
+
+def load_service_plugins(package_name: str = __name__):
+    """
+    自动加载指定 package 下所有子模块，触发 @service 和 @client 装饰器的执行。
+    """
+    package = importlib.import_module(package_name)
+    for _, module_name, _ in pkgutil.iter_modules(package.__path__):
+        full_module_name = f"{package_name}.{module_name}"
+        importlib.import_module(full_module_name)
+
+
 def fallback_function(fallback: Callable[..., Any], *args, **kwargs) -> Any:
     try:
         # fallback to async execution

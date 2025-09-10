@@ -11,12 +11,12 @@ from thrift.server import TServer
 from thrift.transport import TSocket, TTransport
 
 from aduib_rpc.discover.entities import ServiceInstance
-from aduib_rpc.discover.service import ServiceFactory, add_signal_handlers, get_ip_port
+from aduib_rpc.discover.service import ServiceFactory, add_signal_handlers
 from aduib_rpc.grpc import aduib_rpc_pb2_grpc, aduib_rpc_pb2
 from aduib_rpc.server.context import ServerInterceptor
-from aduib_rpc.server.request_excution import RequestExecutor
 from aduib_rpc.server.protocols.rest import AduibRpcRestFastAPIApp
 from aduib_rpc.server.protocols.rpc import AduibRpcStarletteApp
+from aduib_rpc.server.request_excution import RequestExecutor
 from aduib_rpc.server.request_handlers import DefaultRequestHandler, GrpcHandler
 from aduib_rpc.server.request_handlers.grpc_handler import DefaultServerContentBuilder
 from aduib_rpc.server.request_handlers.thrift_handler import ThriftHandler
