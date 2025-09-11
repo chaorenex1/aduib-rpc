@@ -5,8 +5,8 @@ from typing import Any
 from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.registry.registry_factory import ServiceRegistryFactory
 from aduib_rpc.discover.service import AduibServiceFactory
-from aduib_rpc.server.request_excution import RequestExecutor, RequestContext
-from aduib_rpc.server.request_excution.request_executor import request_execution
+from aduib_rpc.server.rpc_execution import RequestExecutor, RequestContext
+from aduib_rpc.server.rpc_execution.request_executor import request_execution
 from aduib_rpc.types import ChatCompletionResponse
 from aduib_rpc.utils.constant import AIProtocols, TransportSchemes
 

@@ -9,7 +9,7 @@ import anyio
 from aduib_rpc.client import ClientRequestInterceptor
 from aduib_rpc.client.auth import CredentialsProvider, InMemoryCredentialsProvider
 from aduib_rpc.client.auth.interceptor import AuthInterceptor
-from aduib_rpc.server.request_excution.service_func import ServiceFunc
+from aduib_rpc.server.rpc_execution.service_func import ServiceFunc
 from aduib_rpc.utils.async_utils import AsyncUtils
 
 logger = logging.getLogger(__name__)

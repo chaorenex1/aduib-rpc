@@ -10,7 +10,7 @@ from aduib_rpc.client.base_client import ClientConfig, AduibRpcClient
 from aduib_rpc.client.client_factory import AduibRpcClientFactory
 from aduib_rpc.discover.registry.nacos.nacos import NacosServiceRegistry
 from aduib_rpc.discover.registry.registry_factory import ServiceRegistryFactory
-from aduib_rpc.server.request_excution.service_call import client, FuncCallContext
+from aduib_rpc.server.rpc_execution.service_call import client, FuncCallContext
 from aduib_rpc.utils.constant import TransportSchemes
 
 logging.basicConfig(level=logging.DEBUG)
@@ -42,7 +42,7 @@ class test_add(BaseModel):
     x: int = 1
     y: int = 2
 
-@client("CaculService")
+@client("CaculServiceApp")
 class CaculService:
     def add(self, x, y):
         """同步加法"""

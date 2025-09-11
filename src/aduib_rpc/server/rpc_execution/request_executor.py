@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from aduib_rpc.server.request_excution.context import RequestContext
+from aduib_rpc.server.rpc_execution.context import RequestContext
 
 logger = logging.getLogger(__name__)
 

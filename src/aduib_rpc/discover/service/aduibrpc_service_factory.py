@@ -16,7 +16,7 @@ from aduib_rpc.grpc import aduib_rpc_pb2_grpc, aduib_rpc_pb2
 from aduib_rpc.server.context import ServerInterceptor
 from aduib_rpc.server.protocols.rest import AduibRpcRestFastAPIApp
 from aduib_rpc.server.protocols.rpc import AduibRpcStarletteApp
-from aduib_rpc.server.request_excution import RequestExecutor
+from aduib_rpc.server.rpc_execution import RequestExecutor
 from aduib_rpc.server.request_handlers import DefaultRequestHandler, GrpcHandler
 from aduib_rpc.server.request_handlers.grpc_handler import DefaultServerContentBuilder
 from aduib_rpc.server.request_handlers.thrift_handler import ThriftHandler

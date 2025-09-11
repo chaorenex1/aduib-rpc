@@ -3,10 +3,10 @@ import uuid
 from collections.abc import AsyncGenerator
 
 from aduib_rpc.server.context import ServerContext, ServerInterceptor
-from aduib_rpc.server.request_excution import get_request_executor
-from aduib_rpc.server.request_excution.context import RequestContext
-from aduib_rpc.server.request_excution.request_executor import RequestExecutor, add_request_executor
-from aduib_rpc.server.request_excution.service_call import ServiceCaller
+from aduib_rpc.server.rpc_execution import get_request_executor
+from aduib_rpc.server.rpc_execution.context import RequestContext
+from aduib_rpc.server.rpc_execution.request_executor import RequestExecutor, add_request_executor
+from aduib_rpc.server.rpc_execution.service_call import ServiceCaller
 from aduib_rpc.server.request_handlers import RequestHandler
 from aduib_rpc.types import AduibRpcResponse, AduibRpcRequest, AduibRPCError
 

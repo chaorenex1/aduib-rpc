@@ -6,9 +6,9 @@ from pydantic import BaseModel
 
 from aduib_rpc.discover.registry.registry_factory import ServiceRegistryFactory
 from aduib_rpc.discover.service import AduibServiceFactory
-from aduib_rpc.server.request_excution import RequestExecutor, RequestContext
-from aduib_rpc.server.request_excution.request_executor import request_execution
-from aduib_rpc.server.request_excution.service_call import service
+from aduib_rpc.server.rpc_execution import RequestExecutor, RequestContext
+from aduib_rpc.server.rpc_execution.request_executor import request_execution
+from aduib_rpc.server.rpc_execution.service_call import service
 from aduib_rpc.types import ChatCompletionResponse
 
 logging.basicConfig(level=logging.DEBUG)
@@ -35,7 +35,7 @@ class test_add(BaseModel):
     y: int = 2
 
 @service(service_name='CaculService')
-class caculService:
+class CaculService:
     def add(self, x, y):
         """同步加法"""
         return x + y
@@ -63,7 +63,7 @@ async def main():
         "max_retry": 3,
         "DISCOVERY_SERVICE_ENABLED": True,
         "DISCOVERY_SERVICE_TYPE": "nacos",
-        "APP_NAME": "CaculService"
+        "APP_NAME": "CaculServiceApp"
     }
     service = await ServiceRegistryFactory.start_service_registry(registry_config)
     # ip,port = NetUtils.get_ip_and_free_port()
