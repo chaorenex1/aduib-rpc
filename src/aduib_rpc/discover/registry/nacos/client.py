@@ -161,7 +161,7 @@ class NacosClient:
         if self.naming_service is None:
             await self.create_naming_service()
         await self.naming_service.register_instance(RegisterInstanceParam(service_name=service_name, ip=ip, port=port, weight=weight, metadata=metadata))
-        asyncio.create_task(self.subscribe_async(service_name))
+        # asyncio.create_task(self.subscribe_async(service_name))
         logger.debug(f"register_instance:{service_name},{ip},{port},{weight},{metadata}")
 
     def register_instance_sync(self, service_name: str, ip: str, port: int, weight: int = 1, metadata=None):
