@@ -3,6 +3,7 @@ from collections.abc import Callable
 
 import grpc
 import httpx
+from grpc import Compression
 
 from aduib_rpc.client import ClientRequestInterceptor
 from aduib_rpc.client.base_client import ClientConfig, AduibRpcClient, BaseAduibRpcClient
@@ -121,7 +122,10 @@ class AduibRpcClientFactory:
             case TransportSchemes.GRPC:
                 def create_channel(url: str) -> grpc.aio.Channel:
                     logging.debug(f'Channel URL: {url}')
-                    return grpc.aio.insecure_channel(url)
+                    return grpc.aio.insecure_channel(url, options=[
+                        ('grpc.max_receive_message_length', 100 * 1024 * 1024),
+                        ('grpc.max_send_message_length', 100 * 1024 * 1024),
+                    ],compression=Compression.Gzip)
 
                 client_factory = AduibRpcClientFactory(
                     config=ClientConfig(streaming=stream, grpc_channel_factory=create_channel,

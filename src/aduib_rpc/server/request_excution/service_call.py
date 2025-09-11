@@ -30,6 +30,10 @@ class FuncCallContext:
         interceptors.append(interceptor)
 
     @classmethod
+    def get_interceptors(cls) -> list[ClientRequestInterceptor]:
+        return interceptors
+
+    @classmethod
     def set_credentials_provider(cls, provider: CredentialsProvider) -> None:
         global credentials_provider
         credentials_provider = provider
@@ -190,7 +194,7 @@ def client_function(  # noqa: PLR0915
             for registry in registries:
                 service = registry.discover_service(service_name)
                 if service:
-                    client = AduibRpcClientFactory.create_client(service.url, stream, service.scheme)
+                    client = AduibRpcClientFactory.create_client(service.url, stream, service.scheme,interceptors=FuncCallContext.get_interceptors())
                     dict_data = args_to_dict(func, *args, **kwargs)
                     dict_data.pop('self')
                     resp = client.completion(service_name + '.' + actual_func_name, dict_data,
@@ -240,7 +244,7 @@ def client_function(  # noqa: PLR0915
                         for registry in registries:
                             service = registry.discover_service(service_name)
                             if service:
-                                client = AduibRpcClientFactory.create_client(service.url, stream, service.scheme)
+                                client = AduibRpcClientFactory.create_client(service.url, stream, service.scheme,interceptors=FuncCallContext.get_interceptors())
                                 dict_data = args_to_dict(func, *args, **kwargs)
                                 dict_data.pop('self', None)  # 使用 pop 的默认值参数
                                 resp = client.completion(service_name + '.' + actual_func_name, dict_data,
