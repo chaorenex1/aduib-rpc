@@ -1,7 +1,7 @@
 """Helper functions for building JSON-RPC response objects."""
 from typing import TypeVar
 
-from aduib_rpc.types import ChatCompletionResponse, ChatCompletionResponseChunk, JsonRpcMessageSuccessResponse, \
+from aduib_rpc.types import JsonRpcMessageSuccessResponse, \
     JsonRpcStreamingMessageSuccessResponse, JsonRpcMessageResponse, JsonRpcStreamingMessageResponse, JSONRPCError, \
     JSONRPCErrorResponse, AduibRpcResponse
 
@@ -23,8 +23,6 @@ SPT = TypeVar(
 # result types
 EventTypes = (
     AduibRpcResponse
-    | ChatCompletionResponse
-    | ChatCompletionResponseChunk
 )
 """Type alias for possible event types produced by handlers."""
 

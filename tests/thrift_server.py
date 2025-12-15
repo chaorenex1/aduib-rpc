@@ -1,36 +1,15 @@
 import asyncio
 import logging
-from typing import Any
 
 from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.registry.registry_factory import ServiceRegistryFactory
 from aduib_rpc.discover.service import AduibServiceFactory
-from aduib_rpc.server.rpc_execution import RequestExecutor, RequestContext
-from aduib_rpc.server.rpc_execution.request_executor import request_execution
-from aduib_rpc.types import ChatCompletionResponse
 from aduib_rpc.utils.constant import AIProtocols, TransportSchemes
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("requests").setLevel(logging.DEBUG)
 logging.getLogger("urllib3").setLevel(logging.DEBUG)
 logging.getLogger("v2").setLevel(logging.DEBUG)
-
-@request_execution(method="chat.completions")
-class TestRequestExecutor(RequestExecutor):
-    def execute(self, context: RequestContext) -> Any:
-        print(f"Received prompt: {context}")
-        response = ChatCompletionResponse(id="chatcmpl-123", object="chat.completion", created=1677652288,
-                                              model="gpt-3.5-turbo-0301", choices=[
-                    {"index": 0, "message": {"role": "assistant", "content": "Hello! How can I assist you today?"},
-                     "finish_reason": "stop"}], usage={"prompt_tokens": 9, "completion_tokens": 12, "total_tokens": 21})
-        if context.stream:
-            async def stream_response():
-                for i in range(1, 4):
-                    chunk = response
-                    yield chunk
-            return stream_response()
-        else:
-            return response
 
 async def main():
     registry_config = {
