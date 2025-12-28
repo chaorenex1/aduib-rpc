@@ -6,7 +6,9 @@ from google.protobuf.json_format import MessageToDict, Parse, ParseDict
 from httpx_sse import aconnect_sse, SSEError
 
 from aduib_rpc.client import ClientContext, ClientRequestInterceptor
+from aduib_rpc.client.call_options import RetryOptions, resolve_timeout_s
 from aduib_rpc.client.errors import ClientJSONError, ClientHTTPError
+from aduib_rpc.client.retry import retry_async
 from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.grpc import aduib_rpc_pb2
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse
@@ -41,7 +43,7 @@ class RestTransport(ClientTransport):
         http_args = self.get_http_args(context)
         data_ = aduib_rpc_pb2.RpcTask(id=request.id, method=request.method,
                                       meta=proto_utils.ToProto.metadata(request.meta),
-                                      data=proto_utils.ToProto.taskData(request.data))
+                                      data=proto_utils.ToProto.taskData(request.data, request.meta))
         final_request_payload = request.model_dump(exclude_none=True)
         final_http_kwargs = http_args or {}
         for interceptor in self.interceptors:
@@ -60,7 +62,14 @@ class RestTransport(ClientTransport):
     async def completion(self, request: AduibRpcRequest, *, context: ClientContext) -> AduibRpcResponse:
         method = "/v1/message/completion"
         data_, http_args = await self._setup_request_message(method,context, request)
-        response_data = await self._send_post_request(method, data_, http_args)
+
+        # Apply unified timeout (meta > http_kwargs > config).
+        cfg_timeout = getattr(context, 'config', None).http_timeout if hasattr(context, 'config') else None
+        timeout_s = resolve_timeout_s(config_timeout_s=cfg_timeout, meta=request.meta, context_http_kwargs=http_args)
+        if timeout_s is not None and 'timeout' not in http_args:
+            http_args['timeout'] = timeout_s
+
+        response_data = await self._send_post_request(method, data_, http_args, request_meta=request.meta)
         response = aduib_rpc_pb2.RpcTaskResponse()
         ParseDict(response_data, response)
         rpc_response = proto_utils.FromProto.rpc_response(response)
@@ -72,6 +81,14 @@ class RestTransport(ClientTransport):
         AduibRpcResponse, None]:
         method = "/v1/message/completion/stream"
         data_, http_args = await self._setup_request_message(method,context, request)
+
+        # Apply unified timeout to SSE connect phase.
+        cfg_timeout = getattr(context, 'config', None).http_timeout if hasattr(context, 'config') else None
+        timeout_s = resolve_timeout_s(config_timeout_s=cfg_timeout, meta=request.meta, context_http_kwargs=http_args)
+        if timeout_s is not None and 'timeout' not in http_args:
+            http_args['timeout'] = timeout_s
+
+        # Note: we do NOT transparently retry after the stream has started.
         async with aconnect_sse(
                 self.httpx_client,
                 'POST',
@@ -98,11 +115,27 @@ class RestTransport(ClientTransport):
                     503, f'Network communication error: {e}'
                 ) from e
 
-    async def _send_request(self, request: httpx.Request) -> dict[str, Any]:
-        try:
+    async def _send_request(self, request: httpx.Request, *, request_meta: dict[str, Any] | None = None) -> dict[str, Any]:
+        request_meta = request_meta or {}
+        idempotent = bool(request_meta.get('idempotent'))
+        retry_opts = RetryOptions(
+            enabled=bool(request_meta.get('retry_enabled', False)),
+            max_attempts=int(request_meta.get('retry_max_attempts', 1)),
+            backoff_ms=int(request_meta.get('retry_backoff_ms', 200)),
+            max_backoff_ms=int(request_meta.get('retry_max_backoff_ms', 2000)),
+            jitter=float(request_meta.get('retry_jitter', 0.1)),
+            idempotent_required=True,
+        )
+
+        async def _op() -> dict[str, Any]:
             response = await self.httpx_client.send(request)
             response.raise_for_status()
             return response.json()
+
+        try:
+            return await retry_async(_op, retry=retry_opts, idempotent=idempotent)
+        except httpx.ReadTimeout as e:
+            raise ClientHTTPError(408, 'Client request timed out') from e
         except httpx.HTTPStatusError as e:
             raise ClientHTTPError(e.response.status_code, str(e)) from e
         except json.JSONDecodeError as e:
@@ -117,6 +150,8 @@ class RestTransport(ClientTransport):
         target: str,
         rpc_request_payload: dict[str, Any],
         http_kwargs: dict[str, Any] | None = None,
+        *,
+        request_meta: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return await self._send_request(
             self.httpx_client.build_request(
@@ -124,5 +159,6 @@ class RestTransport(ClientTransport):
                 f'{self.url}{target}',
                 json=rpc_request_payload,
                 **(http_kwargs or {}),
-            )
+            ),
+            request_meta=request_meta,
         )

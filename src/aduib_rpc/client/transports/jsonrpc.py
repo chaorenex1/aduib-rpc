@@ -5,12 +5,14 @@ from uuid import uuid4
 import httpx
 from httpx_sse import SSEError, aconnect_sse
 
+from aduib_rpc.client.call_options import RetryOptions, resolve_call_options
 from aduib_rpc.client.errors import ClientHTTPError, ClientJSONError
 from aduib_rpc.client import ClientContext, ClientRequestInterceptor, ClientJSONRPCError
 from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse, JsonRpcMessageRequest, JsonRpcMessageResponse, \
     JSONRPCErrorResponse, JsonRpcStreamingMessageRequest, JsonRpcStreamingMessageResponse
 from aduib_rpc.utils.constant import DEFAULT_RPC_PATH
+from aduib_rpc.client.retry import retry_async
 
 
 class JsonRpcTransport(ClientTransport):
@@ -71,7 +73,22 @@ class JsonRpcTransport(ClientTransport):
             self._get_http_args(context),
             context,
         )
-        response_data = await self._send_request(payload, modified_kwargs)
+
+        opts = resolve_call_options(
+            config_timeout_s=getattr(context, 'config', None).http_timeout if hasattr(context, 'config') else None,
+            meta=request.meta,
+            context_http_kwargs=modified_kwargs,
+            retry_defaults=RetryOptions(
+                enabled=False,
+                max_attempts=1,
+            ),
+        )
+
+        # Normalize timeout into httpx kwargs
+        if opts.timeout_s is not None:
+            modified_kwargs["timeout"] = opts.timeout_s
+
+        response_data = await self._send_request(payload, modified_kwargs, request_meta=request.meta, opts=opts)
         response = JsonRpcMessageResponse.model_validate(response_data)
         if isinstance(response.root, JSONRPCErrorResponse):
             raise ClientJSONRPCError(response.root)
@@ -92,7 +109,15 @@ class JsonRpcTransport(ClientTransport):
             context,
         )
 
-        modified_kwargs.setdefault('timeout', 60.0)  # default timeout of 60 seconds
+        # Use unified timeout resolution.
+        timeout_s = None
+        if request.meta:
+            if request.meta.get("timeout_ms") is not None:
+                timeout_s = float(request.meta["timeout_ms"]) / 1000.0
+            elif request.meta.get("timeout_s") is not None:
+                timeout_s = float(request.meta["timeout_s"])
+        if timeout_s is not None and "timeout" not in modified_kwargs:
+            modified_kwargs["timeout"] = timeout_s
 
         async with aconnect_sse(
                 self.httpx_client,
@@ -126,15 +151,37 @@ class JsonRpcTransport(ClientTransport):
             self,
             rpc_request_payload: dict[str, Any],
             http_kwargs: dict[str, Any] | None = None,
+            *,
+            request_meta: dict[str, Any] | None = None,
+            opts=None,
     ) -> dict[str, Any]:
-        try:
+        http_kwargs = http_kwargs or {}
+        retry_enabled = False
+        max_attempts = 1
+        if request_meta:
+            retry_enabled = bool(request_meta.get("retry_enabled"))
+            max_attempts = int(request_meta.get("retry_max_attempts", 1))
+        idempotent = bool(request_meta.get("idempotent")) if request_meta else False
+
+        retry_opts = RetryOptions(
+            enabled=retry_enabled,
+            max_attempts=max_attempts,
+            backoff_ms=int(request_meta.get("retry_backoff_ms", 200)) if request_meta else 200,
+            max_backoff_ms=int(request_meta.get("retry_max_backoff_ms", 2000)) if request_meta else 2000,
+            jitter=float(request_meta.get("retry_jitter", 0.1)) if request_meta else 0.1,
+            idempotent_required=True,
+        )
+
+        async def _op():
             response = await self.httpx_client.post(
-                self.url, json=rpc_request_payload, **(http_kwargs or {})
+                self.url, json=rpc_request_payload, **http_kwargs
             )
             response.raise_for_status()
             return response.json()
+
+        try:
+            return await retry_async(_op, retry=retry_opts, idempotent=idempotent)
         except httpx.ReadTimeout as e:
-            # 408 Request Timeout is the closest HTTP semantic for a client-side read timeout.
             raise ClientHTTPError(408, 'Client request timed out') from e
         except httpx.HTTPStatusError as e:
             raise ClientHTTPError(e.response.status_code, str(e)) from e

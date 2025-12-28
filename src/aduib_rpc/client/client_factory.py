@@ -12,6 +12,7 @@ from aduib_rpc.client.transports.grpc import GrpcTransport
 from aduib_rpc.client.transports.jsonrpc import JsonRpcTransport
 from aduib_rpc.client.transports.rest import RestTransport
 from aduib_rpc.utils.constant import TransportSchemes
+from aduib_rpc.client.pool import PoolKey, default_httpx_pool, default_grpc_pool
 
 TransportProducer = Callable[
     [str, ClientConfig, list[ClientRequestInterceptor]],
@@ -40,7 +41,15 @@ class AduibRpcClientFactory:
             self.register(
                 TransportSchemes.JSONRPC,
                 lambda url, config, interceptors: JsonRpcTransport(
-                    config.httpx_client or httpx.AsyncClient(),
+                    config.httpx_client
+                    or (
+                        default_httpx_pool().get(
+                            PoolKey.for_url(url, TransportSchemes.JSONRPC),
+                            timeout=httpx.Timeout(config.http_timeout) if config.http_timeout else None,
+                        )
+                        if config.pooling_enabled
+                        else httpx.AsyncClient(timeout=httpx.Timeout(config.http_timeout) if config.http_timeout else None)
+                    ),
                     url,
                     interceptors,
                 ),
@@ -49,16 +58,32 @@ class AduibRpcClientFactory:
             self.register(
                 TransportSchemes.HTTP,
                 lambda url, config, interceptors: RestTransport(
-                    config.httpx_client or httpx.AsyncClient(),
+                    config.httpx_client
+                    or (
+                        default_httpx_pool().get(
+                            PoolKey.for_url(url, TransportSchemes.HTTP),
+                            timeout=httpx.Timeout(config.http_timeout) if config.http_timeout else None,
+                        )
+                        if config.pooling_enabled
+                        else httpx.AsyncClient(timeout=httpx.Timeout(config.http_timeout) if config.http_timeout else None)
+                    ),
                     url,
                     interceptors,
                 ),
             )
         if TransportSchemes.GRPC in supported:
-            self.register(
-                TransportSchemes.GRPC,
-                GrpcTransport.create,
-            )
+            # Wrap the user's channel factory with pooling.
+            def _pooled_grpc_transport(url: str, config: ClientConfig, interceptors: list[ClientRequestInterceptor]):
+                if config.grpc_channel_factory is None:
+                    raise ValueError('grpc_channel_factory is required when using gRPC')
+                channel = (
+                    default_grpc_pool().get(PoolKey.for_url(url, TransportSchemes.GRPC), factory=config.grpc_channel_factory)
+                    if config.pooling_enabled
+                    else config.grpc_channel_factory(url)
+                )
+                return GrpcTransport(channel)
+
+            self.register(TransportSchemes.GRPC, _pooled_grpc_transport)
 
     def register(self, label: str, generator: TransportProducer) -> None:
         """Register a new transport producer for a given transport label."""
@@ -128,30 +153,36 @@ class AduibRpcClientFactory:
                     ],compression=Compression.Gzip)
 
                 client_factory = AduibRpcClientFactory(
-                    config=ClientConfig(streaming=stream, grpc_channel_factory=create_channel,
-                                        supported_transports=[TransportSchemes.GRPC]))
-                aduib_rpc_client: AduibRpcClient = client_factory.create(url,
-                                                                         server_preferred=TransportSchemes.GRPC,
-                                                                         interceptors=interceptors)
-                return aduib_rpc_client
+                    config=ClientConfig(
+                        streaming=stream,
+                        grpc_channel_factory=create_channel,
+                        supported_transports=[TransportSchemes.GRPC],
+                        pooling_enabled=True,
+                    ))
+                return client_factory.create(url,
+                                             server_preferred=TransportSchemes.GRPC,
+                                             interceptors=interceptors)
             case TransportSchemes.JSONRPC:
                 client_factory = AduibRpcClientFactory(
-                    config=ClientConfig(streaming=stream,
-                                        httpx_client=httpx.AsyncClient(),
-                                        supported_transports=[TransportSchemes.JSONRPC]))
-                aduib_rpc_client: AduibRpcClient = client_factory.create(url,
-                                                                         server_preferred=TransportSchemes.JSONRPC,
-                                                                         interceptors=interceptors)
-                return aduib_rpc_client
+                    config=ClientConfig(
+                        streaming=stream,
+                        httpx_client=None,
+                        supported_transports=[TransportSchemes.JSONRPC],
+                        pooling_enabled=True,
+                    ))
+                return client_factory.create(url,
+                                             server_preferred=TransportSchemes.JSONRPC,
+                                             interceptors=interceptors)
             case TransportSchemes.HTTP:
                 client_factory = AduibRpcClientFactory(
-                    config=ClientConfig(streaming=stream,
-                                        httpx_client=httpx.AsyncClient(),
-                                        supported_transports=[TransportSchemes.GRPC, TransportSchemes.JSONRPC,
-                                                              TransportSchemes.HTTP]))
-                aduib_rpc_client: AduibRpcClient = client_factory.create(url,
-                                                                         server_preferred=TransportSchemes.HTTP,
-                                                                         interceptors=interceptors)
-                return aduib_rpc_client
+                    config=ClientConfig(
+                        streaming=stream,
+                        httpx_client=None,
+                        supported_transports=[TransportSchemes.GRPC, TransportSchemes.JSONRPC, TransportSchemes.HTTP],
+                        pooling_enabled=True,
+                    ))
+                return client_factory.create(url,
+                                             server_preferred=TransportSchemes.HTTP,
+                                             interceptors=interceptors)
             case _:
                 raise ValueError(f'Unsupported transport scheme: {server_preferred}')

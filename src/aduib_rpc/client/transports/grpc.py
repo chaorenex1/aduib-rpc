@@ -11,6 +11,7 @@ from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.grpc import aduib_rpc_pb2_grpc, aduib_rpc_pb2
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse
 from aduib_rpc.utils import proto_utils
+from aduib_rpc.client.call_options import resolve_timeout_s
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +48,16 @@ class GrpcTransport(ClientTransport):
         if request.meta:
             for key, value in request.meta.items():
                 grpc_metadata.append((key, value))
-        data = proto_utils.ToProto.taskData(request.data)
+        data = proto_utils.ToProto.taskData(request.data, request.meta)
         task = aduib_rpc_pb2.RpcTask(id=request.id, method=request.method, meta=proto_utils.ToProto.metadata(request.meta), data=data)
+        # Resolve deadline (seconds) from request meta or config.
+        cfg_timeout = getattr(context, 'config', None).grpc_timeout if hasattr(context, 'config') else None
+        deadline = resolve_timeout_s(config_timeout_s=cfg_timeout, meta=request.meta, context_http_kwargs=None)
+
         response = await self.stub.completion(
             task,
-            metadata=grpc_metadata
+            metadata=grpc_metadata,
+            timeout=deadline,
         )
         rpc_response = proto_utils.FromProto.rpc_response(response)
         if not rpc_response.is_success():
@@ -60,19 +66,29 @@ class GrpcTransport(ClientTransport):
 
     async def completion_stream(self, request: AduibRpcRequest, *, context: ClientContext) -> AsyncGenerator[
         AduibRpcResponse, None]:
-        """Sends a streaming message to the agent and yields the responses."""
+        """Sends a streaming message to the agent and yields the responses.
+
+        Timeout behavior:
+            - Applies deadline to stream establishment/first read via gRPC timeout.
+            - Does not transparently retry mid-stream.
+        """
         grpc_metadata = []
         if request.meta:
             for key, value in request.meta.items():
                 grpc_metadata.append((key, value))
+
+        cfg_timeout = getattr(context, 'config', None).grpc_timeout if hasattr(context, 'config') else None
+        deadline = resolve_timeout_s(config_timeout_s=cfg_timeout, meta=request.meta, context_http_kwargs=None)
+
         stream = self.stub.stream_completion(
             aduib_rpc_pb2.RpcTask(
                 id=request.id,
                 method=request.method,
                 meta=proto_utils.ToProto.metadata(request.meta),
-                data=proto_utils.ToProto.taskData(request.data),
+                data=proto_utils.ToProto.taskData(request.data, request.meta),
             ),
             metadata=grpc_metadata,
+            timeout=deadline,
         )
 
         while True:
