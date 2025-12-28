@@ -7,9 +7,12 @@ from aduib_rpc.rpc.methods import MethodName
     ("method", "service", "handler"),
     [
         ("rpc.v2/Calc/Calc.add", "Calc", "Calc.add"),
+        (" /rpc.v2/Calc/Calc.add ", "Calc", "Calc.add"),
         ("Calc.add", "Calc", "add"),
         ("Calc.Calc.add", "Calc", "Calc.add"),
         ("Calc.some_module.add", "Calc", "some_module.add"),
+        ("Calc/add", "Calc", "add"),
+        ("Calc:Cls.m", "Calc", "Cls.m"),
     ],
 )
 def test_parse_compat(method: str, service: str, handler: str) -> None:
