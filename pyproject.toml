@@ -4,7 +4,7 @@ dynamic = ["version"]
 #version = "0.0.0"
 description = "Aduib RPC - A Python library for Aduib AI RPC framework."
 readme = "README.md"
-requires-python = ">=3.10,<=3.12"
+requires-python = ">=3.10,<3.13"
 license = {text = "Apache-2.0"}
 authors = [{name = "chaorenex1", email = "24537608z@gmail.com"},]
 dependencies = [
@@ -77,13 +77,14 @@ vcs = "git"
 format = "{base}"
 
 
-[tool.uv]
-[tool.uv.dependency-groups]
-dev= [
+[dependency-groups]
+dev = [
     "alembic==1.16.4",
     "pytest==8.4.1",
     "pytest-asyncio>=0.22.0",
 ]
+
+[tool.uv]
 
 [[tool.uv.index]]
 url = "http://mirrors.aliyun.com/pypi/simple/"

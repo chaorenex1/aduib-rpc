@@ -402,3 +402,14 @@ python scripts/compile_protos.py
 ## 许可证
 
 Apache License 2.0
+
+## 使用示例
+
+### Rust SDK（新增）
+
+仓库内提供一个 Rust SDK（预览版），位于 `rust-sdk/`：
+
+- 文档：`rust-sdk/README.md`
+- crate：`rust-sdk/crates/aduib-rpc`
+
+

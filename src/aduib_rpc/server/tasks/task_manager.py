@@ -132,6 +132,11 @@ class InMemoryTaskManager:
         rec = await self.get(task_id)
         self._subs[task_id].add(q)
         q.put_nowait(TaskEvent(event="snapshot", task=rec))
+
+        # If the task has already completed before we subscribed, also enqueue a
+        # terminal event so consumers can reliably observe completion.
+        if rec.status in {TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELED, TaskStatus.EXPIRED}:
+            q.put_nowait(TaskEvent(event="completed", task=rec))
         return q
 
     async def unsubscribe(self, task_id: str, q: asyncio.Queue[TaskEvent]) -> None:

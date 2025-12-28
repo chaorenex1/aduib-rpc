@@ -20,6 +20,18 @@ logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
 
+# ---------------------------------------------------------------------------
+# Persistent catalogs
+# ---------------------------------------------------------------------------
+#
+# Some tests (and real apps) may call FuncCallContext.reset() which clears the
+# default runtime registries. Services defined via decorators may have already
+# been imported, and their decorators won't re-run automatically. To avoid
+# cross-test ordering issues, we keep a persistent catalog of decorated services
+# and service funcs, and re-hydrate the default runtime on demand.
+_SERVICE_CATALOG: dict[str, Any] = {}
+_SERVICE_FUNC_CATALOG: dict[str, ServiceFunc] = {}
+
 
 def default_runtime() -> RpcRuntime:
     """Return the current default runtime.
@@ -500,7 +512,13 @@ def service(service_name: str, *, runtime: RpcRuntime | None = None):
             service_func.wrap_fn = wrapper_func
             effective_runtime.service_funcs[full_name] = service_func
 
+            # Keep a persistent copy so we can rehydrate runtime after reset().
+            _SERVICE_FUNC_CATALOG[full_name] = service_func
+
         effective_runtime.service_instances[service_name] = cls
+
+        # Keep a persistent copy so we can rehydrate runtime after reset().
+        _SERVICE_CATALOG[service_name] = cls
         return cls
 
     return decorator
@@ -559,6 +577,15 @@ class ServiceCaller:
     def from_service_caller(cls, service_name: str, runtime: RpcRuntime | None = None):
         effective_runtime = _get_effective_runtime(runtime)
         service_type = effective_runtime.service_instances.get(service_name)
+        if service_type is None:
+            service_type = _SERVICE_CATALOG.get(service_name)
+            if service_type is not None:
+                effective_runtime.service_instances[service_name] = service_type
+
+                prefix = f"{service_name}."
+                for full_name, service_func in _SERVICE_FUNC_CATALOG.items():
+                    if full_name.startswith(prefix):
+                        effective_runtime.service_funcs.setdefault(full_name, service_func)
         return cls(service_type, service_name, runtime=effective_runtime)
 
     async def call(self, func_name: str, *args, **kwargs):
@@ -577,9 +604,14 @@ class ServiceCaller:
             raise ValueError(f"Service '{self.service_name}' is not registered.")
 
         service_instance = self.service_type()
-        method = getattr(service_instance, handler.split('.')[-1])
-        arguments = args_to_dict(method, *args, **kwargs)
-        arguments['self'] = service_instance
+
+        # IMPORTANT:
+        # Methods on the service class are wrapped by @service, so their signatures
+        # become (*args, **kwargs). Binding against the wrapped method collapses
+        # keyword args into a single "kwargs" entry, breaking arg validation.
+        # Bind against the original function signature instead.
+        original_fn = service_func.fn
+        arguments = args_to_dict(original_fn, service_instance, *args, **kwargs)
         return await service_func.run(arguments)
 
 
