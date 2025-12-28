@@ -1,33 +1,31 @@
-from typing import TypeVar
-from typing import Optional, Union, Literal, Any
-from typing import TypeVar
+from __future__ import annotations
 
+from typing import Any, Literal, Optional, TypeVar, Union
 from pydantic import BaseModel, RootModel
 
-T=TypeVar('T')
-class AduibRPCError(BaseModel):
-    """
-    Represents a JSON-RPC 2.0 Error object, included in an error response.
+T = TypeVar('T')
+
+
+class AduibRpcError(BaseModel):
+    """Canonical error shape used across transports.
+
+    This intentionally matches the JSON-RPC error object structure (code/message/data),
+    but is also reused by the Aduib RPC 1.0 envelope.
     """
 
     code: int
-    """
-    A number that indicates the error type that occurred.
-    """
-    data: Any | None = None
-    """
-    A primitive or structured value containing additional information about the error.
-    This may be omitted.
-    """
     message: str
-    """
-    A string providing a short description of the error.
-    """
+    data: Any | None = None
+
+
+# Backward compatible alias (old name)
+AduibRPCError = AduibRpcError
+
 
 class AduibRpcRequest(BaseModel):
     aduib_rpc: Literal['1.0'] = '1.0'
     method: str
-    data: Union[dict[str, Any],Any, None] = None
+    data: Union[dict[str, Any], Any, None] = None
     meta: Optional[dict[str, Any]] = None
     id: Union[str, int, None] = None
 
@@ -35,6 +33,7 @@ class AduibRpcRequest(BaseModel):
         if self.meta is None:
             self.meta = {}
         self.meta[key] = value
+
     def cast(self, typ: type) -> Any:
         if self.data is None:
             return None
@@ -45,10 +44,10 @@ class AduibRpcRequest(BaseModel):
 
 class AduibRpcResponse(BaseModel):
     aduib_rpc: Literal['1.0'] = '1.0'
-    result: Union[dict[str, Any],Any, None] = None
-    error: Optional[AduibRPCError] = None
+    result: Union[dict[str, Any], Any, None] = None
+    error: Optional[AduibRpcError] = None
     id: Union[str, int, None] = None
-    status: str = 'success' # 'success' or 'error'
+    status: str = 'success'  # 'success' or 'error'
 
     def is_success(self) -> bool:
         return self.status == 'success' and self.error is None
@@ -60,211 +59,99 @@ class AduibRpcResponse(BaseModel):
             return self.result
         return typ(**self.result)
 
-"""
-jsonrpc types
-"""
 
-class JSONRPCError(BaseModel):
-    """
-    Represents a JSON-RPC 2.0 Error object, included in an error response.
-    """
+"""jsonrpc types"""
 
-    code: int
-    """
-    A number that indicates the error type that occurred.
-    """
-    data: Any | None = None
-    """
-    A primitive or structured value containing additional information about the error.
-    This may be omitted.
-    """
-    message: str
-    """
-    A string providing a short description of the error.
-    """
+
+# Backward compatible alias: JSONRPCError is the same shape as our canonical error
+JSONRPCError = AduibRpcError
+
 
 class JSONRPCErrorResponse(BaseModel):
-    """
-    Represents a JSON-RPC 2.0 Error Response object.
-    """
+    """Represents a JSON-RPC 2.0 Error Response object."""
 
-    error: (
-        JSONRPCError
-    )
-    """
-    An object describing the error that occurred.
-    """
+    error: JSONRPCError
     id: str | int | None = None
-    """
-    The identifier established by the client.
-    """
     jsonrpc: Literal['2.0'] = '2.0'
-    """
-    The version of the JSON-RPC protocol. MUST be exactly "2.0".
-    """
+
 
 class JSONRPCRequest(BaseModel):
-    """
-    Represents a JSON-RPC 2.0 Request object.
-    """
+    """Represents a JSON-RPC 2.0 Request object."""
 
     id: str | int | None = None
-    """
-    A unique identifier established by the client. It must be a String, a Number, or null.
-    The server must reply with the same value in the response. This property is omitted for notifications.
-    """
     jsonrpc: Literal['2.0'] = '2.0'
-    """
-    The version of the JSON-RPC protocol. MUST be exactly "2.0".
-    """
     method: str
-    """
-    A string containing the name of the method to be invoked.
-    """
     params: dict[str, Any] | None = None
-    """
-    A structured value holding the parameter values to be used during the method invocation.
-    """
 
 
 class JSONRPCSuccessResponse(BaseModel):
-    """
-    Represents a successful JSON-RPC 2.0 Response object.
-    """
+    """Represents a successful JSON-RPC 2.0 Response object."""
 
     id: str | int | None = None
-    """
-    The identifier established by the client.
-    """
     jsonrpc: Literal['2.0'] = '2.0'
-    """
-    The version of the JSON-RPC protocol. MUST be exactly "2.0".
-    """
     result: Any
-    """
-    The value of this member is determined by the method invoked on the Server.
-    """
+
 
 class JsonRpcMessageRequest(BaseModel):
-    """
-    Represents a JSON-RPC request for the `message/send` method.
-    """
-
     id: str | int
-    """
-    The identifier for this request.
-    """
     jsonrpc: Literal['2.0'] = '2.0'
-    """
-    The version of the JSON-RPC protocol. MUST be exactly "2.0".
-    """
     method: Literal['message/completion'] = 'message/completion'
-    """
-    The method name. Must be 'message/completion'.
-    """
     params: AduibRpcRequest
-    """
-    The parameters for sending a message.
-    """
+
 
 class JsonRpcStreamingMessageRequest(BaseModel):
-    """
-    Represents a JSON-RPC request for the `message/stream` method.
-    """
-
     id: str | int
-    """
-    The identifier for this request.
-    """
     jsonrpc: Literal['2.0'] = '2.0'
-    """
-    The version of the JSON-RPC protocol. MUST be exactly "2.0".
-    """
     method: Literal['message/completion/stream'] = 'message/completion/stream'
-    """
-    The method name. Must be 'message/completion/stream'.
-    """
     params: AduibRpcRequest
-    """
-    The parameters for sending a message.
-    """
+
 
 class JsonRpcMessageSuccessResponse(BaseModel):
-    """
-    Represents a successful JSON-RPC response for the `message/send` method.
-    """
-
     id: str | int | None = None
-    """
-    The identifier established by the client.
-    """
     jsonrpc: Literal['2.0'] = '2.0'
-    """
-    The version of the JSON-RPC protocol. MUST be exactly "2.0".
-    """
     result: AduibRpcResponse
-    """
-    The result, which can be a direct reply Message or the initial Task object.
-    """
 
 
 class JsonRpcStreamingMessageSuccessResponse(BaseModel):
-    """
-    Represents a successful JSON-RPC response for the `message/stream` method.
-    The server may send multiple response objects for a single request.
-    """
-
     id: str | int | None = None
-    """
-    The identifier established by the client.
-    """
     jsonrpc: Literal['2.0'] = '2.0'
-    """
-    The version of the JSON-RPC protocol. MUST be exactly "2.0".
-    """
     result: AduibRpcResponse
-    """
-    The result, which can be a Message, Task, or a streaming update event.
-    """
+
+
 class AduibJSONRPCResponse(
     RootModel[
-        JSONRPCErrorResponse
-        | JsonRpcMessageSuccessResponse
-        | JsonRpcStreamingMessageSuccessResponse
-    ]):
-    root: (
-        JSONRPCErrorResponse
-        | JsonRpcMessageSuccessResponse
-        | JsonRpcStreamingMessageSuccessResponse
-    )
-    """
-    Represents a JSON-RPC response envelope.
-    """
+        Union[
+            JSONRPCErrorResponse,
+            JsonRpcMessageSuccessResponse,
+            JsonRpcStreamingMessageSuccessResponse,
+        ]
+    ]
+):
+    root: Union[
+        JSONRPCErrorResponse,
+        JsonRpcMessageSuccessResponse,
+        JsonRpcStreamingMessageSuccessResponse,
+    ]
+
 
 class AduibJSONRpcRequest(
-    RootModel[JsonRpcMessageRequest
-              |JsonRpcStreamingMessageRequest
-              ]):
-    root: (JsonRpcMessageRequest
-           | JsonRpcStreamingMessageRequest)
-    """
-    Represents a JSON-RPC request envelope.
-    """
+    RootModel[
+        Union[
+            JsonRpcMessageRequest,
+            JsonRpcStreamingMessageRequest,
+        ]
+    ]
+):
+    root: Union[JsonRpcMessageRequest, JsonRpcStreamingMessageRequest]
 
 
 class JsonRpcMessageResponse(
-    RootModel[JSONRPCErrorResponse | JsonRpcMessageSuccessResponse]
+    RootModel[Union[JSONRPCErrorResponse, JsonRpcMessageSuccessResponse]]
 ):
-    root: JSONRPCErrorResponse | JsonRpcMessageSuccessResponse
-    """
-    Represents a JSON-RPC response for the `message/send` method.
-    """
+    root: Union[JSONRPCErrorResponse, JsonRpcMessageSuccessResponse]
 
 
 class JsonRpcStreamingMessageResponse(
-    RootModel[JSONRPCErrorResponse | JsonRpcStreamingMessageSuccessResponse]
+    RootModel[Union[JSONRPCErrorResponse, JsonRpcStreamingMessageSuccessResponse]]
 ):
-    root: JSONRPCErrorResponse | JsonRpcStreamingMessageSuccessResponse
-    """
-    Represents a JSON-RPC response for the `message/stream` method.
-    """
+    root: Union[JSONRPCErrorResponse, JsonRpcStreamingMessageSuccessResponse]

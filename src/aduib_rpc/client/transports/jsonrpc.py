@@ -134,7 +134,8 @@ class JsonRpcTransport(ClientTransport):
             response.raise_for_status()
             return response.json()
         except httpx.ReadTimeout as e:
-            raise ClientHTTPError('Client Request timed out') from e
+            # 408 Request Timeout is the closest HTTP semantic for a client-side read timeout.
+            raise ClientHTTPError(408, 'Client request timed out') from e
         except httpx.HTTPStatusError as e:
             raise ClientHTTPError(e.response.status_code, str(e)) from e
         except json.JSONDecodeError as e:

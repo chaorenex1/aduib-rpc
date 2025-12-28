@@ -7,6 +7,7 @@ from aduib_rpc.server.request_handlers import RequestHandler
 from aduib_rpc.thrift.ttypes import RpcTask, RpcTaskResponse, RpcError
 from aduib_rpc.utils import thrift_utils
 from aduib_rpc.utils.async_utils import AsyncUtils
+from aduib_rpc.utils.error_handlers import exception_to_error
 
 
 logger=logging.getLogger(__name__)
@@ -47,20 +48,21 @@ class ThriftHandler:
         self.request_handler = request_handler
         self.context_builder = context_builder or DefaultServerContentBuilder()
 
-    def completion(self, request:RpcTask)->RpcTaskResponse:
+    def completion(self, request: RpcTask) -> RpcTaskResponse:
         # Handle Thrift request
         try:
             server_context = self.context_builder.build_context(request)
-            request = thrift_utils.FromProto.rpc_request(request)
+            request_obj = thrift_utils.FromProto.rpc_request(request)
             response = AsyncUtils.run_async(self.request_handler.on_message(
-                request, server_context
+                request_obj, server_context
             ))
             return thrift_utils.ToProto.rpc_response(response)
         except Exception as e:
-            logger.error(f"Error processing Thrift request: {e}", exc_info=True)
+            logger.exception("Error processing Thrift request")
+            aduib_error = exception_to_error(e)
             return RpcTaskResponse(
                 id=request.id,
                 result=b'',
                 status='error',
-                error=RpcError(code=-1, message=str(e))
+                error=RpcError(code=str(aduib_error.code), message=aduib_error.message, data=json.dumps(aduib_error.data or {})),
             )

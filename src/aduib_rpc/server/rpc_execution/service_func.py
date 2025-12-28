@@ -280,7 +280,8 @@ class ServiceFunc(BaseModel):
                 None,
             )
         except Exception as e:
-            raise RuntimeError(f"Error executing tool {self.name}: {e}") from e
+            logger.exception("Error executing tool %s", self.name)
+            raise RuntimeError(f"Error executing tool {self.name}") from e
 
 
 def _is_async_callable(obj: Any) -> bool:

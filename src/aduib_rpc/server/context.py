@@ -13,9 +13,9 @@ class ServerContext(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    state: State = Field(default={})
+    state: State = Field(default_factory=dict)
 
-    metadata: dict[str,Any] = Field(default={})
+    metadata: dict[str,Any] = Field(default_factory=dict)
 
 
 class ServerInterceptor(ABC):
@@ -30,10 +30,9 @@ class ServerInterceptor(ABC):
         """Intercepts and potentially modifies the incoming request.
 
         Args:
-            method: The HTTP method (e.g., 'GET', 'POST').
-            request_body: The body of the request as a dictionary.
+            request_body: The parsed request body.
             context: The ServerContext instance for maintaining state.
 
         Returns:
-            A boolean indicating whether to continue processing the request.
+            An error object to short-circuit the request, or None to continue.
         """

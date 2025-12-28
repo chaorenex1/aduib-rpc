@@ -65,22 +65,15 @@ class GrpcTransport(ClientTransport):
         if request.meta:
             for key, value in request.meta.items():
                 grpc_metadata.append((key, value))
-        stream=self.stub.stream_completion(
-            aduib_rpc_pb2.RpcTask(id=request.id,
-                                  method=request.method,
-                                  meta=proto_utils.ToProto.metadata(request.meta),
-                                  data=proto_utils.ToProto.taskData(request.data)
+        stream = self.stub.stream_completion(
+            aduib_rpc_pb2.RpcTask(
+                id=request.id,
+                method=request.method,
+                meta=proto_utils.ToProto.metadata(request.meta),
+                data=proto_utils.ToProto.taskData(request.data),
             ),
-            metadata=grpc_metadata
+            metadata=grpc_metadata,
         )
-        # try:
-        #     async for response in stream:
-        #         rpc_response = proto_utils.FromProto.rpc_response(response)
-        #         if not rpc_response.is_success():
-        #             raise ClientHTTPError(rpc_response.error.code, rpc_response.error.message)
-        #         yield rpc_response
-        # except Exception as e:
-        #     logging.error(f"Error in gRPC stream: {e}")
 
         while True:
             try:
@@ -92,5 +85,6 @@ class GrpcTransport(ClientTransport):
                     raise ClientHTTPError(rpc_response.error.code, rpc_response.error.message)
                 yield rpc_response
             except Exception as e:
-                logger.error(f"Error in gRPC stream: {e}")
-                break
+                # Important: don't swallow errors; a truncated stream is very hard to debug.
+                logger.exception("Error in gRPC stream")
+                raise

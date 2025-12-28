@@ -47,45 +47,31 @@ class GrpcHandler(AduibRpcServiceServicer):
         self.context_builder = context_builder or DefaultServerContentBuilder()
         self.request_handler = request_handler
 
-    async def stream_completion(self, request:aduib_rpc_pb2.RpcTask,
-                             context:grpc.aio.ServicerContext)->AsyncIterator[aduib_rpc_pb2.RpcTaskResponse]:
-        """Handles the 'chatCompletion' gRPC method.
-
-        Args:
-            request: An iterator of incoming request messages.
-            context: The gRPC ServicerContext.
-        """
+    async def stream_completion(self, request: aduib_rpc_pb2.RpcTask,
+                             context: grpc.aio.ServicerContext) -> AsyncIterator[aduib_rpc_pb2.RpcTaskResponse]:
+        """Handles the 'chatCompletion' gRPC method."""
         try:
             server_context = self.context_builder.build_context(context)
-            request=proto_utils.FromProto.rpc_request(request)
-            async for response in self.request_handler.on_stream_message(request, server_context):
+            request_obj = proto_utils.FromProto.rpc_request(request)
+            async for response in self.request_handler.on_stream_message(request_obj, server_context):
                 yield proto_utils.ToProto.rpc_response(response)
         except Exception as e:
-            await context.abort(
-                    grpc.StatusCode.INTERNAL,
-                    f'Internal server error: {e}',
-                )
+            # Abort ends the stream.
+            import logging
+            logging.getLogger(__name__).exception("Error processing gRPC stream_completion")
+            await context.abort(grpc.StatusCode.INTERNAL, f'Internal server error: {e}')
         return
 
-
-    async def completion(self, request:aduib_rpc_pb2.RpcTask,
-                             context:grpc.aio.ServicerContext)->aduib_rpc_pb2.RpcTaskResponse:
-        """Handles the 'completion' gRPC method.
-
-        Args:
-            request: The incoming request message.
-            context: The gRPC ServicerContext.
-        """
+    async def completion(self, request: aduib_rpc_pb2.RpcTask,
+                             context: grpc.aio.ServicerContext) -> aduib_rpc_pb2.RpcTaskResponse:
+        """Handles the 'completion' gRPC method."""
         try:
             server_context = self.context_builder.build_context(context)
-            request=proto_utils.FromProto.rpc_request(request)
-            response = await self.request_handler.on_message(
-                request, server_context
-            )
+            request_obj = proto_utils.FromProto.rpc_request(request)
+            response = await self.request_handler.on_message(request_obj, server_context)
             return proto_utils.ToProto.rpc_response(response)
         except Exception as e:
-            await context.abort(
-                    grpc.StatusCode.INTERNAL,
-                    f'Internal server error: {e}',
-                )
+            import logging
+            logging.getLogger(__name__).exception("Error processing gRPC completion")
+            await context.abort(grpc.StatusCode.INTERNAL, f'Internal server error: {e}')
         return aduib_rpc_pb2.RpcTaskResponse()

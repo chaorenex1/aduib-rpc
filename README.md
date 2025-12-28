@@ -56,6 +56,7 @@ aduib_rpc/
 ```python
 import asyncio
 import logging
+import os
 
 import grpc
 from pydantic import BaseModel
@@ -71,25 +72,50 @@ from aduib_rpc.utils.constant import TransportSchemes
 
 logging.basicConfig(level=logging.DEBUG)
 
+# SECURITY NOTE:
+# Never hardcode real service addresses, namespaces, usernames, or passwords in code or README files.
+# Use environment variables or a secrets manager instead.
+
 async def main():
-    registry = NacosServiceRegistry(server_addresses='10.0.0.96:8848',
-                                         namespace='eeb6433f-d68c-4b3b-a4a7-eeff19110e4d', group_name='DEFAULT_GROUP',
-                                         username='nacos', password='nacos11.')
+    registry = NacosServiceRegistry(
+        server_addresses=os.getenv('NACOS_SERVER_ADDRESSES', '127.0.0.1:8848'),
+        namespace=os.getenv('NACOS_NAMESPACE', 'your-namespace'),
+        group_name=os.getenv('NACOS_GROUP_NAME', 'DEFAULT_GROUP'),
+        username=os.getenv('NACOS_USERNAME', 'nacos'),
+        password=os.getenv('NACOS_PASSWORD', 'nacos'),
+    )
     service_name = 'test_grpc_app'
     discover_service = await registry.discover_service(service_name)
     logging.debug(f'Service: {discover_service}')
     logging.debug(f'Service URL: {discover_service.url}')
+
     def create_channel(url: str) -> grpc.aio.Channel:
         logging.debug(f'Channel URL: {url}')
+        # For production, prefer TLS (secure_channel) instead of insecure_channel.
         return grpc.aio.insecure_channel(url)
 
     client_factory = AduibRpcClientFactory(
-        config=ClientConfig(streaming=True,grpc_channel_factory=create_channel, supported_transports=[TransportSchemes.GRPC]))
-    aduib_rpc_client:AduibRpcClient = client_factory.create(discover_service.url, server_preferred=TransportSchemes.GRPC,interceptors=[AuthInterceptor(credentialProvider=InMemoryCredentialsProvider())])
-    resp = aduib_rpc_client.completion(method="chat.completions",
-                                       data={"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": "Hello!"}]},
-                                       meta={"model": "gpt-3.5-turbo",
-                                            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0"} | discover_service.get_service_info())
+        config=ClientConfig(
+            streaming=True,
+            grpc_channel_factory=create_channel,
+            supported_transports=[TransportSchemes.GRPC],
+        )
+    )
+    aduib_rpc_client: AduibRpcClient = client_factory.create(
+        discover_service.url,
+        server_preferred=TransportSchemes.GRPC,
+        interceptors=[AuthInterceptor(credentialProvider=InMemoryCredentialsProvider())],
+    )
+
+    resp = aduib_rpc_client.completion(
+        method="chat.completions",
+        data={"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": "Hello!"}]},
+        meta={
+            "model": "gpt-3.5-turbo",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ...",
+        } | discover_service.get_service_info(),
+    )
+
     async for r in resp:
         logging.debug(f'Response: {r}')
 
@@ -104,7 +130,7 @@ class CaculService:
         """同步加法"""
         ...
 
-    def add2(self, data:test_add):
+    def add2(self, data: test_add):
         """同步加法"""
         ...
 
@@ -118,14 +144,14 @@ class CaculService:
 
 async def client_call():
     registry_config = {
-        "server_addresses": "10.0.0.96:8848",
-        "namespace": "eeb6433f-d68c-4b3b-a4a7-eeff19110e4d",
-        "group_name": "DEFAULT_GROUP",
-        "username": "nacos",
-        "password": "nacos11.",
+        "server_addresses": os.getenv('NACOS_SERVER_ADDRESSES', '127.0.0.1:8848'),
+        "namespace": os.getenv('NACOS_NAMESPACE', 'your-namespace'),
+        "group_name": os.getenv('NACOS_GROUP_NAME', 'DEFAULT_GROUP'),
+        "username": os.getenv('NACOS_USERNAME', 'nacos'),
+        "password": os.getenv('NACOS_PASSWORD', 'nacos'),
         "max_retry": 3,
         "DISCOVERY_SERVICE_ENABLED": True,
-        "DISCOVERY_SERVICE_TYPE": "nacos"
+        "DISCOVERY_SERVICE_TYPE": "nacos",
     }
     ServiceRegistryFactory.start_service_discovery(registry_config)
     FuncCallContext.enable_auth()
@@ -136,16 +162,6 @@ async def client_call():
     logging.debug(f'3 + 4 = {result}')
     result = await caculService.async_mul(3, 5)
     logging.debug(f'3 * 5 = {result}')
-    # client_caller = ClientCaller.from_client_caller("caculService")
-    # res1 = await client_caller.call("add", 1, 2)
-    # res3 = await client_caller.call("add2", test_add())
-    # res2 = await client_caller.call("async_mul", 3, 4)
-    # res4 = await client_caller.call("fail", 123)
-
-    # print("add:", res1)
-    # print("add2:", res3)
-    # print("async_mul:", res2)
-    # print("fail:", res4)
 
 
 if __name__ == '__main__':
@@ -157,6 +173,7 @@ if __name__ == '__main__':
 ```python
 import asyncio
 import logging
+import os
 from typing import Any
 
 from pydantic import BaseModel
@@ -174,15 +191,24 @@ logging.basicConfig(level=logging.DEBUG)
 class TestRequestExecutor(RequestExecutor):
     def execute(self, context: RequestContext) -> Any:
         print(f"Received prompt: {context}")
-        response = ChatCompletionResponse(id="chatcmpl-123", object="chat.completion", created=1677652288,
-                                              model="gpt-3.5-turbo-0301", choices=[
-                    {"index": 0, "message": {"role": "assistant", "content": "Hello! How can I assist you today?"},
-                     "finish_reason": "stop"}], usage={"prompt_tokens": 9, "completion_tokens": 12, "total_tokens": 21})
+        response = ChatCompletionResponse(
+            id="chatcmpl-123",
+            object="chat.completion",
+            created=1677652288,
+            model="gpt-3.5-turbo-0301",
+            choices=[
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": "Hello! How can I assist you today?"},
+                    "finish_reason": "stop",
+                }
+            ],
+            usage={"prompt_tokens": 9, "completion_tokens": 12, "total_tokens": 21},
+        )
         if context.stream:
             async def stream_response():
-                for i in range(1, 4):
-                    chunk = response
-                    yield chunk
+                for _ in range(1, 4):
+                    yield response
             return stream_response()
         else:
             return response
@@ -194,43 +220,32 @@ class test_add(BaseModel):
 @service(service_name='CaculService')
 class CaculService:
     def add(self, x, y):
-        """同步加法"""
         return x + y
 
-    def add2(self, data:test_add):
-        """同步加法"""
+    def add2(self, data: test_add):
         return data.x + data.y
 
     async def async_mul(self, x, y):
-        """异步乘法"""
         await asyncio.sleep(0.1)
         return x * y
 
     def fail(self, x):
-        """会失败的函数"""
         raise RuntimeError("Oops!")
 
 async def main():
     registry_config = {
-        "server_addresses": "10.0.0.96:8848",
-        "namespace": "eeb6433f-d68c-4b3b-a4a7-eeff19110e4d",
-        "group_name": "DEFAULT_GROUP",
-        "username": "nacos",
-        "password": "nacos11.",
+        "server_addresses": os.getenv('NACOS_SERVER_ADDRESSES', '127.0.0.1:8848'),
+        "namespace": os.getenv('NACOS_NAMESPACE', 'your-namespace'),
+        "group_name": os.getenv('NACOS_GROUP_NAME', 'DEFAULT_GROUP'),
+        "username": os.getenv('NACOS_USERNAME', 'nacos'),
+        "password": os.getenv('NACOS_PASSWORD', 'nacos'),
         "max_retry": 3,
         "DISCOVERY_SERVICE_ENABLED": True,
         "DISCOVERY_SERVICE_TYPE": "nacos",
-        "APP_NAME": "CaculServiceApp"
+        "APP_NAME": "CaculServiceApp",
     }
-    service = await ServiceRegistryFactory.start_service_registry(registry_config)
-    # ip,port = NetUtils.get_ip_and_free_port()
-    # service = ServiceInstance(service_name='test_grpc', host=ip, port=port,
-    #                                protocol=AIProtocols.AduibRpc, weight=1, scheme=TransportSchemes.GRPC)
-    # registry = NacosServiceRegistry(server_addresses='10.0.0.96:8848',
-    #                                      namespace='eeb6433f-d68c-4b3b-a4a7-eeff19110e4d', group_name='DEFAULT_GROUP',
-    #                                      username='nacos', password='nacos11.')
-    factory = AduibServiceFactory(service_instance=service)
-    # await registry.register_service(service)
+    service_instance = await ServiceRegistryFactory.start_service_registry(registry_config)
+    factory = AduibServiceFactory(service_instance=service_instance)
     await factory.run_server()
 
 if __name__ == '__main__':

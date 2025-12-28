@@ -11,11 +11,11 @@ class ServiceRegistry(ABC):
     """Abstract base class for a service registry."""
 
     @abstractmethod
-    def register_service(self,service_info: ServiceInstance) -> None:
+    async def register_service(self, service_info: ServiceInstance) -> None:
         """Registers a service with the registry.
 
         Args:
-            service_info: A dictionary containing information about the service.
+            service_info: Service instance to register.
         """
 
     @abstractmethod
@@ -23,16 +23,25 @@ class ServiceRegistry(ABC):
         """Unregisters a service from the registry.
 
         Args:
-            service_info: The name of the service to unregister
+            service_name: The name of the service to unregister.
         """
 
     @abstractmethod
-    def discover_service(self, service_name: str) -> ServiceInstance |dict[str,Any] | None:
-        """Discovers a service by its name.
+    def list_instances(self, service_name: str) -> list[ServiceInstance]:
+        """List all instances for a service.
 
-        Args:
-            service_info: The name of the service to discover
+        Boundary note:
+            Registries should focus on *discovery* (listing instances).
+            Load balancing should be handled by a resolver layer.
 
         Returns:
-            A object containing information about the service, or None if not found.
+            A list of ServiceInstance. Empty list if not found.
         """
+
+    def discover_service(self, service_name: str) -> ServiceInstance | dict[str, Any] | None:
+        """Backward-compatible convenience API.
+
+        Prefer `list_instances()` in new code.
+        """
+        instances = self.list_instances(service_name)
+        return instances[0] if instances else None

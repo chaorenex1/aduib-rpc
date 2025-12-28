@@ -16,7 +16,7 @@ class InMemoryServiceRegistry(ServiceRegistry):
         self.policy = policy
         self._services: dict[str, list[ServiceInstance]] = {}
 
-    def register_service(self, service_info: ServiceInstance) -> None:
+    async def register_service(self, service_info: ServiceInstance) -> None:
         if service_info.service_name not in self._services:
             self._services[service_info.service_name] = []
         self._services[service_info.service_name].append(service_info)
@@ -33,9 +33,11 @@ class InMemoryServiceRegistry(ServiceRegistry):
                     break
         logger.info(f"Unregistered service: {service_name}")
 
+    def list_instances(self, service_name: str) -> list[ServiceInstance]:
+        if service_name not in self._services:
+            return []
+        return list(self._services.get(service_name) or [])
 
     def discover_service(self, service_name: str) -> ServiceInstance | None:
-        if service_name not in self._services:
-            return None
-        instances = self._services.get(service_name)
-        return  LoadBalancerFactory.get_load_balancer(self.policy).select_instance(instances)
+        instances = self.list_instances(service_name)
+        return LoadBalancerFactory.get_load_balancer(self.policy).select_instance(instances)

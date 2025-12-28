@@ -14,7 +14,7 @@ dependencies = [
     "protobuf>=4.24.3",
     "fastapi>=0.115.2",
     "sse-starlette",
-    "starlette",
+    "starlette>=0.48.0",
     "cryptography>=43.0.0",
     "grpcio>=1.66.1",
     "grpcio-tools>=1.66.1",
@@ -59,6 +59,9 @@ markers = [
 [tool.pytest-asyncio]
 mode = "strict"
 
+[tool.anyio]
+backend = "asyncio"
+
 [build-system]
 requires = ["hatchling","uv-dynamic-versioning"]
 build-backend = "hatchling.build"
@@ -75,7 +78,7 @@ format = "{base}"
 
 
 [tool.uv]
-[dependency-groups]
+[tool.uv.dependency-groups]
 dev= [
     "alembic==1.16.4",
     "pytest==8.4.1",

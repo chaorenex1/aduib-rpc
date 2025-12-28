@@ -2,6 +2,7 @@ import logging
 import uuid
 from collections.abc import AsyncGenerator
 
+from aduib_rpc.rpc.methods import MethodName
 from aduib_rpc.server.context import ServerContext, ServerInterceptor
 from aduib_rpc.server.rpc_execution import get_request_executor
 from aduib_rpc.server.rpc_execution.context import RequestContext
@@ -16,11 +17,14 @@ logger = logging.getLogger(__name__)
 class DefaultRequestHandler(RequestHandler):
     """Default implementation of RequestHandler with no-op methods."""
 
-    def __init__(self,
-                 request_executors: dict[str, RequestExecutor] | None = None,
-                 interceptors: list[ServerInterceptor] | None = None):
-        self.request_executors = request_executors or []
-        self.interceptors= interceptors or []
+    def __init__(
+            self,
+            interceptors: list[ServerInterceptor] | None = None,
+            request_executors: dict[str, RequestExecutor] | None = None,
+    ):
+        self.request_executors: dict[str, RequestExecutor] = request_executors or {}
+        self.interceptors = interceptors or []
+
         if request_executors:
             for method, executor in request_executors.items():
                 add_request_executor(method, executor)
@@ -34,28 +38,26 @@ class DefaultRequestHandler(RequestHandler):
     )-> AduibRpcResponse:
         """Handles the 'message' method.
         Args:
-            message: The incoming `CompletionRequest` object.
+            message: The incoming request object.
             context: Context provided by the server.
-            interceptors: list of ServerInterceptor instances to process the request.
 
         Returns:
             The `AduibRpcResponse` object containing the response.
         """
         try:
-            intercepted: AduibRPCError= None
+            intercepted: AduibRPCError | None = None
             if self.interceptors:
                 for interceptor in self.interceptors:
                     intercepted = await interceptor.intercept(message, context)
                     if intercepted:
                         break
             if not intercepted:
-                context:RequestContext=self._setup_request_context(message,context)
-                request_executor=self._validate_request_executor(context)
+                context: RequestContext = self._setup_request_context(message, context)
+                request_executor = self._validate_request_executor(context)
                 if request_executor is None:
-                    service_name= context.method.split('.')[0]
-                    function_name= context.method.split('.')[1]
-                    service_caller = ServiceCaller.from_service_caller(service_name)
-                    response=await service_caller.call(function_name,context.request.data)
+                    method = MethodName.parse_compat(context.method)
+                    service_caller = ServiceCaller.from_service_caller(method.service)
+                    response = await service_caller.call(method.handler, **(context.request.data or {}))
                     return AduibRpcResponse(id=context.request_id, result=response)
                 else:
                     response = request_executor.execute(context)
@@ -63,8 +65,8 @@ class DefaultRequestHandler(RequestHandler):
             else:
                 return AduibRpcResponse(id=context.request_id, result=None, status='error',
                                        error=intercepted)
-        except Exception as e:
-            logger.error(f"Error processing message: {e}")
+        except Exception:
+            logger.exception("Error processing message")
             raise
 
     async def on_stream_message(self, message: AduibRpcRequest,
@@ -73,27 +75,24 @@ class DefaultRequestHandler(RequestHandler):
         """Handles the 'stream_message' method.
 
         Args:
-            message: The incoming `CompletionRequest` object.
+            message: The incoming request object.
             context: Context provided by the server.
-            interceptors: list of ServerInterceptor instances to process the request.
 
         Yields:
             The `AduibRpcResponse` objects containing the streaming responses.
         """
         try:
-            intercepted: AduibRPCError= None
+            intercepted: AduibRPCError | None = None
             if self.interceptors:
                 for interceptor in self.interceptors:
                     intercepted = await interceptor.intercept(message, context)
             if not intercepted:
-                context:RequestContext=self._setup_request_context(message,context)
-                request_executor=self._validate_request_executor(context)
+                context: RequestContext = self._setup_request_context(message, context)
+                request_executor = self._validate_request_executor(context)
                 if request_executor is None:
-                    service_name= context.method.split('.')[0]
-                    function_class_name= context.method.split('.')[1]
-                    function_name= context.method.split('.')[2]
-                    service_caller = ServiceCaller.from_service_caller(function_class_name)
-                    response=await service_caller.call(function_name,**context.request.data)
+                    method = MethodName.parse_compat(context.method)
+                    service_caller = ServiceCaller.from_service_caller(method.service)
+                    response = await service_caller.call(method.handler, **(context.request.data or {}))
                     yield AduibRpcResponse(id=context.request_id, result=response)
                 else:
                     async for response in request_executor.execute(context):
@@ -101,8 +100,8 @@ class DefaultRequestHandler(RequestHandler):
             else:
                 yield AduibRpcResponse(id=context.request_id, result=None, status='error',
                                        error=intercepted)
-        except Exception as e:
-            logger.error(f"Error processing stream message: {e}")
+        except Exception:
+            logger.exception("Error processing stream message")
             raise
 
     def _setup_request_context(self,
@@ -119,12 +118,9 @@ class DefaultRequestHandler(RequestHandler):
         )
         return request_context
 
-    def _validate_request_executor(self, context:RequestContext) -> RequestExecutor:
+    def _validate_request_executor(self, context: RequestContext) -> RequestExecutor | None:
         """Validates and returns the RequestExecutor instance."""
-        request_executor: RequestExecutor = get_request_executor(
-            method=context.method)
+        request_executor: RequestExecutor | None = get_request_executor(method=context.method)
         if request_executor is None:
-            logger.error(f"RequestExecutor for {context.model_name} not found")
+            logger.error("RequestExecutor for %s not found", context.model_name)
         return request_executor
-
-

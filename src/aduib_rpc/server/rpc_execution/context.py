@@ -29,22 +29,29 @@ class RequestContext:
         self.model_name = model_name
         self.method = method
         self.stream = stream
-        if metadata is None:
-            self.metadata = request.meta
+
+        # Always initialize metadata.
+        if metadata is not None:
+            self.metadata = metadata
+        else:
+            self.metadata = request.meta if request else None
+
         if not self.context_id:
             self.context_id = str(uuid.uuid4())
-        if isinstance(request.data,dict):
-            data_dict = request.data
-        else:
-            data_dict = request.data.model_dump(exclude_none=True)
+
+        if request is not None:
+            # Access request.data here if you need to pre-normalize it in the future.
+            # (Currently unused; keep initialization minimal.)
+            pass
+
         if not self.model_name:
             self.model_name = request.meta["model"] if request and request.meta and "model" in request.meta else None
 
         if not self.method:
-            self.method = request.method
+            self.method = request.method if request else None
 
         if not self.stream:
-            self.stream = request.meta["stream"]=='true' if request and request.meta and "stream" in request.meta else False
+            self.stream = request.meta["stream"] == 'true' if request and request.meta and "stream" in request.meta else False
 
 
 

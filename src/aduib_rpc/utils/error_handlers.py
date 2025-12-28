@@ -4,6 +4,8 @@ import logging
 from collections.abc import Awaitable, Callable, Coroutine
 from typing import TYPE_CHECKING, Any
 
+from aduib_rpc.types import AduibRpcError
+
 
 if TYPE_CHECKING:
     from starlette.responses import JSONResponse, Response
@@ -51,3 +53,10 @@ def rest_stream_error_handler(
             raise e
 
     return wrapper
+
+
+def exception_to_error(exc: BaseException, *, code: int = -32603) -> AduibRpcError:
+    """Convert an arbitrary exception to the canonical AduibRpcError shape."""
+
+    # In future we can map specific exception types to specific codes.
+    return AduibRpcError(code=code, message=str(exc) or exc.__class__.__name__, data={"type": exc.__class__.__name__})

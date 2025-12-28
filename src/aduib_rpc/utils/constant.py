@@ -14,7 +14,10 @@ class SecuritySchemes(StrEnum):
     OpenIDConnect = "OpenIDConnect"
 
     @classmethod
-    def to_original(cls, value: str):
+    def to_original(cls, value: str | None):
+        if value is None:
+            # Default scheme when not specified by caller/server.
+            return SecuritySchemes.APIKey
         match value:
             case "APIKey":
                 return SecuritySchemes.APIKey
@@ -47,7 +50,10 @@ class TransportSchemes(StrEnum):
     THRIFT = "thrift"
 
     @classmethod
-    def to_original(cls, value: str):
+    def to_original(cls, value: str | None):
+        if value is None:
+            # Default scheme used by HTTP-based transports.
+            return TransportSchemes.JSONRPC
         match value:
             case "http":
                 return TransportSchemes.HTTP
@@ -55,6 +61,8 @@ class TransportSchemes(StrEnum):
                 return TransportSchemes.GRPC
             case "jsonrpc":
                 return TransportSchemes.JSONRPC
+            case "thrift":
+                return TransportSchemes.THRIFT
             case _:
                 raise ValueError(f"Unsupported transport scheme: {value}")
 

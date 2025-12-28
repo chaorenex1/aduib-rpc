@@ -3,9 +3,17 @@ from collections.abc import AsyncIterable
 
 from aduib_rpc.server.context import ServerContext
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
-from aduib_rpc.types import JsonRpcMessageRequest, \
-    JsonRpcMessageResponse, JsonRpcMessageSuccessResponse, JsonRpcStreamingMessageRequest, \
-    JsonRpcStreamingMessageSuccessResponse, JsonRpcStreamingMessageResponse, JSONRPCErrorResponse, AduibRpcResponse
+from aduib_rpc.types import (
+    AduibRpcResponse,
+    JSONRPCError,
+    JSONRPCErrorResponse,
+    JsonRpcMessageRequest,
+    JsonRpcMessageResponse,
+    JsonRpcMessageSuccessResponse,
+    JsonRpcStreamingMessageRequest,
+    JsonRpcStreamingMessageResponse,
+    JsonRpcStreamingMessageSuccessResponse,
+)
 from aduib_rpc.utils.jsonrpc_helper import prepare_response_object
 
 logger = logging.getLogger(__name__)
@@ -54,9 +62,11 @@ class JSONRPCHandler:
                 JsonRpcMessageResponse,
             )
         except Exception as e:
+            logger.exception("JSONRPCHandler on_message failed")
             return JsonRpcMessageResponse(
                 root=JSONRPCErrorResponse(
-                    id=request.id, error=str(e)
+                    id=request.id,
+                    error=JSONRPCError(code=-32603, message="Internal error", data=str(e)),
                 )
             )
 
@@ -83,13 +93,15 @@ class JSONRPCHandler:
                 yield prepare_response_object(
                     request.id,
                     event,
-                    (
-                        AduibRpcResponse,
-                    ),
+                    (AduibRpcResponse,),
                     JsonRpcStreamingMessageSuccessResponse,
                     JsonRpcStreamingMessageResponse,
                 )
         except Exception as e:
+            logger.exception("JSONRPCHandler on_stream_message failed")
             yield JsonRpcStreamingMessageResponse(
-                root=JSONRPCErrorResponse(id=request.id, error=str(e))
+                root=JSONRPCErrorResponse(
+                    id=request.id,
+                    error=JSONRPCError(code=-32603, message="Internal error", data=str(e)),
+                )
             )

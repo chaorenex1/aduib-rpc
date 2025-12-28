@@ -35,12 +35,16 @@ class ToProto:
     @classmethod
     def rpc_response(cls, response: AduibRpcResponse) -> aduib_rpc_pb2.RpcTaskResponse:
         rpc_response = aduib_rpc_pb2.RpcTaskResponse(id=response.id, status=response.status)
-        if rpc_response.status== 'error':
+        if rpc_response.status == 'error':
             rpc_error = aduib_rpc_pb2.RpcError()
-            ParseDict(jsonable_encoder(response.error), rpc_error)
-            rpc_response.error = rpc_error
+            err_dict = jsonable_encoder(response.error)
+            # proto schema defines code as string
+            if isinstance(err_dict, dict) and 'code' in err_dict and err_dict['code'] is not None:
+                err_dict['code'] = str(err_dict['code'])
+            ParseDict(err_dict, rpc_error)
+            rpc_response.error.CopyFrom(rpc_error)
         else:
-            rpc_response.result=pickle.dumps(response.result)
+            rpc_response.result = pickle.dumps(response.result)
         return rpc_response
 
     @classmethod

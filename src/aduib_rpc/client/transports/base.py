@@ -33,5 +33,4 @@ class ClientTransport(ABC):
         Yields:
             The `AduibRpcResponse` objects containing the streaming responses.
         """
-        return
-        yield
+        raise NotImplementedError

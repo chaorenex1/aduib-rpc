@@ -52,8 +52,7 @@ class AduibRpcClient(ABC):
             meta: Optional metadata to include in the request.
             context: The client call context.
         """
-        return
-        yield
+        raise NotImplementedError
 
     async def add_middleware(
         self,
@@ -102,14 +101,29 @@ class BaseAduibRpcClient(AduibRpcClient):
         """
         if context is None:
             context = ClientContext()
-        context.state['session_id'] = str(uuid.uuid4()) if not context.state.get('session_id') else context.state.get('session_id')
-        context.state['http_kwargs'] = {'headers': meta['headers']} if meta and 'headers' in meta else context.state.get('http_kwargs')
-        context.state['security_schema'] = meta['security_schema'] if 'security_schema' in meta else context.state.get('security_schema')
+
+        context.state['session_id'] = (
+            str(uuid.uuid4())
+            if not context.state.get('session_id')
+            else context.state.get('session_id')
+        )
+        context.state['http_kwargs'] = (
+            {'headers': meta['headers']}
+            if meta and 'headers' in meta
+            else context.state.get('http_kwargs')
+        )
+        context.state['security_schema'] = (
+            meta.get('security_schema')
+            if meta
+            else context.state.get('security_schema')
+        )
+
         if meta:
             if 'stream' in meta:
                 logger.warning("The 'stream' meta field is managed by the client configuration and will be overridden.")
             meta['stream'] = str(self._config.streaming).lower()
-        request = AduibRpcRequest(method=method, data=data, meta=meta,id=str(uuid.uuid4()))
+
+        request = AduibRpcRequest(method=method, data=data, meta=meta, id=str(uuid.uuid4()))
         if not self._config.streaming:
             response = await self._transport.completion(
                 request, context=context
@@ -121,6 +135,3 @@ class BaseAduibRpcClient(AduibRpcClient):
             request, context=context
         ):
             yield response
-
-
-

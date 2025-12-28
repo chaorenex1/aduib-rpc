@@ -38,7 +38,13 @@ class NacosServiceRegistry(ServiceRegistry):
 
     async def register_service(self, service_info: ServiceInstance) -> None:
         """Register a service instance with the registry."""
-        await self.client.register_instance(service_info.service_name, service_info.host, service_info.port, service_info.weight, metadata=service_info.get_service_info())
+        await self.client.register_instance(
+            service_info.service_name,
+            service_info.host,
+            service_info.port,
+            service_info.weight,
+            metadata=service_info.get_service_info(),
+        )
 
 
     def unregister_service(self, service_name: str) -> None:
@@ -46,24 +52,35 @@ class NacosServiceRegistry(ServiceRegistry):
             service = self.state.get(service_name)
             self.client.remove_instance(service_name, service.host, service.port)
 
-    def discover_service(self, service_name:str) -> ServiceInstance| dict[str,Any] | None:
+    def list_instances(self, service_name: str) -> list[ServiceInstance]:
         services = self.client.list_instances_sync(service_name)
-        if len(services) == 0:
-            return None
+        if not services:
+            return []
         if isinstance(services, dict):
-            services=[Instance.model_validate(obj=service) for service in services.get('hosts',[])]
+            services = [Instance.model_validate(obj=service) for service in services.get('hosts', [])]
+
         service_instances: list[ServiceInstance] = []
         for service in services:
+            service: Instance
+            if service is None:
+                continue
+            md = getattr(service, "metadata", None) or {}
             service_instance = ServiceInstance(
                 service_name=service.serviceName,
-                protocol=AIProtocols.to_original(service.metadata.get('protocol')),
-                scheme=TransportSchemes.to_original(service.metadata.get('scheme')),
+                protocol=AIProtocols.to_original(md.get('protocol')),
+                scheme=TransportSchemes.to_original(md.get('scheme')),
                 host=service.ip,
                 port=service.port,
                 weight=int(service.weight),
-                metadata=service.metadata or {}
+                metadata=md,
             )
             service_instances.append(service_instance)
+        return service_instances
+
+    def discover_service(self, service_name: str) -> ServiceInstance | dict[str, Any] | None:
+        service_instances = self.list_instances(service_name)
+        if not service_instances:
+            return None
         instance = LoadBalancerFactory.get_load_balancer(self.policy).select_instance(service_instances)
         self.state[service_name] = instance
         return instance
