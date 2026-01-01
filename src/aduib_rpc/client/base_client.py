@@ -125,7 +125,7 @@ class BaseAduibRpcClient(AduibRpcClient):
                 logger.warning("The 'stream' meta field is managed by the client configuration and will be overridden.")
             meta['stream'] = str(self._config.streaming).lower()
 
-        request = AduibRpcRequest(method=method, data=data, meta=meta, id=str(uuid.uuid4()))
+        request = AduibRpcRequest(name=name,method=method, data=data, meta=meta, id=str(uuid.uuid4()))
         if not self._config.streaming:
             response = await self._transport.completion(
                 request, context=context
