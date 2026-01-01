@@ -76,11 +76,15 @@ class AduibRpcClientFactory:
             def _pooled_grpc_transport(url: str, config: ClientConfig, interceptors: list[ClientRequestInterceptor]):
                 if config.grpc_channel_factory is None:
                     raise ValueError('grpc_channel_factory is required when using gRPC')
+
                 channel = (
                     default_grpc_pool().get(PoolKey.for_url(url, TransportSchemes.GRPC), factory=config.grpc_channel_factory)
                     if config.pooling_enabled
                     else config.grpc_channel_factory(url)
                 )
+
+                # Note: OpenTelemetry trace context is injected per-call inside GrpcTransport
+                # to avoid relying on grpc.aio.intercept_channel API availability.
                 return GrpcTransport(channel)
 
             self.register(TransportSchemes.GRPC, _pooled_grpc_transport)

@@ -12,6 +12,12 @@ from aduib_rpc.server.request_handlers import RequestHandler
 from aduib_rpc.server.tasks.task_manager import InMemoryTaskManager, TaskNotFoundError
 from aduib_rpc.types import AduibRpcResponse, AduibRpcRequest, AduibRPCError, AduibRpcError
 
+# Best-effort optional telemetry integration
+try:
+    from aduib_rpc.telemetry.server_interceptors import end_otel_span
+except Exception:  # pragma: no cover
+    end_otel_span = None  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 
@@ -58,21 +64,35 @@ class DefaultRequestHandler(RequestHandler):
 
                 # built-in long task methods
                 if context.method in {"task/submit", "task/status", "task/result"}:
-                    return await self._handle_task_method(context)
+                    resp = await self._handle_task_method(message,context)
+                    if end_otel_span and context.server_context:
+                        await end_otel_span(context.server_context, status=resp.status)
+                    return resp
 
                 request_executor = self._validate_request_executor(context)
                 if request_executor is None:
-                    method = MethodName.parse_compat(context.method)
-                    service_caller = ServiceCaller.from_service_caller(method.service)
-                    response = await service_caller.call(method.handler, **(context.request.data or {}))
-                    return AduibRpcResponse(id=context.request_id, result=response)
+                    compat = MethodName.parse_compat(message.method)
+                    service_caller = ServiceCaller.from_service_caller(self.generate_module_name(message))
+                    response = await service_caller.call(compat.handler, **(context.request.data or {}))
+                    resp = AduibRpcResponse(id=context.request_id, result=response)
+                    if end_otel_span and context.server_context:
+                        await end_otel_span(context.server_context, status=resp.status)
+                    return resp
                 else:
                     response = request_executor.execute(context)
-                    return AduibRpcResponse(id=context.request_id, result=response)
+                    resp = AduibRpcResponse(id=context.request_id, result=response)
+                    if end_otel_span and context.server_context:
+                        await end_otel_span(context.server_context, status=resp.status)
+                    return resp
             else:
-                return AduibRpcResponse(id=context.request_id, result=None, status='error',
+                resp = AduibRpcResponse(id=context.request_id, result=None, status='error',
                                        error=intercepted)
-        except Exception:
+                if end_otel_span and context:
+                    await end_otel_span(context, status=resp.status)
+                return resp
+        except Exception as e:
+            if end_otel_span and context:
+                await end_otel_span(context, status="error", error=e)
             logger.exception("Error processing message")
             raise
 
@@ -100,25 +120,35 @@ class DefaultRequestHandler(RequestHandler):
                 if context.method == "task/subscribe":
                     async for resp in self._handle_task_subscribe(context):
                         yield resp
+                    if end_otel_span and context.server_context:
+                        await end_otel_span(context.server_context, status="success")
                     return
 
                 request_executor = self._validate_request_executor(context)
                 if request_executor is None:
-                    method = MethodName.parse_compat(context.method)
-                    service_caller = ServiceCaller.from_service_caller(method.service)
-                    response = await service_caller.call(method.handler, **(context.request.data or {}))
+                    compat = MethodName.parse_compat(message.method)
+                    service_caller = ServiceCaller.from_service_caller(self.generate_module_name(message))
+                    response = await service_caller.call(compat.handler, **(context.request.data or {}))
                     yield AduibRpcResponse(id=context.request_id, result=response)
                 else:
                     async for response in request_executor.execute(context):
                         yield AduibRpcResponse(id=context.request_id, result=response)
+
+                if end_otel_span and context.server_context:
+                    await end_otel_span(context.server_context, status="success")
             else:
-                yield AduibRpcResponse(id=context.request_id, result=None, status='error',
+                resp = AduibRpcResponse(id=context.request_id, result=None, status='error',
                                        error=intercepted)
-        except Exception:
+                yield resp
+                if end_otel_span and context:
+                    await end_otel_span(context, status="error")
+        except Exception as e:
+            if end_otel_span and context:
+                await end_otel_span(context, status="error", error=e)
             logger.exception("Error processing stream message")
             raise
 
-    async def _handle_task_method(self, context: RequestContext) -> AduibRpcResponse:
+    async def _handle_task_method(self, message: AduibRpcRequest, context: RequestContext) -> AduibRpcResponse:
         data = context.request.data or {}
         method = context.method
 
@@ -137,7 +167,7 @@ class DefaultRequestHandler(RequestHandler):
 
             async def call_target():
                 parsed = MethodName.parse_compat(str(target_method))
-                service_caller = ServiceCaller.from_service_caller(parsed.service)
+                service_caller = ServiceCaller.from_service_caller(self.generate_module_name(message))
                 return await service_caller.call(parsed.handler, **(params or {}))
 
             rec = await self.task_manager.submit(call_target, ttl_seconds=ttl_seconds)
@@ -255,3 +285,26 @@ class DefaultRequestHandler(RequestHandler):
         if request_executor is None:
             logger.error("RequestExecutor for %s not found", context.model_name)
         return request_executor
+
+
+    def generate_module_name(self, message: AduibRpcRequest) -> str:
+        """Generates a module name based on the request's name and method.
+
+        Args:
+            message: The incoming request object.
+
+        Returns:
+            The generated module name.
+        """
+        method=message.method
+        if message.method in {"task/submit", "task/status", "task/result"}:
+            method = message.data.get("target_method")
+        if message.name is None:
+            compat = MethodName.parse_compat(method)
+            if len(compat.handler.split(".")) > 1:
+                return f"{compat.service}.{compat.handler.split('.')[0]}"
+            else:
+                return f"{compat.service}.{compat.service}"
+        else:
+            return message.name
+

@@ -24,7 +24,7 @@ async def test_service_decorator_registers_and_executes():
             await asyncio.sleep(0)
             return x * y
 
-    caller = ServiceCaller.from_service_caller("Calc")
+    caller = ServiceCaller.from_service_caller("Calc.Calc")
     assert await caller.call("add", 1, 2) == 3
     assert await caller.call("mul", 2, 3) == 6
 

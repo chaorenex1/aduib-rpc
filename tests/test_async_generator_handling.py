@@ -35,7 +35,7 @@ async def test_service_decorator_supports_async_generator_function_end_to_end():
             yield 1
             yield 2
 
-    caller = ServiceCaller.from_service_caller("StreamSvc")
+    caller = ServiceCaller.from_service_caller("StreamSvc.StreamSvc")
     res = await caller.call("stream")
 
     assert inspect.isasyncgen(res)

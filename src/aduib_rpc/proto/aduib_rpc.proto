@@ -10,6 +10,7 @@ message RpcError {
 
 message RpcTask {
   string id = 1;
+  string name = 3;
   string method = 2;
   string meta = 4;
   bytes data = 5;

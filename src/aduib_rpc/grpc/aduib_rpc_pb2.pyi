@@ -16,16 +16,18 @@ class RpcError(_message.Message):
     def __init__(self, data: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., message: _Optional[str] = ..., code: _Optional[str] = ...) -> None: ...
 
 class RpcTask(_message.Message):
-    __slots__ = ("id", "method", "meta", "data")
+    __slots__ = ("id", "name", "method", "meta", "data")
     ID_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
     METHOD_FIELD_NUMBER: _ClassVar[int]
     META_FIELD_NUMBER: _ClassVar[int]
     DATA_FIELD_NUMBER: _ClassVar[int]
     id: str
+    name: str
     method: str
     meta: str
     data: bytes
-    def __init__(self, id: _Optional[str] = ..., method: _Optional[str] = ..., meta: _Optional[str] = ..., data: _Optional[bytes] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., method: _Optional[str] = ..., meta: _Optional[str] = ..., data: _Optional[bytes] = ...) -> None: ...
 
 class RpcTaskResponse(_message.Message):
     __slots__ = ("id", "status", "result", "error")

@@ -44,12 +44,21 @@ class GrpcTransport(ClientTransport):
 
     async def completion(self, request: AduibRpcRequest, *, context: ClientContext) -> AduibRpcResponse:
         """Sends a message to the agent and returns the response."""
-        grpc_metadata = []
+        grpc_metadata: list[tuple[str, str]] = []
         if request.meta:
             for key, value in request.meta.items():
-                grpc_metadata.append((key, value))
+                grpc_metadata.append((str(key), str(value)))
+
+        # Best-effort OpenTelemetry injection into gRPC metadata.
+        try:
+            from aduib_rpc.telemetry.grpc_interceptors import inject_otel_to_grpc_metadata
+
+            grpc_metadata = inject_otel_to_grpc_metadata(grpc_metadata)
+        except Exception:
+            pass
+
         data = proto_utils.ToProto.taskData(request.data, request.meta)
-        task = aduib_rpc_pb2.RpcTask(id=request.id, method=request.method, meta=proto_utils.ToProto.metadata(request.meta), data=data)
+        task = aduib_rpc_pb2.RpcTask(id=request.id, name=request.name, method=request.method, meta=proto_utils.ToProto.metadata(request.meta), data=data)
         # Resolve deadline (seconds) from request meta or config.
         cfg_timeout = getattr(context, 'config', None).grpc_timeout if hasattr(context, 'config') else None
         deadline = resolve_timeout_s(config_timeout_s=cfg_timeout, meta=request.meta, context_http_kwargs=None)
@@ -72,10 +81,18 @@ class GrpcTransport(ClientTransport):
             - Applies deadline to stream establishment/first read via gRPC timeout.
             - Does not transparently retry mid-stream.
         """
-        grpc_metadata = []
+        grpc_metadata: list[tuple[str, str]] = []
         if request.meta:
             for key, value in request.meta.items():
-                grpc_metadata.append((key, value))
+                grpc_metadata.append((str(key), str(value)))
+
+        # Best-effort OpenTelemetry injection into gRPC metadata.
+        try:
+            from aduib_rpc.telemetry.grpc_interceptors import inject_otel_to_grpc_metadata
+
+            grpc_metadata = inject_otel_to_grpc_metadata(grpc_metadata)
+        except Exception:
+            pass
 
         cfg_timeout = getattr(context, 'config', None).grpc_timeout if hasattr(context, 'config') else None
         deadline = resolve_timeout_s(config_timeout_s=cfg_timeout, meta=request.meta, context_http_kwargs=None)
@@ -83,6 +100,7 @@ class GrpcTransport(ClientTransport):
         stream = self.stub.stream_completion(
             aduib_rpc_pb2.RpcTask(
                 id=request.id,
+                name=request.name,
                 method=request.method,
                 meta=proto_utils.ToProto.metadata(request.meta),
                 data=proto_utils.ToProto.taskData(request.data, request.meta),

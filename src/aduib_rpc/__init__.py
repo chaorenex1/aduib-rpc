@@ -25,6 +25,14 @@ from aduib_rpc.server.rpc_execution.service_call import (
     service_function,
 )
 
+# Optional telemetry (requires `aduib-rpc[telemetry]`)
+try:
+    from aduib_rpc.telemetry.config import TelemetryConfig
+    from aduib_rpc.telemetry.setup import configure_telemetry
+except Exception:  # pragma: no cover
+    TelemetryConfig = None  # type: ignore
+    configure_telemetry = None  # type: ignore
+
 __all__ = [
     # types
     "AduibRpcError",
@@ -45,5 +53,7 @@ __all__ = [
     "service_function",
     "client",
     "client_function",
+    # optional telemetry
+    "TelemetryConfig",
+    "configure_telemetry",
 ]
-

@@ -53,7 +53,7 @@ async def test_base_client_completion_with_meta_none_does_not_crash():
     client = BaseAduibRpcClient(config=ClientConfig(streaming=False), transport=_DummyTransport())
 
     out = []
-    async for item in client.completion(method="m", data={"a": 1}, meta=None):
+    async for item in client.completion(name="CrawlService", method="m", data={"a": 1}, meta=None):
         out.append(item)
 
     assert out == ["ok"]

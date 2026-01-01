@@ -33,7 +33,15 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-telemetry = ["opentelemetry-api>=1.33.0", "opentelemetry-sdk>=1.33.0"]
+telemetry = [
+  "opentelemetry-api>=1.33.0",
+  "opentelemetry-sdk>=1.33.0",
+  "opentelemetry-exporter-otlp>=1.33.0",
+  "opentelemetry-instrumentation-fastapi>=0.54b0",
+  "opentelemetry-instrumentation-asgi>=0.54b0",
+  "opentelemetry-instrumentation-httpx>=0.54b0",
+  "opentelemetry-instrumentation-grpc>=0.54b0",
+]
 nacos = ["nacos-sdk-python>2.0.1"]
 uvicorn = ["uvicorn>=0.1.5"]
 a2a = ["a2a-sdk>=0.2.4"]

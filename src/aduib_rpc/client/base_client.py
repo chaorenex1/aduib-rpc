@@ -34,6 +34,7 @@ class AduibRpcClient(ABC):
     @abstractmethod
     async def completion(
         self,
+        name: str,
         method: str,
         data: Any= None,
         meta: Optional[dict[str, Any]] = None,
@@ -81,6 +82,7 @@ class BaseAduibRpcClient(AduibRpcClient):
         self._transport = transport
 
     async def completion(self,
+                         name:str,
                          method: str,
                          data: Any = None,
                          meta: Optional[dict[str, Any]] = None,

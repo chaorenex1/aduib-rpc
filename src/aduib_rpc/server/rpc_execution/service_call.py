@@ -388,7 +388,8 @@ def service_function(  # noqa: PLR0915
 def client_function(  # noqa: PLR0915
         func: Callable | None = None,
         *,
-        func_name: str | None = None,
+        module_name: str | None = None,
+        method_name: str | None = None,
         service_name: str | None = None,
         stream: bool = True,
         fallback: Callable[..., Any] = None,
@@ -406,14 +407,15 @@ def client_function(  # noqa: PLR0915
     if func is None:
         return functools.partial(
             client_function,
-            func_name=func_name,
+            module_name=module_name,
+            method_name=method_name,
             service_name=service_name,
             stream=stream,
             fallback=fallback,
             runtime=runtime,
         )
 
-    handler_name = func_name or _default_handler_name(func)
+    handler_name = method_name or _default_handler_name(func)
     # Treat async-generator functions as async as well.
     is_async_func = inspect.iscoroutinefunction(func) or inspect.isasyncgenfunction(func)
 
@@ -476,6 +478,7 @@ def client_function(  # noqa: PLR0915
         # BaseAduibRpcClient.completion returns an AsyncIterator (async generator).
         # Some custom implementations might return an awaitable that resolves to an async iterator.
         resp = client.completion(
+            module_name,
             remote_method,
             dict_data,
             resolved.meta(),
@@ -483,7 +486,7 @@ def client_function(  # noqa: PLR0915
         if inspect.isawaitable(resp) and not hasattr(resp, "__aiter__"):
             resp = await resp
 
-        logger.debug('called remote service %s', remote_method, extra={"rpc.method": remote_method})
+        logger.debug('called remote service %s', service_name, extra={"rpc.method": method_name})
 
         result = None
         async for r in resp:
@@ -515,39 +518,27 @@ def service(service_name: str, *, runtime: RpcRuntime | None = None):
     effective_runtime = _get_effective_runtime(runtime)
 
     def decorator(cls: Any):
+        service = f"{service_name}.{cls.__name__}"
         for method_name, function in inspect.getmembers(cls, inspect.isfunction):
-            if method_name.startswith('__') and method_name.endswith('__'):
-                continue
-
-            if service_name:
-                handler_name = f"{service_name}.{method_name}"
-            else:
-                handler_name = f"{cls.__name__}.{method_name}" if cls.__name__ else method_name
-
-            # Prefer the runtime provided to this decorator; fall back to default runtime.
-            service_info = effective_runtime.service_info or get_runtime().service_info
-            if service_info and getattr(service_info, "service_name", None):
-                full_name = f"{service_info.service_name}.{handler_name}"
-            else:
-                raise ValueError("Service info is not properly configured in runtime.")
+            handler_name = f"{cls.__name__}.{method_name}"
 
             setattr(
                 cls,
                 method_name,
-                service_function(func_name=full_name, fallback=None, runtime=effective_runtime)(function),
+                service_function(func_name=handler_name, fallback=None, runtime=effective_runtime)(function),
             )
             wrapper_func = getattr(cls, method_name)
-            service_func: ServiceFunc = ServiceFunc.from_function(function, full_name, function.__doc__)
-            service_func.wrap_fn = wrapper_func
-            effective_runtime.service_funcs[full_name] = service_func
-
+            service_func: ServiceFunc = ServiceFunc.from_function(function, handler_name, function.__doc__)
             # Keep a persistent copy so we can rehydrate runtime after reset().
-            _SERVICE_FUNC_CATALOG[full_name] = service_func
+            service_func.wrap_fn = wrapper_func
+            effective_runtime.service_funcs[handler_name] = service_func
 
-        effective_runtime.service_instances[service_name] = cls
 
         # Keep a persistent copy so we can rehydrate runtime after reset().
-        _SERVICE_CATALOG[service_name] = cls
+            _SERVICE_FUNC_CATALOG[handler_name] = service_func
+
+        effective_runtime.service_instances[service] = cls
+        _SERVICE_CATALOG[service] = cls
         return cls
 
     return decorator
@@ -559,6 +550,7 @@ def client(service_name: str, stream: bool = True, fallback: Callable[..., Any] 
     effective_runtime = _get_effective_runtime(runtime)
 
     def decorator(cls: Any):
+        service = f"{service_name}.{cls.__name__}"
         for method_name, function in inspect.getmembers(cls, inspect.isfunction):
             if method_name.startswith('__') and method_name.endswith('__'):
                 continue
@@ -569,7 +561,8 @@ def client(service_name: str, stream: bool = True, fallback: Callable[..., Any] 
                 cls,
                 method_name,
                 client_function(
-                    func_name=handler_name,
+                    module_name=service,
+                    method_name=handler_name,
                     service_name=service_name,
                     stream=stream,
                     fallback=fallback,
@@ -623,7 +616,7 @@ class ServiceCaller:
         if "." not in handler and self.service_type is not None:
             handler = f"{self.service_type.__name__}.{func_name}"
 
-        service_func_name = f"{self.service_name}.{handler}"
+        service_func_name = f"{handler}"
         logger.debug("Calling service function: %s", service_func_name)
 
         service_func = self._runtime.service_funcs.get(service_func_name)

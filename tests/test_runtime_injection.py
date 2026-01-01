@@ -19,8 +19,8 @@ async def test_service_registration_isolated_by_runtime():
         def add(self, x: int, y: int) -> int:
             return x * y
 
-    caller1 = ServiceCaller.from_service_caller("S", runtime=rt1)
-    caller2 = ServiceCaller.from_service_caller("S", runtime=rt2)
+    caller1 = ServiceCaller.from_service_caller("S.S1", runtime=rt1)
+    caller2 = ServiceCaller.from_service_caller("S.S2", runtime=rt2)
 
     assert await caller1.call("add", 2, 3) == 5
     assert await caller2.call("add", 2, 3) == 6

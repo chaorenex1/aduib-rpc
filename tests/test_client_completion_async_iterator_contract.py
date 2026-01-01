@@ -32,7 +32,7 @@ class _FakeRegistryFactory:
 
 class _FakeClient:
     # Important: completion returns an async generator object (AsyncIterator), NOT awaitable.
-    def completion(self, method, data=None, meta=None):
+    def completion(self, name,method, data=None, meta=None):
         async def gen():
             yield _FakeResponse("ok")
 

@@ -37,6 +37,6 @@ async def test_client_function_requires_service_name():
     async def f(x: int) -> int:
         return x
 
-    wrapped = client_function(func_name="C.f", service_name=None)(f)
+    wrapped = client_function(module_name="C",method_name="C.f", service_name=None)(f)
     with pytest.raises(ValueError):
         await wrapped(1)

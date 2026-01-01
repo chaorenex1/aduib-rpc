@@ -24,6 +24,8 @@ AduibRPCError = AduibRpcError
 
 class AduibRpcRequest(BaseModel):
     aduib_rpc: Literal['1.0'] = '1.0'
+    # Backward compatible: older callers didn't provide `name`.
+    name: str | None = None
     method: str
     data: Union[dict[str, Any], Any, None] = None
     meta: Optional[dict[str, Any]] = None
