@@ -366,7 +366,8 @@ def service_function(  # noqa: PLR0915
         )
 
     actual_func_name = func_name or _default_handler_name(func)
-    is_async_func = inspect.iscoroutinefunction(func)
+    # Treat async-generator functions as async as well.
+    is_async_func = inspect.iscoroutinefunction(func) or inspect.isasyncgenfunction(func)
 
     logger.debug(
         'Start wrap func for %s, is_async_func %s',
@@ -413,7 +414,8 @@ def client_function(  # noqa: PLR0915
         )
 
     handler_name = func_name or _default_handler_name(func)
-    is_async_func = inspect.iscoroutinefunction(func)
+    # Treat async-generator functions as async as well.
+    is_async_func = inspect.iscoroutinefunction(func) or inspect.isasyncgenfunction(func)
 
     logger.debug(
         'Start call for %s (service=%s), is_async_func %s',

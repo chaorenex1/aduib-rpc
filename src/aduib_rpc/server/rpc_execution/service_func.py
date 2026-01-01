@@ -65,7 +65,15 @@ class ServiceFuncMetadata(BaseModel):
         if fn_is_async:
             if isinstance(fn, Awaitable):
                 return await fn
-            return await fn(**arguments_parsed_dict)
+
+            # For async callables:
+            # - coroutine functions return awaitables
+            # - async-generator functions return an async generator object (NOT awaitable)
+            res = fn(**arguments_parsed_dict)
+            if inspect.isawaitable(res):
+                return await res
+            return res
+
         if isinstance(fn, Callable):
             return fn(**arguments_parsed_dict)
         raise TypeError("fn must be either Callable or Awaitable")
@@ -288,6 +296,16 @@ def _is_async_callable(obj: Any) -> bool:
     while isinstance(obj, functools.partial):
         obj = obj.func
 
-    return inspect.iscoroutinefunction(obj) or (
+    # Coroutine functions are async.
+    if inspect.iscoroutinefunction(obj) or (
             callable(obj) and inspect.iscoroutinefunction(getattr(obj, "__call__", None))
-    )
+    ):
+        return True
+
+    # Async-generator functions (`async def ...: yield ...`) are also async callables.
+    if inspect.isasyncgenfunction(obj) or (
+            callable(obj) and inspect.isasyncgenfunction(getattr(obj, "__call__", None))
+    ):
+        return True
+
+    return False
