@@ -30,10 +30,14 @@ class RpcRuntime:
     credentials_provider: CredentialsProvider | None = None
 
     def reset(self) -> None:
+        # Reset all runtime registries for test isolation.
+        self.service_instances.clear()
+        self.client_instances.clear()
         self.service_funcs.clear()
         self.client_funcs.clear()
         self.interceptors.clear()
         self.credentials_provider = None
+        self.service_info = None
 
     def enable_auth(self) -> None:
         if not self.credentials_provider:
@@ -43,7 +47,8 @@ class RpcRuntime:
             self.interceptors.append(AuthInterceptor(self.credentials_provider))
 
 
-_global_runtime:RpcRuntime
+# Initialize lazily in get_runtime().
+_global_runtime: RpcRuntime | None = None
 
 
 def get_runtime() -> RpcRuntime:
@@ -60,5 +65,3 @@ def get_runtime() -> RpcRuntime:
 def set_service_info(service_info: ServiceInstance) -> None:
     runtime = get_runtime()
     runtime.service_info = service_info
-
-

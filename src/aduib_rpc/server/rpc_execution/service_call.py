@@ -523,11 +523,13 @@ def service(service_name: str, *, runtime: RpcRuntime | None = None):
                 handler_name = f"{service_name}.{method_name}"
             else:
                 handler_name = f"{cls.__name__}.{method_name}" if cls.__name__ else method_name
-            service_info = get_runtime().service_info
-            if service_info and service_info.service_name:
+
+            # Prefer the runtime provided to this decorator; fall back to default runtime.
+            service_info = effective_runtime.service_info or get_runtime().service_info
+            if service_info and getattr(service_info, "service_name", None):
                 full_name = f"{service_info.service_name}.{handler_name}"
             else:
-                ValueError("Service info is not properly configured in runtime.")
+                raise ValueError("Service info is not properly configured in runtime.")
 
             setattr(
                 cls,
