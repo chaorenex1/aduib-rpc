@@ -473,11 +473,16 @@ def client_function(  # noqa: PLR0915
             interceptors=effective_runtime.interceptors,
         )
 
-        resp = await client.completion(
+        # BaseAduibRpcClient.completion returns an AsyncIterator (async generator).
+        # Some custom implementations might return an awaitable that resolves to an async iterator.
+        resp = client.completion(
             remote_method,
             dict_data,
             resolved.meta(),
         )
+        if inspect.isawaitable(resp) and not hasattr(resp, "__aiter__"):
+            resp = await resp
+
         logger.debug('called remote service %s', remote_method, extra={"rpc.method": remote_method})
 
         result = None
