@@ -519,8 +519,15 @@ def service(service_name: str, *, runtime: RpcRuntime | None = None):
             if method_name.startswith('__') and method_name.endswith('__'):
                 continue
 
-            handler_name = f"{cls.__name__}.{method_name}" if cls.__name__ else method_name
-            full_name = f"{service_name}.{handler_name}"
+            if service_name:
+                handler_name = f"{service_name}.{method_name}"
+            else:
+                handler_name = f"{cls.__name__}.{method_name}" if cls.__name__ else method_name
+            service_info = get_runtime().service_info
+            if service_info and service_info.service_name:
+                full_name = f"{service_info.service_name}.{handler_name}"
+            else:
+                ValueError("Service info is not properly configured in runtime.")
 
             setattr(
                 cls,
