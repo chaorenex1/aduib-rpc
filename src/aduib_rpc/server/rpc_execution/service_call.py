@@ -539,6 +539,7 @@ def service(service_name: str, *, runtime: RpcRuntime | None = None):
 
         effective_runtime.service_instances[service] = cls
         _SERVICE_CATALOG[service] = cls
+
         return cls
 
     return decorator
@@ -550,7 +551,7 @@ def client(service_name: str, stream: bool = True, fallback: Callable[..., Any] 
     effective_runtime = _get_effective_runtime(runtime)
 
     def decorator(cls: Any):
-        service = f"{service_name}.{cls.__name__}"
+        service = f"{cls.__name__}.{cls.__name__}"
         for method_name, function in inspect.getmembers(cls, inspect.isfunction):
             if method_name.startswith('__') and method_name.endswith('__'):
                 continue
