@@ -279,6 +279,12 @@ def _make_wrappers(
         start = time.perf_counter()
         try:
             res = _call_maybe_async(func, *args, **kwargs)
+
+            # Async generator objects are not awaitable; they must be consumed with `async for`.
+            # If a handler intentionally returns a stream, we pass it through unchanged.
+            if inspect.isasyncgen(res):
+                return res
+
             if inspect.isawaitable(res):
                 return await res
             return res
@@ -309,7 +315,14 @@ def _make_wrappers(
         # Keep sync wrapper truly sync for service functions.
         start = time.perf_counter()
         try:
-            return func(*args, **kwargs)
+            res = func(*args, **kwargs)
+            # A sync wrapper cannot consume an async generator; fail fast with a clear error.
+            if inspect.isasyncgen(res):
+                raise TypeError(
+                    f"{kind} handler '{handler_name}' returned an async generator, but was called via a sync wrapper. "
+                    "Make the function async and consume it with 'async for', or return a concrete value instead."
+                )
+            return res
         except Exception as e:
             logger.warning('Exception in %s %s: %s', kind, handler_name, e, exc_info=True, extra=extra_base)
             if fallback:
