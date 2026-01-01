@@ -88,11 +88,11 @@ class DefaultRequestHandler(RequestHandler):
                 resp = AduibRpcResponse(id=context.request_id, result=None, status='error',
                                        error=intercepted)
                 if end_otel_span and context:
-                    await end_otel_span(context, status=resp.status)
+                    await end_otel_span(context.server_context, status=resp.status)
                 return resp
         except Exception as e:
             if end_otel_span and context:
-                await end_otel_span(context, status="error", error=e)
+                await end_otel_span(context.server_context, status="error", error=e)
             logger.exception("Error processing message")
             raise
 
@@ -141,10 +141,10 @@ class DefaultRequestHandler(RequestHandler):
                                        error=intercepted)
                 yield resp
                 if end_otel_span and context:
-                    await end_otel_span(context, status="error")
+                    await end_otel_span(context.server_context, status="error")
         except Exception as e:
             if end_otel_span and context:
-                await end_otel_span(context, status="error", error=e)
+                await end_otel_span(context.server_context, status="error", error=e)
             logger.exception("Error processing stream message")
             raise
 
