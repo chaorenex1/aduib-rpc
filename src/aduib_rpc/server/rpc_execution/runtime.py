@@ -6,6 +6,7 @@ from typing import Any
 from aduib_rpc.client import ClientRequestInterceptor
 from aduib_rpc.client.auth import CredentialsProvider, InMemoryCredentialsProvider
 from aduib_rpc.client.auth.interceptor import AuthInterceptor
+from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.server.rpc_execution.service_func import ServiceFunc
 
 
@@ -18,7 +19,7 @@ class RpcRuntime:
     - allow future per-server/per-client runtime instances
     - keep behavior compatible with the existing module-level globals
     """
-
+    service_info: ServiceInstance = field(default=None)
     service_instances: dict[str, Any] = field(default_factory=dict)
     client_instances: dict[str, Any] = field(default_factory=dict)
 
@@ -29,8 +30,6 @@ class RpcRuntime:
     credentials_provider: CredentialsProvider | None = None
 
     def reset(self) -> None:
-        self.service_instances.clear()
-        self.client_instances.clear()
         self.service_funcs.clear()
         self.client_funcs.clear()
         self.interceptors.clear()
@@ -44,7 +43,7 @@ class RpcRuntime:
             self.interceptors.append(AuthInterceptor(self.credentials_provider))
 
 
-_global_runtime = RpcRuntime()
+_global_runtime:RpcRuntime
 
 
 def get_runtime() -> RpcRuntime:
@@ -52,6 +51,14 @@ def get_runtime() -> RpcRuntime:
 
     This keeps backward-compatibility for existing imports and decorators.
     """
+    global _global_runtime
+    if _global_runtime is None:
+        _global_runtime = RpcRuntime()
 
     return _global_runtime
+
+def set_service_info(service_info: ServiceInstance) -> None:
+    runtime = get_runtime()
+    runtime.service_info = service_info
+
 

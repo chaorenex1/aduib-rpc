@@ -20,6 +20,7 @@ from aduib_rpc.server.rpc_execution import RequestExecutor
 from aduib_rpc.server.request_handlers import DefaultRequestHandler, GrpcHandler
 from aduib_rpc.server.request_handlers.grpc_handler import DefaultServerContentBuilder
 from aduib_rpc.server.request_handlers.thrift_handler import ThriftHandler
+from aduib_rpc.server.rpc_execution.runtime import set_service_info
 from aduib_rpc.thrift import AduibRpcService
 from aduib_rpc.utils.constant import TransportSchemes
 
@@ -37,6 +38,7 @@ class AduibServiceFactory(ServiceFactory):
         self.interceptors = interceptors or []
         self.request_executors = request_executors or []
         self.service = service_instance
+        set_service_info(service_instance)
         self.server = None
 
     async def run_server(self, **kwargs: Any):
