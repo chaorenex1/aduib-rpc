@@ -10,8 +10,10 @@ try:
     from v2.nacos import ClientConfigBuilder, GRPCConfig, NacosConfigService, NacosNamingService, ConfigParam, \
         RegisterInstanceParam, DeregisterInstanceParam, ListInstanceParam, Instance, Service, GetServiceParam, \
         SubscribeServiceParam
+    NacosClient = nacos.NacosClient  # type: ignore
 except ImportError:
     nacos = None
+    NacosClient = None  # type: ignore
     ClientConfigBuilder = None
     GRPCConfig = None
     NacosConfigService = None
@@ -55,7 +57,7 @@ def run_async(func_or_coro, *args, **kwargs):
     return future.result()
 
 
-class NacosClient:
+class InnerNacosClient:
     def __init__(self, server_addr: str,
                  namespace: str,
                  user_name: str,

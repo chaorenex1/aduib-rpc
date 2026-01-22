@@ -1,11 +1,15 @@
 from typing import Any
 
-from v2.nacos import Instance
+try:
+    from v2.nacos import Instance
+except ImportError:
+    # nacos-sdk-python is optional
+    Instance = None
 
 from aduib_rpc.discover.entities import ServiceInstance
 from aduib_rpc.discover.load_balance import LoadBalancerFactory
 from aduib_rpc.discover.registry import ServiceRegistry
-from aduib_rpc.discover.registry.nacos.client import NacosClient
+from aduib_rpc.discover.registry.nacos.client import InnerNacosClient
 from aduib_rpc.discover.registry.registry_factory import registry
 from aduib_rpc.utils.constant import LoadBalancePolicy, AIProtocols, TransportSchemes
 
@@ -27,7 +31,7 @@ class NacosServiceRegistry(ServiceRegistry):
         self.username = username
         self.password = password
         self.policy = policy
-        self.client = NacosClient(server_addresses, namespace, username, password,group_name)
+        self.client = InnerNacosClient(server_addresses, namespace, username, password,group_name)
         # AsyncUtils.run_async(self.client.create_config_service())
         # AsyncUtils.run_async(self.client.create_naming_service())
         self.state:dict[str,ServiceInstance]={}
