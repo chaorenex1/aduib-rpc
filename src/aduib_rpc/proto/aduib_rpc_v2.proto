@@ -1,0 +1,437 @@
+syntax = "proto3";
+
+package aduib.rpc.v2;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/aduib/rpc/v2;rpcv2";
+option java_package = "com.aduib.rpc.v2";
+option java_multiple_files = true;
+
+// ============================================================
+// 核心消息
+// ============================================================
+
+message Request {
+  // 协议版本
+  string aduib_rpc = 1;  // "2.0"
+
+  // 请求标识
+  string id = 2;
+
+  // 路由
+  string method = 3;
+  optional string name = 4;
+
+  // 负载
+  google.protobuf.Struct data = 5;
+
+  // 链路追踪
+  optional TraceContext trace_context = 6;
+
+  // 元数据
+  optional RequestMetadata metadata = 7;
+
+  // QoS
+  optional QosConfig qos = 8;
+}
+
+message Response {
+  // 协议版本
+  string aduib_rpc = 1;
+
+  // 请求标识
+  string id = 2;
+
+  // 状态
+  ResponseStatus status = 3;
+
+  // 结果（二选一）
+  oneof payload {
+    google.protobuf.Value result = 4;
+    RpcError error = 5;
+  }
+
+  // 链路追踪
+  optional TraceContext trace_context = 6;
+
+  // 元数据
+  optional ResponseMetadata metadata = 7;
+}
+
+enum ResponseStatus {
+  RESPONSE_STATUS_UNSPECIFIED = 0;
+  RESPONSE_STATUS_SUCCESS = 1;
+  RESPONSE_STATUS_ERROR = 2;
+  RESPONSE_STATUS_PARTIAL = 3;
+}
+
+// ============================================================
+// 错误
+// ============================================================
+
+message RpcError {
+  int32 code = 1;
+  string name = 2;
+  string message = 3;
+  repeated ErrorDetail details = 4;
+  optional DebugInfo debug = 5;
+}
+
+message ErrorDetail {
+  string type = 1;
+  optional string field = 2;
+  string reason = 3;
+  map<string, string> metadata = 4;
+}
+
+message DebugInfo {
+  optional string stack_trace = 1;
+  optional string internal_message = 2;
+  int64 timestamp_ms = 3;
+}
+
+// ============================================================
+// 链路追踪
+// ============================================================
+
+message TraceContext {
+  string trace_id = 1;
+  string span_id = 2;
+  optional string parent_span_id = 3;
+  bool sampled = 4;
+  map<string, string> baggage = 5;
+}
+
+// ============================================================
+// 元数据
+// ============================================================
+
+message RequestMetadata {
+  int64 timestamp_ms = 1;
+  optional string client_id = 2;
+  optional string client_version = 3;
+  optional AuthContext auth = 4;
+  optional string tenant_id = 5;
+  ContentType content_type = 6;
+  repeated ContentType accept = 7;
+  optional Compression compression = 8;
+  map<string, string> headers = 9;
+}
+
+message ResponseMetadata {
+  int64 timestamp_ms = 1;
+  int64 duration_ms = 2;
+  optional string server_id = 3;
+  optional string server_version = 4;
+  optional Pagination pagination = 5;
+  optional RateLimitInfo rate_limit = 6;
+  map<string, string> headers = 7;
+}
+
+message AuthContext {
+  AuthScheme scheme = 1;
+  optional string credentials = 2;
+  optional string principal = 3;
+  repeated string roles = 4;
+}
+
+enum AuthScheme {
+  AUTH_SCHEME_UNSPECIFIED = 0;
+  AUTH_SCHEME_BEARER = 1;
+  AUTH_SCHEME_API_KEY = 2;
+  AUTH_SCHEME_MTLS = 3;
+}
+
+enum ContentType {
+  CONTENT_TYPE_UNSPECIFIED = 0;
+  CONTENT_TYPE_JSON = 1;
+  CONTENT_TYPE_MSGPACK = 2;
+  CONTENT_TYPE_PROTOBUF = 3;
+  CONTENT_TYPE_AVRO = 4;
+}
+
+enum Compression {
+  COMPRESSION_UNSPECIFIED = 0;
+  COMPRESSION_NONE = 1;
+  COMPRESSION_GZIP = 2;
+  COMPRESSION_ZSTD = 3;
+  COMPRESSION_LZ4 = 4;
+}
+
+message Pagination {
+  int64 total = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  bool has_next = 4;
+  optional string cursor = 5;
+}
+
+message RateLimitInfo {
+  int32 limit = 1;
+  int32 remaining = 2;
+  int64 reset_at_ms = 3;
+}
+
+// ============================================================
+// QoS
+// ============================================================
+
+message QosConfig {
+  Priority priority = 1;
+  optional int64 timeout_ms = 2;
+  optional RetryConfig retry = 3;
+  optional string idempotency_key = 4;
+}
+
+enum Priority {
+  PRIORITY_UNSPECIFIED = 0;
+  PRIORITY_LOW = 1;
+  PRIORITY_NORMAL = 2;
+  PRIORITY_HIGH = 3;
+  PRIORITY_CRITICAL = 4;
+}
+
+message RetryConfig {
+  int32 max_attempts = 1;
+  int64 initial_delay_ms = 2;
+  int64 max_delay_ms = 3;
+  double backoff_multiplier = 4;
+  repeated int32 retryable_codes = 5;
+}
+
+// ============================================================
+// 流式消息
+// ============================================================
+
+message StreamMessage {
+  StreamMessageType type = 1;
+  int64 sequence = 2;
+  optional StreamPayload payload = 3;
+  int64 timestamp_ms = 4;
+}
+
+enum StreamMessageType {
+  STREAM_MESSAGE_TYPE_UNSPECIFIED = 0;
+  STREAM_MESSAGE_TYPE_DATA = 1;
+  STREAM_MESSAGE_TYPE_HEARTBEAT = 2;
+  STREAM_MESSAGE_TYPE_ERROR = 3;
+  STREAM_MESSAGE_TYPE_END = 4;
+  STREAM_MESSAGE_TYPE_CANCEL = 5;
+  STREAM_MESSAGE_TYPE_ACK = 6;
+}
+
+message StreamPayload {
+  oneof content {
+    google.protobuf.Value data = 1;
+    RpcError error = 2;
+    StreamControl control = 3;
+  }
+}
+
+message StreamControl {
+  bool final = 1;
+  optional int64 total_count = 2;
+  optional string ping_id = 3;
+  optional string reason = 4;
+  optional int64 ack_sequence = 5;
+}
+
+// ============================================================
+// 服务发现
+// ============================================================
+
+message ServiceInstance {
+  string instance_id = 1;
+  string service_name = 2;
+  string version = 3;
+  string host = 4;
+  int32 port = 5;
+  TransportScheme scheme = 6;
+  HealthStatus health = 7;
+  optional int64 last_health_check_ms = 8;
+  int32 weight = 9;
+  optional string zone = 10;
+  optional string region = 11;
+  optional ServiceCapabilities capabilities = 12;
+  map<string, string> metadata = 13;
+  repeated string tags = 14;
+  int64 registered_at_ms = 15;
+  int32 ttl_seconds = 16;
+}
+
+enum TransportScheme {
+  TRANSPORT_SCHEME_UNSPECIFIED = 0;
+  TRANSPORT_SCHEME_HTTP = 1;
+  TRANSPORT_SCHEME_HTTPS = 2;
+  TRANSPORT_SCHEME_GRPC = 3;
+  TRANSPORT_SCHEME_GRPCS = 4;
+  TRANSPORT_SCHEME_JSONRPC = 5;
+  TRANSPORT_SCHEME_THRIFT = 6;
+}
+
+enum HealthStatus {
+  HEALTH_STATUS_UNSPECIFIED = 0;
+  HEALTH_STATUS_HEALTHY = 1;
+  HEALTH_STATUS_UNHEALTHY = 2;
+  HEALTH_STATUS_DEGRADED = 3;
+  HEALTH_STATUS_UNKNOWN = 4;
+}
+
+message ServiceCapabilities {
+  repeated string protocol_versions = 1;
+  repeated ContentType content_types = 2;
+  repeated Compression compressions = 3;
+  bool streaming = 4;
+  bool bidirectional = 5;
+  repeated MethodDescriptor methods = 6;
+}
+
+message MethodDescriptor {
+  string name = 1;
+  optional string input_type = 2;
+  optional string output_type = 3;
+  bool streaming_input = 4;
+  bool streaming_output = 5;
+  bool idempotent = 6;
+  bool deprecated = 7;
+}
+
+// ============================================================
+// 任务
+// ============================================================
+
+message TaskRecord {
+  string task_id = 1;
+  optional string parent_task_id = 2;
+  TaskStatus status = 3;
+  Priority priority = 4;
+  int64 created_at_ms = 5;
+  optional int64 scheduled_at_ms = 6;
+  optional int64 started_at_ms = 7;
+  optional int64 completed_at_ms = 8;
+  int32 attempt = 9;
+  int32 max_attempts = 10;
+  optional int64 next_retry_at_ms = 11;
+  optional google.protobuf.Value result = 12;
+  optional RpcError error = 13;
+  optional TaskProgress progress = 14;
+  map<string, string> metadata = 15;
+  repeated string tags = 16;
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_PENDING = 1;
+  TASK_STATUS_SCHEDULED = 2;
+  TASK_STATUS_RUNNING = 3;
+  TASK_STATUS_SUCCEEDED = 4;
+  TASK_STATUS_FAILED = 5;
+  TASK_STATUS_CANCELED = 6;
+  TASK_STATUS_RETRYING = 7;
+}
+
+message TaskProgress {
+  int64 current = 1;
+  int64 total = 2;
+  optional string message = 3;
+  optional double percentage = 4;
+}
+
+message TaskSubmitRequest {
+  string target_method = 1;
+  optional google.protobuf.Struct params = 2;
+  Priority priority = 3;
+  int32 max_attempts = 4;
+  optional int64 timeout_ms = 5;
+  optional int64 scheduled_at_ms = 6;
+  optional string idempotency_key = 7;
+  map<string, string> metadata = 8;
+}
+
+message TaskSubmitResponse {
+  string task_id = 1;
+  TaskStatus status = 2;
+  int64 created_at_ms = 3;
+}
+
+message TaskQueryRequest {
+  string task_id = 1;
+}
+
+message TaskQueryResponse {
+  TaskRecord task = 1;
+}
+
+message TaskCancelRequest {
+  string task_id = 1;
+  optional string reason = 2;
+}
+
+message TaskCancelResponse {
+  string task_id = 1;
+  TaskStatus status = 2;
+  bool canceled = 3;
+}
+
+message TaskSubscribeRequest {
+  string task_id = 1;
+  repeated string events = 2;
+}
+
+message TaskEvent {
+  string event = 1;
+  TaskRecord task = 2;
+  int64 timestamp_ms = 3;
+}
+
+// ============================================================
+// 健康检查
+// ============================================================
+
+message HealthCheckRequest {
+  optional string service = 1;
+}
+
+message HealthCheckResponse {
+  HealthStatus status = 1;
+  map<string, HealthStatus> services = 2;
+}
+
+// ============================================================
+// 服务定义
+// ============================================================
+
+service AduibRpcService {
+  // 一元调用
+  rpc Call(Request) returns (Response);
+
+  // 服务端流式
+  rpc CallServerStream(Request) returns (stream StreamMessage);
+
+  // 客户端流式
+  rpc CallClientStream(stream StreamMessage) returns (Response);
+
+  // 双向流式
+  rpc CallBidirectional(stream StreamMessage) returns (stream StreamMessage);
+}
+
+service TaskService {
+  // 提交任务
+  rpc Submit(TaskSubmitRequest) returns (TaskSubmitResponse);
+
+  // 查询任务
+  rpc Query(TaskQueryRequest) returns (TaskQueryResponse);
+
+  // 取消任务
+  rpc Cancel(TaskCancelRequest) returns (TaskCancelResponse);
+
+  // 订阅任务事件
+  rpc Subscribe(TaskSubscribeRequest) returns (stream TaskEvent);
+}
+
+service HealthService {
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+  rpc Watch(HealthCheckRequest) returns (stream HealthCheckResponse);
+}
