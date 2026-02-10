@@ -1,35 +1,45 @@
 """Server-side async task support (long-running jobs).
 
-This module provides a transport-agnostic task manager that can be used by
-request handlers to run long-running work in the background and allow clients
-to poll or subscribe to progress/results.
+This module provides task managers plus the v2 task protocol entities used by
+handlers and transports.
 """
 
 from __future__ import annotations
 
-from aduib_rpc.server.tasks.distributed import (
-    DistributedTaskManager,
-    RedisTaskStore,
-    TaskPriority,
-    TaskStore,
-)
-from aduib_rpc.server.tasks.task_manager import (
-    InMemoryTaskManager,
+# v2 protocol types
+from aduib_rpc.server.tasks.types import (
+    TaskMethod,
+    TaskCancelRequest,
+    TaskCancelResponse,
     TaskEvent,
-    TaskNotFoundError,
+    TaskProgress,
+    TaskQueryRequest,
+    TaskQueryResponse,
     TaskRecord,
     TaskStatus,
+    TaskSubmitRequest,
+    TaskSubmitResponse,
+    TaskSubscribeRequest,
+)
+
+from aduib_rpc.server.tasks.task_manager import (
+    InMemoryTaskManager,
+    TaskNotFoundError,
 )
 
 __all__ = [
-    "InMemoryTaskManager",
+    "TaskMethod",
     "TaskEvent",
-    "TaskNotFoundError",
     "TaskRecord",
     "TaskStatus",
-    "DistributedTaskManager",
-    "RedisTaskStore",
-    "TaskPriority",
-    "TaskStore",
+    "TaskProgress",
+    "TaskCancelRequest",
+    "TaskCancelResponse",
+    "TaskQueryRequest",
+    "TaskQueryResponse",
+    "TaskSubmitRequest",
+    "TaskSubmitResponse",
+    "TaskSubscribeRequest",
+    "InMemoryTaskManager",
+    "TaskNotFoundError",
 ]
-

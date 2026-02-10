@@ -3,44 +3,53 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from enum import Enum
 from typing import Any, Awaitable, Callable, Dict
 
-from aduib_rpc.types import AduibRpcError
-
-
-class TaskStatus(str, Enum):
-    QUEUED = "queued"
-    RUNNING = "running"
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
-    CANCELED = "canceled"
-    EXPIRED = "expired"
+from aduib_rpc.protocol.v2.errors import ERROR_CODE_NAMES, ErrorCode
+from aduib_rpc.protocol.v2.types import RpcError
+from aduib_rpc.server.tasks import TaskRecord, TaskEvent, TaskStatus
+from aduib_rpc.server.tasks.provider import task_manager_provider
 
 
 @dataclass
-class TaskRecord:
-    task_id: str
-    status: TaskStatus
-    created_at_ms: int
-    updated_at_ms: int
-    value: Any | None = None
-    error: AduibRpcError | None = None
-
-
-@dataclass
-class TaskEvent:
-    event: str  # snapshot|update|completed
-    task: TaskRecord
+class TaskManagerConfig:
+    default_ttl_seconds: int | None = 3600
+    max_tasks: int = 10_000
 
 
 class TaskNotFoundError(KeyError):
     pass
 
+class TaskManager(ABC):
 
-class InMemoryTaskManager:
+    @abstractmethod
+    async def submit(
+            self,
+            coro_factory: Callable[[], Awaitable[Any]],
+            *,
+            ttl_seconds: int | None = None,
+            task_id: str | None = None,
+    ) -> TaskRecord:
+        """Submit a coroutine factory to run in background."""
+
+    @abstractmethod
+    async def get(self, task_id: str) -> TaskRecord:
+        """Get task record by ID."""
+
+    @abstractmethod
+    async def subscribe(self, task_id: str) -> asyncio.Queue[TaskEvent]:
+        """Subscribe to task events. Returns an asyncio.Queue of TaskEvent."""
+
+    @abstractmethod
+    async def unsubscribe(self, task_id: str, q: asyncio.Queue[TaskEvent]) -> None:
+        """Unsubscribe from task events."""
+
+
+@task_manager_provider(name="in-memory")
+class InMemoryTaskManager(TaskManager):
     """Simple in-memory task manager.
 
     Notes:
@@ -49,9 +58,10 @@ class InMemoryTaskManager:
       - Supports subscription via asyncio.Queue.
     """
 
-    def __init__(self, *, default_ttl_seconds: int | None = 3600, max_tasks: int = 10_000):
-        self._default_ttl_seconds = default_ttl_seconds
-        self._max_tasks = max_tasks
+    def __init__(self, *, config: TaskManagerConfig | None = None) -> None:
+        cfg = config
+        self._default_ttl_seconds = cfg.default_ttl_seconds if cfg else 3600
+        self._max_tasks = cfg.max_tasks if cfg else 10_000
         self._tasks: Dict[str, TaskRecord] = {}
         self._expiry: Dict[str, int | None] = {}  # task_id -> epoch_ms
         self._subs: Dict[str, set[asyncio.Queue[TaskEvent]]] = defaultdict(set)
@@ -86,31 +96,40 @@ class InMemoryTaskManager:
 
             rec = TaskRecord(
                 task_id=tid,
-                status=TaskStatus.QUEUED,
+                status=TaskStatus.PENDING,
                 created_at_ms=now,
-                updated_at_ms=now,
             )
             self._tasks[tid] = rec
             self._expiry[tid] = expires_at
 
-        self._emit(tid, TaskEvent(event="snapshot", task=rec))
+        self._emit(tid, self._event_for_task(rec))
 
         async def runner() -> None:
             await self._set_status(tid, TaskStatus.RUNNING)
             try:
                 value = await coro_factory()
-                await self._set_result(tid, value=value)
+                await self._set_result(tid, result=value)
             except asyncio.CancelledError as e:
                 await self._set_error(
                     tid,
-                    AduibRpcError(code=499, message="Task cancelled", data=str(e) if str(e) else None),
+                    RpcError(
+                        code=499,
+                        name="CANCELED",
+                        message="Task cancelled",
+                        details=[{"type": "aduib.rpc/task", "reason": str(e) if str(e) else "cancelled"}],
+                    ),
                     status=TaskStatus.CANCELED,
                 )
                 raise
             except Exception as e:  # noqa: BLE001
                 await self._set_error(
                     tid,
-                    AduibRpcError(code=500, message="Task failed", data=str(e)),
+                    RpcError(
+                        code=int(ErrorCode.INTERNAL_ERROR),
+                        name=ERROR_CODE_NAMES.get(int(ErrorCode.INTERNAL_ERROR), "UNKNOWN"),
+                        message="Task failed",
+                        details=[{"type": "aduib.rpc/task", "reason": str(e)}],
+                    ),
                     status=TaskStatus.FAILED,
                 )
 
@@ -131,12 +150,7 @@ class InMemoryTaskManager:
         # ensure task exists
         rec = await self.get(task_id)
         self._subs[task_id].add(q)
-        q.put_nowait(TaskEvent(event="snapshot", task=rec))
-
-        # If the task has already completed before we subscribed, also enqueue a
-        # terminal event so consumers can reliably observe completion.
-        if rec.status in {TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELED, TaskStatus.EXPIRED}:
-            q.put_nowait(TaskEvent(event="completed", task=rec))
+        q.put_nowait(self._event_for_task(rec))
         return q
 
     async def unsubscribe(self, task_id: str, q: asyncio.Queue[TaskEvent]) -> None:
@@ -152,22 +166,23 @@ class InMemoryTaskManager:
             if rec is None:
                 return
             rec.status = status
-            rec.updated_at_ms = now
-        self._emit(task_id, TaskEvent(event="update", task=rec))
+            if status == TaskStatus.RUNNING and rec.started_at_ms is None:
+                rec.started_at_ms = now
+        self._emit(task_id, self._event_for_task(rec))
 
-    async def _set_result(self, task_id: str, *, value: Any) -> None:
+    async def _set_result(self, task_id: str, *, result: Any) -> None:
         now = self._now_ms()
         async with self._lock:
             rec = self._tasks.get(task_id)
             if rec is None:
                 return
             rec.status = TaskStatus.SUCCEEDED
-            rec.value = value
+            rec.result = result
             rec.error = None
-            rec.updated_at_ms = now
-        self._emit(task_id, TaskEvent(event="completed", task=rec))
+            rec.completed_at_ms = now
+        self._emit(task_id, self._event_for_task(rec))
 
-    async def _set_error(self, task_id: str, err: AduibRpcError, *, status: TaskStatus) -> None:
+    async def _set_error(self, task_id: str, err: RpcError, *, status: TaskStatus) -> None:
         now = self._now_ms()
         async with self._lock:
             rec = self._tasks.get(task_id)
@@ -175,9 +190,10 @@ class InMemoryTaskManager:
                 return
             rec.status = status
             rec.error = err
-            rec.value = None
-            rec.updated_at_ms = now
-        self._emit(task_id, TaskEvent(event="completed", task=rec))
+            rec.result = None
+            if rec.is_terminal:
+                rec.completed_at_ms = now
+        self._emit(task_id, self._event_for_task(rec))
 
     def _emit(self, task_id: str, ev: TaskEvent) -> None:
         for q in list(self._subs.get(task_id, ())):
@@ -207,6 +223,17 @@ class InMemoryTaskManager:
             finished = [
                 r for r in self._tasks.values() if r.status in {TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELED}
             ]
-            finished.sort(key=lambda r: r.updated_at_ms)
+            finished.sort(key=lambda r: r.completed_at_ms or r.created_at_ms)
             while len(self._tasks) > int(self._max_tasks * 0.9) and finished:
                 self._delete_locked(finished.pop(0).task_id)
+
+    def _event_for_task(self, record: TaskRecord) -> TaskEvent:
+        if record.status == TaskStatus.RUNNING:
+            event = "started"
+        elif record.status == TaskStatus.SUCCEEDED:
+            event = "completed"
+        elif record.status in {TaskStatus.FAILED, TaskStatus.CANCELED}:
+            event = "failed"
+        else:
+            event = "progress"
+        return TaskEvent(event=event, task=record, timestamp_ms=self._now_ms())
