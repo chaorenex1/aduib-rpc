@@ -8,3 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# IDE and local config
+.idea/
+.claude/
+.tasks/
+nul
