@@ -118,6 +118,9 @@ message RequestMetadata {
   repeated ContentType accept = 7;
   optional Compression compression = 8;
   map<string, string> headers = 9;
+  optional bool long_task = 10;
+  optional string long_task_method = 11;
+  optional int32 long_task_timeout = 12;
 }
 
 message ResponseMetadata {
@@ -201,101 +204,12 @@ message RetryConfig {
   repeated int32 retryable_codes = 5;
 }
 
-// ============================================================
-// 流式消息
-// ============================================================
-
-message StreamMessage {
-  StreamMessageType type = 1;
-  int64 sequence = 2;
-  optional StreamPayload payload = 3;
-  int64 timestamp_ms = 4;
-}
-
-enum StreamMessageType {
-  STREAM_MESSAGE_TYPE_UNSPECIFIED = 0;
-  STREAM_MESSAGE_TYPE_DATA = 1;
-  STREAM_MESSAGE_TYPE_HEARTBEAT = 2;
-  STREAM_MESSAGE_TYPE_ERROR = 3;
-  STREAM_MESSAGE_TYPE_END = 4;
-  STREAM_MESSAGE_TYPE_CANCEL = 5;
-  STREAM_MESSAGE_TYPE_ACK = 6;
-}
-
-message StreamPayload {
-  oneof content {
-    google.protobuf.Value data = 1;
-    RpcError error = 2;
-    StreamControl control = 3;
-  }
-}
-
-message StreamControl {
-  bool final = 1;
-  optional int64 total_count = 2;
-  optional string ping_id = 3;
-  optional string reason = 4;
-  optional int64 ack_sequence = 5;
-}
-
-// ============================================================
-// 服务发现
-// ============================================================
-
-message ServiceInstance {
-  string instance_id = 1;
-  string service_name = 2;
-  string version = 3;
-  string host = 4;
-  int32 port = 5;
-  TransportScheme scheme = 6;
-  HealthStatus health = 7;
-  optional int64 last_health_check_ms = 8;
-  int32 weight = 9;
-  optional string zone = 10;
-  optional string region = 11;
-  optional ServiceCapabilities capabilities = 12;
-  map<string, string> metadata = 13;
-  repeated string tags = 14;
-  int64 registered_at_ms = 15;
-  int32 ttl_seconds = 16;
-}
-
-enum TransportScheme {
-  TRANSPORT_SCHEME_UNSPECIFIED = 0;
-  TRANSPORT_SCHEME_HTTP = 1;
-  TRANSPORT_SCHEME_HTTPS = 2;
-  TRANSPORT_SCHEME_GRPC = 3;
-  TRANSPORT_SCHEME_GRPCS = 4;
-  TRANSPORT_SCHEME_JSONRPC = 5;
-  TRANSPORT_SCHEME_THRIFT = 6;
-}
-
 enum HealthStatus {
   HEALTH_STATUS_UNSPECIFIED = 0;
   HEALTH_STATUS_HEALTHY = 1;
   HEALTH_STATUS_UNHEALTHY = 2;
   HEALTH_STATUS_DEGRADED = 3;
   HEALTH_STATUS_UNKNOWN = 4;
-}
-
-message ServiceCapabilities {
-  repeated string protocol_versions = 1;
-  repeated ContentType content_types = 2;
-  repeated Compression compressions = 3;
-  bool streaming = 4;
-  bool bidirectional = 5;
-  repeated MethodDescriptor methods = 6;
-}
-
-message MethodDescriptor {
-  string name = 1;
-  optional string input_type = 2;
-  optional string output_type = 3;
-  bool streaming_input = 4;
-  bool streaming_output = 5;
-  bool idempotent = 6;
-  bool deprecated = 7;
 }
 
 // ============================================================
@@ -408,13 +322,13 @@ service AduibRpcService {
   rpc Call(Request) returns (Response);
 
   // 服务端流式
-  rpc CallServerStream(Request) returns (stream StreamMessage);
+  rpc CallServerStream(Request) returns (stream Response);
 
   // 客户端流式
-  rpc CallClientStream(stream StreamMessage) returns (Response);
+  rpc CallClientStream(stream Request) returns (Response);
 
   // 双向流式
-  rpc CallBidirectional(stream StreamMessage) returns (stream StreamMessage);
+  rpc CallBidirectional(stream Request) returns (stream Response);
 }
 
 service TaskService {
