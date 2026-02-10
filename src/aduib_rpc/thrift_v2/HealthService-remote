@@ -9,9 +9,6 @@
 
 import sys
 import pprint
-
-from aduib_rpc.thrift import AduibRpcService
-
 if sys.version_info[0] > 2:
     from urllib.parse import urlparse
 else:
@@ -19,13 +16,16 @@ else:
 from thrift.transport import TTransport, TSocket, TSSLSocket, THttpClient
 from thrift.protocol.TBinaryProtocol import TBinaryProtocol
 
+from aduib_rpc.thrift_v2 import HealthService
+from aduib_rpc.thrift_v2.ttypes import *
 
 if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('')
     print('Usage: ' + sys.argv[0] + ' [-h host[:port]] [-u url] [-f[ramed]] [-s[sl]] [-novalidate] [-ca_certs certs] [-keyfile keyfile] [-certfile certfile] function [arg1 [arg2...]]')
     print('')
     print('Functions:')
-    print('  RpcTaskResponse completion(RpcTask task)')
+    print('  HealthCheckResponse Check(HealthCheckRequest request)')
+    print('   Watch(HealthCheckRequest request)')
     print('')
     sys.exit(0)
 
@@ -102,14 +102,20 @@ else:
     else:
         transport = TTransport.TBufferedTransport(socket)
 protocol = TBinaryProtocol(transport)
-client = AduibRpcService.Client(protocol)
+client = HealthService.Client(protocol)
 transport.open()
 
-if cmd == 'completion':
+if cmd == 'Check':
     if len(args) != 1:
-        print('completion requires 1 args')
+        print('Check requires 1 args')
         sys.exit(1)
-    pp.pprint(client.completion(eval(args[0]),))
+    pp.pprint(client.Check(eval(args[0]),))
+
+elif cmd == 'Watch':
+    if len(args) != 1:
+        print('Watch requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.Watch(eval(args[0]),))
 
 else:
     print('Unrecognized method %s' % cmd)
