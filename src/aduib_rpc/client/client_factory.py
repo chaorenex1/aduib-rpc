@@ -11,6 +11,7 @@ from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.client.transports.grpc import GrpcTransport
 from aduib_rpc.client.transports.jsonrpc import JsonRpcTransport
 from aduib_rpc.client.transports.rest import RestTransport
+from aduib_rpc.client.transports.thrift import ThriftTransport
 from aduib_rpc.utils.constant import TransportSchemes
 from aduib_rpc.client.pool import PoolKey, default_httpx_pool, default_grpc_pool
 
@@ -32,6 +33,26 @@ class AduibRpcClientFactory:
         self._config = config
         self._registry: dict[str, TransportProducer] = {}
         self._register_defaults(config.supported_transports)
+
+    @classmethod
+    def build_health_client_factory(cls,client_cfg: ClientConfig) -> "AduibRpcClientFactory":
+        supported = list(client_cfg.supported_transports)
+        if not supported:
+            supported = [TransportSchemes.GRPC]
+        base_config = ClientConfig(
+            httpx_client=client_cfg.httpx_client,
+            grpc_channel_factory=client_cfg.grpc_channel_factory,
+            supported_transports=supported,
+            pooling_enabled=client_cfg.pooling_enabled,
+            http_timeout=client_cfg.http_timeout,
+            grpc_timeout=client_cfg.grpc_timeout,
+            retry_enabled=client_cfg.retry_enabled,
+            retry_max_attempts=client_cfg.retry_max_attempts,
+            retry_backoff_ms=client_cfg.retry_backoff_ms,
+            retry_max_backoff_ms=client_cfg.retry_max_backoff_ms,
+            retry_jitter=client_cfg.retry_jitter,
+        )
+        return AduibRpcClientFactory(config=base_config)
 
     def _register_defaults(
             self, supported: list[str | TransportSchemes]
@@ -88,6 +109,14 @@ class AduibRpcClientFactory:
                 return GrpcTransport(channel)
 
             self.register(TransportSchemes.GRPC, _pooled_grpc_transport)
+        if TransportSchemes.THRIFT in supported:
+            self.register(
+                TransportSchemes.THRIFT,
+                lambda url, config, interceptors: ThriftTransport(
+                    url,
+                    timeout_s=config.http_timeout,
+                ),
+            )
 
     def register(self, label: str, generator: TransportProducer) -> None:
         """Register a new transport producer for a given transport label."""
@@ -143,7 +172,6 @@ class AduibRpcClientFactory:
     def create_client(
             cls,
             url: str,
-            stream: bool = False,
             server_preferred: str = TransportSchemes.JSONRPC,
             interceptors: list[ClientRequestInterceptor] | None = None,
     ) -> AduibRpcClient:
@@ -158,7 +186,6 @@ class AduibRpcClientFactory:
 
                 client_factory = AduibRpcClientFactory(
                     config=ClientConfig(
-                        streaming=stream,
                         grpc_channel_factory=create_channel,
                         supported_transports=[TransportSchemes.GRPC],
                         pooling_enabled=True,
@@ -169,7 +196,6 @@ class AduibRpcClientFactory:
             case TransportSchemes.JSONRPC:
                 client_factory = AduibRpcClientFactory(
                     config=ClientConfig(
-                        streaming=stream,
                         httpx_client=None,
                         supported_transports=[TransportSchemes.JSONRPC],
                         pooling_enabled=True,
@@ -180,13 +206,22 @@ class AduibRpcClientFactory:
             case TransportSchemes.HTTP:
                 client_factory = AduibRpcClientFactory(
                     config=ClientConfig(
-                        streaming=stream,
                         httpx_client=None,
                         supported_transports=[TransportSchemes.GRPC, TransportSchemes.JSONRPC, TransportSchemes.HTTP],
                         pooling_enabled=True,
                     ))
                 return client_factory.create(url,
                                              server_preferred=TransportSchemes.HTTP,
+                                             interceptors=interceptors)
+            case TransportSchemes.THRIFT:
+                client_factory = AduibRpcClientFactory(
+                    config=ClientConfig(
+                        httpx_client=None,
+                        supported_transports=[TransportSchemes.THRIFT],
+                        pooling_enabled=False,
+                    ))
+                return client_factory.create(url,
+                                             server_preferred=TransportSchemes.THRIFT,
                                              interceptors=interceptors)
             case _:
                 raise ValueError(f'Unsupported transport scheme: {server_preferred}')

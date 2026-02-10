@@ -15,9 +15,6 @@ from aduib_rpc.utils.constant import TransportSchemes
 class ClientConfig:
     """Client configuration class."""
 
-    streaming: bool = True
-    """Whether to use streaming mode for message sending."""
-
     # If provided, caller owns lifecycle and no pooling is used.
     httpx_client: httpx.AsyncClient | None = None
     """Http client to use to connect to agent."""
@@ -36,7 +33,7 @@ class ClientConfig:
     grpc_timeout: float | None = 60.0
     """Default request timeout for gRPC unary calls (seconds)."""
 
-    retry_enabled: bool = False
+    retry_enabled: bool = True
     """Global retry switch (default off). Can be overridden via request.meta."""
 
     retry_max_attempts: int = 1

@@ -6,8 +6,19 @@ from typing import Optional, Any
 
 from aduib_rpc.client import ClientConfig
 from aduib_rpc.client.midwares import ClientRequestInterceptor, ClientContext
-from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse
+from aduib_rpc.server.tasks import (
+    TaskSubmitRequest,
+    TaskSubmitResponse,
+    TaskQueryRequest,
+    TaskQueryResponse,
+    TaskCancelRequest,
+    TaskCancelResponse,
+    TaskSubscribeRequest,
+    TaskEvent,
+)
+from aduib_rpc.protocol.v2.health import HealthCheckRequest, HealthCheckResponse
+from aduib_rpc.client.transports.base import ClientTransport
 
 try:
     import httpx
@@ -55,6 +66,106 @@ class AduibRpcClient(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    async def call(
+        self,
+        request: AduibRpcRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> AduibRpcResponse:
+        """Unary RPC via AduibRpcService.Call."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def call_server_stream(
+        self,
+        request: AduibRpcRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> AsyncIterator[AduibRpcResponse]:
+        """Server-streaming RPC via AduibRpcService.CallServerStream."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def call_client_stream(
+        self,
+        requests,
+        *,
+        context: ClientContext | None = None,
+    ) -> AduibRpcResponse:
+        """Client-streaming RPC."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def call_bidirectional(
+        self,
+        requests,
+        *,
+        context: ClientContext | None = None,
+    ) -> AsyncIterator[AduibRpcResponse]:
+        """Bidirectional streaming RPC."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def task_submit(
+        self,
+        request: TaskSubmitRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> TaskSubmitResponse:
+        """Submit a task."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def task_query(
+        self,
+        request: TaskQueryRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> TaskQueryResponse:
+        """Query a task."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def task_cancel(
+        self,
+        request: TaskCancelRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> TaskCancelResponse:
+        """Cancel a task."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def task_subscribe(
+        self,
+        request: TaskSubscribeRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> AsyncIterator[TaskEvent]:
+        """Subscribe to task events."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def health_check(
+        self,
+        request: HealthCheckRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> HealthCheckResponse:
+        """Health check for services."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def health_watch(
+        self,
+        request: HealthCheckRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> AsyncIterator[HealthCheckResponse]:
+        """Watch health status."""
+        raise NotImplementedError
+
     async def add_middleware(
         self,
         middleware: ClientRequestInterceptor,
@@ -81,6 +192,27 @@ class BaseAduibRpcClient(AduibRpcClient):
         self._config = config
         self._transport = transport
 
+    def _prepare_context(
+        self,
+        context: ClientContext | None,
+        meta: Optional[dict[str, Any]] = None,
+    ) -> ClientContext:
+        if context is None:
+            context = ClientContext()
+
+        context.state['http_kwargs'] = (
+            {'headers': meta['headers']}
+            if meta and 'headers' in meta
+            else context.state.get('http_kwargs')
+        )
+        context.state['security_schema'] = (
+            meta.get('security_schema')
+            if meta
+            else context.state.get('security_schema')
+        )
+        context.state['config']=self._config
+        return context
+
     async def completion(self,
                          name:str,
                          method: str,
@@ -101,24 +233,7 @@ class BaseAduibRpcClient(AduibRpcClient):
         Returns:
             An async iterator yielding `AduibRpcResponse` objects as they are received.
         """
-        if context is None:
-            context = ClientContext()
-
-        context.state['session_id'] = (
-            str(uuid.uuid4())
-            if not context.state.get('session_id')
-            else context.state.get('session_id')
-        )
-        context.state['http_kwargs'] = (
-            {'headers': meta['headers']}
-            if meta and 'headers' in meta
-            else context.state.get('http_kwargs')
-        )
-        context.state['security_schema'] = (
-            meta.get('security_schema')
-            if meta
-            else context.state.get('security_schema')
-        )
+        context = self._prepare_context(context, meta)
 
         if meta:
             if 'stream' in meta:
@@ -137,3 +252,99 @@ class BaseAduibRpcClient(AduibRpcClient):
             request, context=context
         ):
             yield response
+
+    async def call(
+        self,
+        request: AduibRpcRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> AduibRpcResponse:
+        meta = request.meta if hasattr(request, "meta") else None
+        context = self._prepare_context(context, meta)
+        return await self._transport.call(request, context=context)
+
+    async def call_server_stream(
+        self,
+        request: AduibRpcRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> AsyncIterator[AduibRpcResponse]:
+        meta = request.meta if hasattr(request, "meta") else None
+        context = self._prepare_context(context, meta)
+        async for response in self._transport.call_server_stream(request, context=context):
+            yield response
+
+    async def call_client_stream(
+        self,
+        requests,
+        *,
+        context: ClientContext | None = None,
+    ) -> AduibRpcResponse:
+        context = self._prepare_context(context)
+        return await self._transport.call_client_stream(requests, context=context)
+
+    async def call_bidirectional(
+        self,
+        requests,
+        *,
+        context: ClientContext | None = None,
+    ) -> AsyncIterator[AduibRpcResponse]:
+        context = self._prepare_context(context)
+        async for response in self._transport.call_bidirectional(requests, context=context):
+            yield response
+
+    async def task_submit(
+        self,
+        request: TaskSubmitRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> TaskSubmitResponse:
+        context = self._prepare_context(context)
+        return await self._transport.task_submit(request, context=context)
+
+    async def task_query(
+        self,
+        request: TaskQueryRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> TaskQueryResponse:
+        context = self._prepare_context(context)
+        return await self._transport.task_query(request, context=context)
+
+    async def task_cancel(
+        self,
+        request: TaskCancelRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> TaskCancelResponse:
+        context = self._prepare_context(context)
+        return await self._transport.task_cancel(request, context=context)
+
+    async def task_subscribe(
+        self,
+        request: TaskSubscribeRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> AsyncIterator[TaskEvent]:
+        context = self._prepare_context(context)
+        async for event in self._transport.task_subscribe(request, context=context):
+            yield event
+
+    async def health_check(
+        self,
+        request: HealthCheckRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> HealthCheckResponse:
+        context = self._prepare_context(context)
+        return await self._transport.health_check(request, context=context)
+
+    async def health_watch(
+        self,
+        request: HealthCheckRequest,
+        *,
+        context: ClientContext | None = None,
+    ) -> AsyncIterator[HealthCheckResponse]:
+        context = self._prepare_context(context)
+        async for status in self._transport.health_watch(request, context=context):
+            yield status

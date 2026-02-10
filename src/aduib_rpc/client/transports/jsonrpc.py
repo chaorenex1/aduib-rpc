@@ -4,19 +4,47 @@ from uuid import uuid4
 
 import httpx
 from httpx_sse import SSEError, aconnect_sse
+from pydantic import ValidationError
 
 from aduib_rpc.client.call_options import RetryOptions, resolve_call_options
 from aduib_rpc.client.errors import ClientHTTPError, ClientJSONError
 from aduib_rpc.client import ClientContext, ClientRequestInterceptor, ClientJSONRPCError
 from aduib_rpc.client.transports.base import ClientTransport
-from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse, JsonRpcMessageRequest, JsonRpcMessageResponse, \
-    JSONRPCErrorResponse, JsonRpcStreamingMessageRequest, JsonRpcStreamingMessageResponse
+from aduib_rpc.types import (
+    AduibRpcRequest,
+    AduibRpcResponse,
+    JsonRpcMessageRequest,
+    JsonRpcMessageResponse,
+    JSONRPCErrorResponse,
+    JsonRpcStreamingMessageRequest,
+    JsonRpcStreamingMessageResponse,
+)
 from aduib_rpc.utils.constant import DEFAULT_RPC_PATH
 from aduib_rpc.client.retry import retry_async
+from aduib_rpc.protocol.v2.health import HealthCheckRequest, HealthCheckResponse
+from aduib_rpc.server.tasks import (
+    TaskCancelRequest,
+    TaskCancelResponse,
+    TaskEvent,
+    TaskQueryRequest,
+    TaskQueryResponse,
+    TaskSubmitRequest,
+    TaskSubmitResponse,
+    TaskSubscribeRequest,
+)
 
 
 class JsonRpcTransport(ClientTransport):
-    """ A JSON-RPC transport for the Aduib RPC client. """
+    """ A JSON-RPC transport for the Aduib RPC client.
+
+    Pure v2 routing:
+      - JSON-RPC `method` is the v2 `rpc.v2/{service}/{handler}` string.
+      - `params` is the AduibRpcRequest envelope.
+
+    Streaming:
+      - Uses SSE (server emits JSON-RPC responses as SSE events).
+    """
+
     def __init__(
         self,
         httpx_client: httpx.AsyncClient,
@@ -64,11 +92,51 @@ class JsonRpcTransport(ClientTransport):
     ) -> dict[str, Any] | None:
         return context.state.get('http_kwargs') if context else None
 
-    async def completion(self, request: AduibRpcRequest, *, context: ClientContext) -> AduibRpcResponse:
-        """Sends a non-streaming message request to the agent."""
-        rpc_request = JsonRpcMessageRequest(params=request, id=str(uuid4()))
+    @staticmethod
+    def _looks_like_aduib_response(value: Any) -> bool:
+        if isinstance(value, AduibRpcResponse):
+            return True
+        if not isinstance(value, dict):
+            return False
+        status = value.get("status")
+        if isinstance(status, str) and status.lower() in {"success", "error", "partial"}:
+            return True
+        return "aduib_rpc" in value
+
+    def _coerce_aduib_response(self, value: Any) -> AduibRpcResponse | None:
+        if isinstance(value, AduibRpcResponse):
+            return value
+        if not self._looks_like_aduib_response(value):
+            return None
+        try:
+            return AduibRpcResponse.model_validate(value)
+        except ValidationError:
+            return None
+
+    async def _request_unary(
+        self,
+        request: AduibRpcRequest,
+        *,
+        context: ClientContext,
+    ) -> JsonRpcMessageResponse:
+        return await self._request_unary_with_params(
+            request.method,
+            request,
+            context=context,
+            request_meta=request.meta,
+        )
+
+    async def _request_unary_with_params(
+        self,
+        method: str,
+        params: Any,
+        *,
+        context: ClientContext,
+        request_meta: dict[str, Any] | None = None,
+    ) -> JsonRpcMessageResponse:
+        rpc_request = JsonRpcMessageRequest(method=method, params=params, id=str(uuid4()))
         payload, modified_kwargs = await self._apply_interceptors(
-            'message/completion',
+            method,
             rpc_request.model_dump(mode='json', exclude_none=True),
             self._get_http_args(context),
             context,
@@ -76,7 +144,7 @@ class JsonRpcTransport(ClientTransport):
 
         opts = resolve_call_options(
             config_timeout_s=getattr(context, 'config', None).http_timeout if hasattr(context, 'config') else None,
-            meta=request.meta,
+            meta=request_meta,
             context_http_kwargs=modified_kwargs,
             retry_defaults=RetryOptions(
                 enabled=False,
@@ -84,40 +152,57 @@ class JsonRpcTransport(ClientTransport):
             ),
         )
 
-        # Normalize timeout into httpx kwargs
         if opts.timeout_s is not None:
             modified_kwargs["timeout"] = opts.timeout_s
 
-        response_data = await self._send_request(payload, modified_kwargs, request_meta=request.meta, opts=opts)
-        response = JsonRpcMessageResponse.model_validate(response_data)
-        if isinstance(response.root, JSONRPCErrorResponse):
-            raise ClientJSONRPCError(response.root)
-        if not response.root.result.is_success():
-            raise ClientHTTPError(status_code=response.root.result.error.code, message=response.root.result.error.message)
-        return response.root.result
+        response_data = await self._send_request(payload, modified_kwargs, request_meta=request_meta, opts=opts)
+        return JsonRpcMessageResponse.model_validate(response_data)
 
-    async def completion_stream(self, request: AduibRpcRequest, *, context: ClientContext) -> AsyncGenerator[
-        AduibRpcResponse, None]:
-        """Sends a streaming message request to the agent and yields responses as they arrive."""
+    async def _stream_requests(
+        self,
+        request: AduibRpcRequest,
+        *,
+        context: ClientContext,
+    ) -> AsyncGenerator[JsonRpcStreamingMessageResponse, None]:
+        async for response in self._stream_requests_with_params(
+            request.method,
+            request,
+            context=context,
+            request_meta=request.meta,
+        ):
+            yield response
+
+    async def _stream_requests_with_params(
+        self,
+        method: str,
+        params: Any,
+        *,
+        context: ClientContext,
+        request_meta: dict[str, Any] | None = None,
+    ) -> AsyncGenerator[JsonRpcStreamingMessageResponse, None]:
         rpc_request = JsonRpcStreamingMessageRequest(
-            params=request, id=str(uuid4())
+            method=method,
+            params=params,
+            id=str(uuid4()),
         )
         payload, modified_kwargs = await self._apply_interceptors(
-            'message/completion/stream',
+            method,
             rpc_request.model_dump(mode='json', exclude_none=True),
             self._get_http_args(context),
             context,
         )
 
-        # Use unified timeout resolution.
-        timeout_s = None
-        if request.meta:
-            if request.meta.get("timeout_ms") is not None:
-                timeout_s = float(request.meta["timeout_ms"]) / 1000.0
-            elif request.meta.get("timeout_s") is not None:
-                timeout_s = float(request.meta["timeout_s"])
-        if timeout_s is not None and "timeout" not in modified_kwargs:
-            modified_kwargs["timeout"] = timeout_s
+        opts = resolve_call_options(
+            config_timeout_s=getattr(context, 'config', None).http_timeout if hasattr(context, 'config') else None,
+            meta=request_meta,
+            context_http_kwargs=modified_kwargs,
+            retry_defaults=RetryOptions(
+                enabled=False,
+                max_attempts=1,
+            ),
+        )
+        if opts.timeout_s is not None:
+            modified_kwargs["timeout"] = opts.timeout_s
 
         async with aconnect_sse(
                 self.httpx_client,
@@ -128,14 +213,9 @@ class JsonRpcTransport(ClientTransport):
         ) as event_source:
             try:
                 async for sse in event_source.aiter_sse():
-                    response = JsonRpcStreamingMessageResponse.model_validate(
+                    yield JsonRpcStreamingMessageResponse.model_validate(
                         json.loads(sse.data)
                     )
-                    if isinstance(response.root, JSONRPCErrorResponse):
-                        raise ClientJSONRPCError(response.root)
-                    if not response.root.result.is_success():
-                        raise ClientHTTPError(status_code=response.root.result.error.code, message=response.root.result.error.message)
-                    yield response.root.result
             except SSEError as e:
                 raise ClientHTTPError(
                     400, f'Invalid SSE response or protocol error: {e}'
@@ -146,6 +226,155 @@ class JsonRpcTransport(ClientTransport):
                 raise ClientHTTPError(
                     503, f'Network communication error: {e}'
                 ) from e
+
+    async def completion(self, request: AduibRpcRequest, *, context: ClientContext) -> AduibRpcResponse:
+        """Sends a non-streaming request."""
+        response = await self._request_unary(request, context=context)
+        if isinstance(response.root, JSONRPCErrorResponse):
+            raise ClientJSONRPCError(response.root)
+        result = self._coerce_aduib_response(response.root.result)
+        if result is None:
+            raise ClientJSONError("Invalid JSON-RPC result payload for AduibRpcResponse")
+        return result
+
+    async def call(self, request: AduibRpcRequest, *, context: ClientContext) -> AduibRpcResponse:
+        response = await self._request_unary(request, context=context)
+        if isinstance(response.root, JSONRPCErrorResponse):
+            raise ClientJSONRPCError(response.root)
+        result = self._coerce_aduib_response(response.root.result)
+        if result is None:
+            raise ClientJSONError("Invalid JSON-RPC result payload for AduibRpcResponse")
+        return result
+
+    async def completion_stream(self, request: AduibRpcRequest, *, context: ClientContext) -> AsyncGenerator[
+        AduibRpcResponse, None]:
+        """Sends a streaming request and yields responses as they arrive."""
+        async for response in self._stream_requests(request, context=context):
+            if isinstance(response.root, JSONRPCErrorResponse):
+                raise ClientJSONRPCError(response.root)
+            result = self._coerce_aduib_response(response.root.result)
+            if result is None:
+                raise ClientJSONError("Invalid JSON-RPC result payload for AduibRpcResponse")
+            yield result
+
+    async def call_client_stream(
+        self,
+        requests,
+        *,
+        context: ClientContext,
+    ) -> AduibRpcResponse:
+        raise NotImplementedError("JSON-RPC transport does not support client-streaming calls")
+
+    async def call_bidirectional(
+        self,
+        requests,
+        *,
+        context: ClientContext,
+    ) -> AsyncGenerator[AduibRpcResponse, None]:
+        raise NotImplementedError("JSON-RPC transport does not support bidirectional streaming")
+
+    async def call_server_stream(
+        self,
+        request: AduibRpcRequest,
+        *,
+        context: ClientContext,
+    ) -> AsyncGenerator[AduibRpcResponse, None]:
+        async for response in self._stream_requests(request, context=context):
+            if isinstance(response.root, JSONRPCErrorResponse):
+                raise ClientJSONRPCError(response.root)
+            result = self._coerce_aduib_response(response.root.result)
+            if result is None:
+                raise ClientJSONError("Invalid JSON-RPC result payload for AduibRpcResponse")
+            yield result
+
+    async def health_check(self, request: HealthCheckRequest, *, context: ClientContext) -> HealthCheckResponse:
+        if isinstance(request, HealthCheckRequest):
+            payload = request.model_dump(exclude_none=True)
+        else:
+            payload = request if isinstance(request, dict) else {}
+        response = await self._request_unary_with_params(
+            "rpc.v2/HealthService/Check",
+            payload,
+            context=context,
+        )
+        if isinstance(response.root, JSONRPCErrorResponse):
+            raise ClientJSONRPCError(response.root)
+        result = response.root.result
+        return HealthCheckResponse.model_validate(result or {})
+
+    async def health_watch(
+        self,
+        request: HealthCheckRequest,
+        *,
+        context: ClientContext,
+    ) -> AsyncGenerator[HealthCheckResponse, None]:
+        if isinstance(request, HealthCheckRequest):
+            payload = request.model_dump(exclude_none=True)
+        else:
+            payload = request if isinstance(request, dict) else {}
+        async for response in self._stream_requests_with_params(
+            "rpc.v2/HealthService/Watch",
+            payload,
+            context=context,
+        ):
+            if isinstance(response.root, JSONRPCErrorResponse):
+                raise ClientJSONRPCError(response.root)
+            result = response.root.result
+            yield HealthCheckResponse.model_validate(result or {})
+
+    async def task_submit(self, request: TaskSubmitRequest, *, context: ClientContext) -> TaskSubmitResponse:
+        submit = request if isinstance(request, TaskSubmitRequest) else TaskSubmitRequest.model_validate(request)
+        payload = submit.model_dump(exclude_none=True)
+        response = await self._request_unary_with_params(
+            "rpc.v2/TaskService/Submit",
+            payload,
+            context=context,
+        )
+        if isinstance(response.root, JSONRPCErrorResponse):
+            raise ClientJSONRPCError(response.root)
+        result = response.root.result
+        return TaskSubmitResponse.model_validate(result or {})
+
+    async def task_query(self, request: TaskQueryRequest, *, context: ClientContext) -> TaskQueryResponse:
+        query = request if isinstance(request, TaskQueryRequest) else TaskQueryRequest.model_validate(request)
+        response = await self._request_unary_with_params(
+            "rpc.v2/TaskService/Query",
+            query.model_dump(exclude_none=True),
+            context=context,
+        )
+        if isinstance(response.root, JSONRPCErrorResponse):
+            raise ClientJSONRPCError(response.root)
+        result = response.root.result
+        return TaskQueryResponse.model_validate(result or {})
+
+    async def task_cancel(self, request: TaskCancelRequest, *, context: ClientContext) -> TaskCancelResponse:
+        cancel = request if isinstance(request, TaskCancelRequest) else TaskCancelRequest.model_validate(request)
+        response = await self._request_unary_with_params(
+            "rpc.v2/TaskService/Cancel",
+            cancel.model_dump(exclude_none=True),
+            context=context,
+        )
+        if isinstance(response.root, JSONRPCErrorResponse):
+            raise ClientJSONRPCError(response.root)
+        result = response.root.result
+        return TaskCancelResponse.model_validate(result or {})
+
+    async def task_subscribe(
+        self,
+        request: TaskSubscribeRequest,
+        *,
+        context: ClientContext,
+    ) -> AsyncGenerator[TaskEvent, None]:
+        sub = request if isinstance(request, TaskSubscribeRequest) else TaskSubscribeRequest.model_validate(request)
+        async for response in self._stream_requests_with_params(
+            "rpc.v2/TaskService/Subscribe",
+            sub.model_dump(exclude_none=True),
+            context=context,
+        ):
+            if isinstance(response.root, JSONRPCErrorResponse):
+                raise ClientJSONRPCError(response.root)
+            result = response.root.result
+            yield TaskEvent.model_validate(result or {})
 
     async def _send_request(
             self,
