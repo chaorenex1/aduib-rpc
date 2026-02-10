@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from enum import IntEnum
+from typing import Any
 
-from pydantic import BaseModel, ValidationInfo, field_validator
+from pydantic import BaseModel, field_validator
+
+from aduib_rpc.resilience import RetryPolicy
 
 
 class Priority(IntEnum):
@@ -15,67 +18,87 @@ class Priority(IntEnum):
     HIGH = 2
     CRITICAL = 3
 
-
-class RetryConfig(BaseModel):
-    """Retry policy configuration using exponential backoff.
-
-    The delay for a given attempt is computed as:
-        delay = min(
-            initial_delay_ms * (backoff_multiplier ** attempt),
-            max_delay_ms,
-        )
-
-    Attributes:
-        max_attempts: Maximum number of retry attempts.
-        initial_delay_ms: Initial delay between retries in milliseconds.
-        max_delay_ms: Upper bound for the retry delay in milliseconds.
-        backoff_multiplier: Exponential backoff multiplier.
-        retryable_codes: Optional list of retryable error codes.
-    """
-
-    max_attempts: int = 3
-    initial_delay_ms: int = 100
-    max_delay_ms: int = 10000
-    backoff_multiplier: float = 2.0
-    retryable_codes: list[int] | None = None
-
-    @field_validator("max_attempts")
     @classmethod
-    def validate_max_attempts(cls, value: int) -> int:
-        """Ensure the maximum number of attempts is at least 1."""
+    def from_proto(cls, value: Any) -> "Priority":
+        return cls._from_wire(value)
 
-        if value < 1:
-            raise ValueError("max_attempts must be >= 1")
-        return value
-
-    @field_validator("initial_delay_ms")
     @classmethod
-    def validate_initial_delay_ms(cls, value: int) -> int:
-        """Ensure the initial delay is positive."""
+    def from_thrift(cls, value: Any) -> "Priority":
+        return cls._from_wire(value)
 
-        if value <= 0:
-            raise ValueError("initial_delay_ms must be > 0")
-        return value
-
-    @field_validator("max_delay_ms")
     @classmethod
-    def validate_max_delay_ms(cls, value: int, info: ValidationInfo) -> int:
-        """Ensure the maximum delay is not below the initial delay."""
+    def _from_wire(cls, value: Any) -> "Priority":
+        if isinstance(value, cls):
+            return value
+        if value is None:
+            return cls.NORMAL
+        raw = getattr(value, "value", value)
+        if isinstance(raw, str):
+            key = raw.lower()
+            if key == "low":
+                return cls.LOW
+            if key == "normal":
+                return cls.NORMAL
+            if key == "high":
+                return cls.HIGH
+            if key == "critical":
+                return cls.CRITICAL
+            try:
+                raw = int(raw)
+            except Exception:
+                return cls.NORMAL
+        try:
+            num = int(raw)
+        except Exception:
+            return cls.NORMAL
+        if num == 1:
+            return cls.LOW
+        if num == 2:
+            return cls.NORMAL
+        if num == 3:
+            return cls.HIGH
+        if num >= 4:
+            return cls.CRITICAL
+        return cls.NORMAL
 
-        initial_delay_ms = info.data.get("initial_delay_ms")
-        if initial_delay_ms is not None and value < initial_delay_ms:
-            raise ValueError("max_delay_ms must be >= initial_delay_ms")
-        return value
-
-    @field_validator("backoff_multiplier")
     @classmethod
-    def validate_backoff_multiplier(cls, value: float) -> float:
-        """Ensure the backoff multiplier is at least 1.0."""
+    def to_proto(cls, value: "Priority | int | str | None") -> int:
+        return cls._to_wire(value)
 
-        if value < 1.0:
-            raise ValueError("backoff_multiplier must be >= 1.0")
-        return value
+    @classmethod
+    def to_thrift(cls, value: "Priority | int | str | None") -> int:
+        return cls._to_wire(value)
 
+    @classmethod
+    def _to_wire(cls, value: "Priority | int | str | None") -> int:
+        if value is None:
+            return 0
+        raw = getattr(value, "value", value)
+        if isinstance(raw, str):
+            key = raw.lower()
+            if key == "low":
+                return 1
+            if key == "normal":
+                return 2
+            if key == "high":
+                return 3
+            if key == "critical":
+                return 4
+            try:
+                raw = int(raw)
+            except Exception:
+                return 0
+        try:
+            num = int(raw)
+        except Exception:
+            return 0
+        if num <= 0:
+            return 1
+        if num == 1:
+            return 2
+        if num == 2:
+            return 3
+        return 4
 
 class QosConfig(BaseModel):
     """Quality of service configuration for an RPC request.
@@ -89,7 +112,7 @@ class QosConfig(BaseModel):
 
     priority: Priority = Priority.NORMAL
     timeout_ms: int | None = None
-    retry: RetryConfig | None = None
+    retry: RetryPolicy | None = None
     idempotency_key: str | None = None
 
     @field_validator("timeout_ms")
@@ -101,5 +124,3 @@ class QosConfig(BaseModel):
             raise ValueError("timeout_ms must be > 0 when provided")
         return value
 
-
-__all__ = ["Priority", "RetryConfig", "QosConfig"]

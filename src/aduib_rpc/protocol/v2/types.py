@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import contextvars
 import re
+import uuid
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_serializer, field_validator
 
 from aduib_rpc.exceptions import RpcException
-from aduib_rpc.protocol.v2.errors import ErrorCode, ERROR_CODE_NAMES
+from aduib_rpc.protocol.v2 import RequestMetadata
+from aduib_rpc.protocol.v2.errors import ERROR_CODE_NAMES
 
 _TRACE_ID_RE = re.compile(r"^[0-9a-fA-F]{32}$")
 _SPAN_ID_RE = re.compile(r"^[0-9a-fA-F]{16}$")
@@ -19,6 +22,90 @@ class ResponseStatus(StrEnum):
     SUCCESS = "success"
     ERROR = "error"
     PARTIAL = "partial"
+
+    @classmethod
+    def from_proto(cls, value: Any) -> "ResponseStatus":
+        return cls._from_wire(value)
+
+    @classmethod
+    def from_thrift(cls, value: Any) -> "ResponseStatus":
+        return cls._from_wire(value)
+
+    @classmethod
+    def _from_wire(cls, value: Any) -> "ResponseStatus":
+        if isinstance(value, cls):
+            return value
+        if value is None:
+            return cls.ERROR
+        raw = getattr(value, "value", value)
+        if isinstance(raw, str):
+            key = raw.lower()
+            if key == "success":
+                return cls.SUCCESS
+            if key == "error":
+                return cls.ERROR
+            if key == "partial":
+                return cls.PARTIAL
+            try:
+                raw = int(raw)
+            except Exception:
+                return cls.ERROR
+        try:
+            num = int(raw)
+        except Exception:
+            return cls.ERROR
+        if num == 1:
+            return cls.SUCCESS
+        if num == 2:
+            return cls.ERROR
+        if num == 3:
+            return cls.PARTIAL
+        return cls.ERROR
+
+    @classmethod
+    def to_proto(cls, value: "ResponseStatus | str | int | None") -> int:
+        return cls._to_wire(value)
+
+    @classmethod
+    def to_thrift(cls, value: "ResponseStatus | str | int | None") -> int:
+        return cls._to_wire(value)
+
+    @classmethod
+    def _to_wire(cls, value: "ResponseStatus | str | int | None") -> int:
+        if value is None:
+            return 0
+        if isinstance(value, cls):
+            if value == cls.SUCCESS:
+                return 1
+            if value == cls.ERROR:
+                return 2
+            if value == cls.PARTIAL:
+                return 3
+            return 0
+        raw = getattr(value, "value", value)
+        if isinstance(raw, str):
+            key = raw.lower()
+            if key == "success":
+                return 1
+            if key == "error":
+                return 2
+            if key == "partial":
+                return 3
+            try:
+                raw = int(raw)
+            except Exception:
+                return 0
+        try:
+            num = int(raw)
+        except Exception:
+            return 0
+        if num == 1:
+            return 1
+        if num == 2:
+            return 2
+        if num == 3:
+            return 3
+        return 0
 
 
 class TraceContext(BaseModel):
@@ -51,6 +138,28 @@ class TraceContext(BaseModel):
         if not _SPAN_ID_RE.fullmatch(value):
             raise ValueError("span_id must be a 16-character hex string")
         return value
+
+    @classmethod
+    def create(cls, sampled: bool = True, baggage: dict[str, str] | None = None) -> "TraceContext":
+        trace_id = uuid.uuid4().hex
+        span_id = uuid.uuid4().hex[:16]
+        return cls(trace_id=trace_id, span_id=span_id, sampled=sampled, baggage=baggage)
+
+
+_trace_ctx: contextvars.ContextVar[TraceContext] = contextvars.ContextVar(
+    "aduib_rpc_trace_ctx",
+)
+
+def get_current_trace_context() -> TraceContext | None:
+    """Get the current TraceContext from context variables, if set."""
+    try:
+        return _trace_ctx.get()
+    except LookupError:
+        return None
+
+def set_current_trace_context(trace_context: TraceContext) -> None:
+    """Set the current TraceContext in context variables."""
+    _trace_ctx.set(trace_context)
 
 
 class ErrorDetail(BaseModel):
@@ -130,19 +239,82 @@ class AduibRpcRequest(BaseModel):
         method: RPC method path in the form "rpc.v2/{service}/{handler}".
         name: Optional service alias.
         data: Optional request payload.
+        supported_versions: Optional list of protocol versions the client supports.
         trace_context: Optional W3C trace context information.
         metadata: Optional metadata (typed in metadata.py).
         qos: Optional quality of service settings (typed in qos.py).
+        meta: Optional unstructured metadata for transport/client hints.
     """
 
     aduib_rpc: Literal["2.0"] = "2.0"
-    id: str
+    id: str | None = None
     method: str
     name: str | None = None
     data: dict[str, Any] | None = None
+    supported_versions: list[str] | None = None  # Protocol version negotiation (spec 2.2)
     trace_context: TraceContext | None = None
-    metadata: Any | None = None  # Typed in metadata.py.
+    metadata: RequestMetadata | None = None  # Typed in metadata.py.
     qos: Any | None = None  # Typed in qos.py.
+    meta: dict[str, Any] | None = None
+    _id_str: str | None = None  # Internal storage for string ID
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def validate_id(cls, value: Any) -> str | None:
+        """Convert id to string for internal storage."""
+        if value is None:
+            return None
+        return str(value)
+
+    @field_serializer("id")
+    def serialize_id(self, value: Any) -> str:
+        """Serialize id as string."""
+        if value is None:
+            return str(uuid.uuid4())
+        return str(value)
+
+    @property
+    def id_str(self) -> str:
+        """Get the string ID (generates one if None)."""
+        if self._id_str:
+            return self._id_str
+        if self.id is None:
+            self._id_str = str(uuid.uuid4())
+        else:
+            self._id_str = str(self.id)
+        return self._id_str
+
+    @classmethod
+    def create(cls,
+               id: str,
+               name: str,
+               method: str,
+               data: dict[str, Any] | None = None,
+               meta: dict[str, Any] | None = None
+               ,*,
+               trace_context:TraceContext,
+               qos:Any,
+               metadata:Any) -> "AduibRpcRequest":
+        """Helper to create a request with minimal parameters.
+
+        Args:
+            id: Request identifier.
+            method: RPC method path.
+            data: Optional request payload.
+
+        Returns:
+            AduibRpcRequest instance.
+        """
+
+        return cls(id=id,
+                    name=name,
+                   method=method,
+                   data=data,
+                   meta=meta,
+                   trace_context=trace_context,
+                   qos=qos,
+                   metadata=metadata,
+                   _id_str=str(uuid.uuid4()))
 
 
 class AduibRpcResponse(BaseModel):
@@ -154,17 +326,34 @@ class AduibRpcResponse(BaseModel):
         status: Response status indicator.
         result: Optional response payload.
         error: Optional error payload.
+        negotiated_version: The protocol version negotiated for this response (spec 2.2).
         trace_context: Optional W3C trace context information.
         metadata: Optional metadata (typed later).
     """
 
     aduib_rpc: Literal["2.0"] = "2.0"
-    id: str
-    status: ResponseStatus
+    id: str | None = None
+    status: ResponseStatus = ResponseStatus.SUCCESS
     result: Any | None = None
     error: RpcError | None = None
+    negotiated_version: str | None = None  # Protocol version negotiation (spec 2.2)
     trace_context: TraceContext | None = None
     metadata: Any | None = None  # Typed later.
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def validate_id(cls, value: Any) -> str | None:
+        """Convert id to string for internal storage."""
+        if value is None:
+            return None
+        return str(value)
+
+    @field_serializer("id")
+    def serialize_id(self, value: Any) -> str:
+        """Serialize id as string."""
+        if value is None:
+            return ""
+        return str(value)
 
     def is_success(self) -> bool:
         """Return True when the response is successful and has no error."""
@@ -179,13 +368,3 @@ class AduibRpcResponse(BaseModel):
             raise ValueError("result and error are mutually exclusive")
         return value
 
-
-__all__ = [
-    "AduibRpcRequest",
-    "AduibRpcResponse",
-    "DebugInfo",
-    "ErrorDetail",
-    "ResponseStatus",
-    "RpcError",
-    "TraceContext",
-]
