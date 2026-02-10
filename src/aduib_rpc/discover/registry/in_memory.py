@@ -8,7 +8,7 @@ from aduib_rpc.utils.constant import LoadBalancePolicy
 
 logger=logging.getLogger(__name__)
 
-@registry(name='in_memory')
+@registry(name='in-memory')
 class InMemoryServiceRegistry(ServiceRegistry):
     """In-memory implementation of the ServiceRegistry."""
 
@@ -22,7 +22,8 @@ class InMemoryServiceRegistry(ServiceRegistry):
         self._services[service_info.service_name].append(service_info)
         logger.info(f"Registered service: {service_info.service_name}")
 
-    def unregister_service(self, service_name: str) -> None:
+    async def unregister_service(self, service_info: ServiceInstance) -> None:
+        service_name = service_info.service_name
         if service_name in self._services:
             del self._services[service_name]
         else:
@@ -33,11 +34,11 @@ class InMemoryServiceRegistry(ServiceRegistry):
                     break
         logger.info(f"Unregistered service: {service_name}")
 
-    def list_instances(self, service_name: str) -> list[ServiceInstance]:
+    async def list_instances(self, service_name: str) -> list[ServiceInstance]:
         if service_name not in self._services:
             return []
         return list(self._services.get(service_name) or [])
 
-    def discover_service(self, service_name: str) -> ServiceInstance | None:
-        instances = self.list_instances(service_name)
+    async def discover_service(self, service_name: str) -> ServiceInstance | None:
+        instances = await self.list_instances(service_name)
         return LoadBalancerFactory.get_load_balancer(self.policy).select_instance(instances)

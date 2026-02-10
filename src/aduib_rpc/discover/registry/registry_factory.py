@@ -16,6 +16,7 @@ def registry(name: str):
     def decorator(cls: Any):
         if name:
             ServiceRegistryFactory.register_registry(name, cls)
+            logger.info(f"registered service registry: {name}")
         else:
             logger.warning("No registry name specified. Skipping registration.")
         return cls
@@ -71,48 +72,3 @@ class ServiceRegistryFactory:
     def list_registries(cls) -> list[ServiceRegistry]:
         """Lists all created ServiceRegistry instances."""
         return list(cls.registry_instances.values())
-
-    @classmethod
-    def start_service_discovery(cls, config: dict[str, Any]) -> ServiceRegistry | None:
-        discovery_enabled = config.get('DISCOVERY_SERVICE_ENABLED', False)
-        if not discovery_enabled:
-            logger.warning(
-                "Service discovery disabled. Set DISCOVERY_SERVICE_ENABLED=true to enable.")
-            return None
-
-        registry_type = config.get('DISCOVERY_SERVICE_TYPE')
-        if not registry_type:
-            raise ValueError("Service registry type not specified. Use DISCOVERY_SERVICE_TYPE")
-
-        service_registry = cls.from_service_registry(registry_type, **config)
-        logger.info(f"Starting service discovery: {registry_type}")
-        return service_registry
-
-    @classmethod
-    async def start_service_registry(cls, config: dict[str, Any]) -> ServiceInstance | None:
-        discovery_enabled = config.get('DISCOVERY_SERVICE_ENABLED', False)
-        if not discovery_enabled:
-            logger.warning(
-                "Service registry disabled. Set DISCOVERY_SERVICE_ENABLED=true to enable.")
-            return None
-
-        registry_type = config.get('DISCOVERY_SERVICE_TYPE')
-        if not registry_type:
-            raise ValueError("Service registry type not specified. Use DISCOVERY_SERVICE_TYPE")
-
-        registry_instance = cls.from_service_registry(registry_type, **config)
-        logger.info(f"Starting service registry: {registry_type}")
-
-        ip, port = NetUtils.get_ip_and_free_port()
-        cls.service_info = ServiceInstance(
-            service_name=config.get('APP_NAME', 'aduib-rpc'),
-            host=ip,
-            port=port,
-            protocol=AIProtocols.AduibRpc,
-            weight=1,
-            scheme=config.get('SERVICE_TRANSPORT_SCHEME', TransportSchemes.GRPC),
-        )
-        service_info = cast(ServiceInstance, cls.service_info)
-        registry_instance = cast(ServiceRegistry, registry_instance)
-        await registry_instance.register_service(service_info)
-        return service_info

@@ -1,7 +1,7 @@
 from typing import Any
 
 try:
-    from v2.nacos import Instance
+    from v2.nacos.naming.model.instance import Instance
 except ImportError:
     # nacos-sdk-python is optional
     Instance = None
@@ -32,13 +32,7 @@ class NacosServiceRegistry(ServiceRegistry):
         self.password = password
         self.policy = policy
         self.client = InnerNacosClient(server_addresses, namespace, username, password,group_name)
-        # AsyncUtils.run_async(self.client.create_config_service())
-        # AsyncUtils.run_async(self.client.create_naming_service())
-        self.state:dict[str,ServiceInstance]={}
 
-    # async def init_naming_service(self):
-    #     if self.client.naming_service is None:
-    #         await self.client.create_naming_service()
 
     async def register_service(self, service_info: ServiceInstance) -> None:
         """Register a service instance with the registry."""
@@ -47,17 +41,15 @@ class NacosServiceRegistry(ServiceRegistry):
             service_info.host,
             service_info.port,
             service_info.weight,
-            metadata=service_info.get_service_info(),
+            metadata=service_info.metadata
         )
 
 
-    def unregister_service(self, service_name: str) -> None:
-        if service_name in self.state:
-            service = self.state.get(service_name)
-            self.client.remove_instance(service_name, service.host, service.port)
+    async def unregister_service(self, service_info: ServiceInstance) -> None:
+        await self.client.remove_instance(service_info.service_name, service_info.host, service_info.port)
 
-    def list_instances(self, service_name: str) -> list[ServiceInstance]:
-        services = self.client.list_instances_sync(service_name)
+    async def list_instances(self, service_name: str) -> list[ServiceInstance]:
+        services: list[Instance] = await self.client.list_instances(service_name)
         if not services:
             return []
         if isinstance(services, dict):
@@ -65,12 +57,9 @@ class NacosServiceRegistry(ServiceRegistry):
 
         service_instances: list[ServiceInstance] = []
         for service in services:
-            service: Instance
-            if service is None:
-                continue
             md = getattr(service, "metadata", None) or {}
             service_instance = ServiceInstance(
-                service_name=service.serviceName,
+                service_name=md.get("service_name"),
                 protocol=AIProtocols.to_original(md.get('protocol')),
                 scheme=TransportSchemes.to_original(md.get('scheme')),
                 host=service.ip,
@@ -81,10 +70,9 @@ class NacosServiceRegistry(ServiceRegistry):
             service_instances.append(service_instance)
         return service_instances
 
-    def discover_service(self, service_name: str) -> ServiceInstance | dict[str, Any] | None:
-        service_instances = self.list_instances(service_name)
+    async def discover_service(self, service_name: str) -> ServiceInstance | dict[str, Any] | None:
+        service_instances = await self.list_instances(service_name)
         if not service_instances:
             return None
         instance = LoadBalancerFactory.get_load_balancer(self.policy).select_instance(service_instances)
-        self.state[service_name] = instance
         return instance

@@ -3,21 +3,23 @@ from __future__ import annotations
 import enum
 import time
 from dataclasses import dataclass, field
-
-__all__ = [
-    "HealthStatus",
-    "HealthCheckResult",
-    "HealthCheckConfig",
-]
+from enum import StrEnum
 
 
-class HealthStatus(str, enum.Enum):
+class HealthStatus(StrEnum):
     """Health states for service instances."""
 
     HEALTHY = "healthy"
     UNHEALTHY = "unhealthy"
     DEGRADED = "degraded"
     UNKNOWN = "unknown"
+
+    @classmethod
+    def to_health_status(cls,status: str) -> HealthStatus:
+        for health_status in cls:
+            if health_status.value == status:
+                return health_status
+        return HealthStatus.UNKNOWN
 
 
 @dataclass

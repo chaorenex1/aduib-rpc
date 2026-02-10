@@ -1,5 +1,13 @@
-from .service_instance import ServiceInstance
+from .service_instance import (
+    HealthStatus,
+    MethodDescriptor,
+    ServiceCapabilities,
+    ServiceInstance,
+)
 
 __all__ = [
-    "ServiceInstance"
+    "HealthStatus",
+    "MethodDescriptor",
+    "ServiceCapabilities",
+    "ServiceInstance",
 ]

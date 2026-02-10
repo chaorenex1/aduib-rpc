@@ -7,7 +7,7 @@ from typing import Callable, Any
 
 try:
     import nacos
-    from v2.nacos import ClientConfigBuilder, GRPCConfig, NacosConfigService, NacosNamingService, ConfigParam, \
+    from v2.nacos import ClientConfigBuilder, NacosConfigService, NacosNamingService, ConfigParam, \
         RegisterInstanceParam, DeregisterInstanceParam, ListInstanceParam, Instance, Service, GetServiceParam, \
         SubscribeServiceParam
     NacosClient = nacos.NacosClient  # type: ignore
@@ -15,7 +15,6 @@ except ImportError:
     nacos = None
     NacosClient = None  # type: ignore
     ClientConfigBuilder = None
-    GRPCConfig = None
     NacosConfigService = None
     NacosNamingService = None
     ConfigParam = None
@@ -252,7 +251,7 @@ class ConfigWatcher(Callable):
     def __init__(self, client: NacosClient):
         self.client = client
 
-    def __call__(self, tenant: str, group: str, data_id: str, data: str):
+    def __call__(self, _tenant: str, group: str, data_id: str, data: str):
         logger.debug(f"ConfigWatcher data_id:{data_id},group:{group},data:{data}")
         self.client.config_cache[data_id] = json.loads(data)
         if self.client.config_callbacks:
