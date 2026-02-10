@@ -59,7 +59,7 @@ pip install "aduib-rpc[telemetry,a2a]"
 
 ```python
 from aduib_rpc import TelemetryConfig, configure_telemetry
-from aduib_rpc.telemetry.server_interceptors import OTelServerInterceptor
+from aduib_rpc.server.interceptors.telemetry import OTelServerInterceptor
 from aduib_rpc.server.request_handlers.default_request_handler import DefaultRequestHandler
 
 configure_telemetry(TelemetryConfig(service_name="aduib-rpc-server"))
@@ -73,13 +73,13 @@ handler = DefaultRequestHandler(interceptors=[OTelServerInterceptor()])
 
 ## 4. A2A 集成方案
 
-仓库已存在 A2A 服务工厂：
-- `src/aduib_rpc/discover/service/a2a_service_factory.py`
-- `src/aduib_rpc/discover/service/service_factory.py`（包含 is_a2a_installed 探测）
+仓库不再内置 A2A 服务工厂：
+- A2A 相关实现已拆分到独立包（例如 `aduib-rpc-a2a`）
+- `service_factory.py` 内仅保留通用服务工厂逻辑
 
 ### 4.1 建议的入口与约定
 - 在 docs 里明确：
-  - `aduib-rpc[a2a]` 安装后，才能使用 `A2aServiceFactory`
+  - `aduib-rpc[a2a]` 安装后，才能使用独立包内的 `A2aServiceFactory`
   - 未安装时 `is_a2a_installed=False`，应给出明确错误提示
 
 ### 4.2 可观测 + A2A 如何组合
