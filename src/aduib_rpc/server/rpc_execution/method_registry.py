@@ -1,10 +1,93 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-
+from enum import StrEnum
+from typing import Any
 
 _V2_PREFIX = "rpc.v2/"
 
+class MethodProtocol(StrEnum):
+    """RPC protocol versions."""
+
+    V1 = "1.0"
+    V2 = "2.0"
+
+
+# Pattern for rpc.v2/{service}/{handler} format
+_V2_METHOD_PATTERN = re.compile(
+    r"^rpc\.v2/(?P<service>[a-zA-Z][a-zA-Z0-9_]*)/(?P<handler>[a-zA-Z][a-zA-Z0-9_]*)$"
+)
+
+# Pattern for legacy format {service}.{handler}
+_LEGACY_METHOD_PATTERN = re.compile(
+    r"^(?P<service>[a-zA-Z][a-zA-Z0-9_]*)\.(?P<handler>[a-zA-Z][a-zA-Z0-9_]*)$"
+)
+
+
+def parse_method_name(method: str) -> dict[str, Any] | None:
+    """Parse a method name into its components.
+
+    Supports formats:
+    - `rpc.v2/{service}/{handler}` - v2 format with protocol prefix
+    - `{service}.{handler}` - legacy format
+
+    Args:
+        method: Method name to parse.
+
+    Returns:
+        Dict with keys: protocol, service, handler, normalized
+        Returns None if format is unrecognized.
+    """
+    # Try v2 format first
+    match = _V2_METHOD_PATTERN.match(method)
+    if match:
+        return {
+            "protocol": "v2",
+            "service": match.group("service"),
+            "handler": match.group("handler"),
+            "normalized": method,
+        }
+
+    # Try legacy format
+    match = _LEGACY_METHOD_PATTERN.match(method)
+    if match:
+        service = match.group("service")
+        handler = match.group("handler")
+        return {
+            "protocol": "v1",
+            "service": service,
+            "handler": handler,
+            "normalized": f"{service}.{handler}",
+        }
+
+    return None
+
+
+def normalize_method_name(method: str, target_protocol: str = "v2") -> str | None:
+    """Normalize a method name to the target protocol format.
+
+    Args:
+        method: Method name to normalize.
+        target_protocol: Target protocol (v1 or v2).
+
+    Returns:
+        Normalized method name or None if parsing fails.
+    """
+    parsed = parse_method_name(method)
+    if not parsed:
+        return None
+
+    if target_protocol == "v2":
+        if parsed["protocol"] == "v2":
+            return parsed["normalized"]
+        # Convert v1 to v2
+        return f"rpc.v2/{parsed['service']}/{parsed['handler']}"
+    else:  # v1
+        if parsed["protocol"] == "v1":
+            return parsed["normalized"]
+        # Convert v2 to v1
+        return f"{parsed['service']}.{parsed['handler']}"
 
 @dataclass(frozen=True, slots=True)
 class MethodName:

@@ -3,34 +3,61 @@ import functools
 import inspect
 import logging
 import time
-import warnings
-from collections.abc import Iterator, MutableMapping, MutableSequence
+import uuid
+from collections.abc import AsyncIterator
 from typing import Any, Callable, Mapping, TypeVar
-
-from aduib_rpc.rpc.methods import MethodName
-from aduib_rpc.server.rpc_execution.runtime import RpcRuntime, get_runtime
-from aduib_rpc.utils.anyio_compat import run as run_anyio
 
 from aduib_rpc.client import ClientRequestInterceptor
 from aduib_rpc.client.auth import CredentialsProvider
+from aduib_rpc.protocol.v2 import TraceContext, QosConfig, RequestMetadata
+from aduib_rpc.protocol.v2 import get_current_trace_context, set_current_trace_context
+from aduib_rpc.server.rpc_execution import MethodName, RpcRuntime, get_runtime
 from aduib_rpc.server.rpc_execution.service_func import ServiceFunc
-from aduib_rpc.utils.async_utils import AsyncUtils
+from aduib_rpc.server.tasks import TaskMethod, TaskSubmitRequest, TaskSubscribeRequest
+from aduib_rpc.server.tasks.types import TaskEventType, TaskStatus
+from aduib_rpc.types import AduibRpcRequest
+from aduib_rpc.utils.anyio_compat import run as run_anyio
 
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
 
-# ---------------------------------------------------------------------------
-# Persistent catalogs
-# ---------------------------------------------------------------------------
-#
-# Some tests (and real apps) may call FuncCallContext.reset() which clears the
-# default runtime registries. Services defined via decorators may have already
-# been imported, and their decorators won't re-run automatically. To avoid
-# cross-test ordering issues, we keep a persistent catalog of decorated services
-# and service funcs, and re-hydrate the default runtime on demand.
-_SERVICE_CATALOG: dict[str, Any] = {}
-_SERVICE_FUNC_CATALOG: dict[str, ServiceFunc] = {}
+
+class ServiceInstancePool:
+    """Singleton service instance pool for reusing service instances."""
+
+    def __init__(self):
+        self._instances: dict[str, Any] = {}
+        self._lock = asyncio.Lock()
+
+    async def get_or_create(self, service_type: type) -> Any:
+        """Get existing instance or create a new one."""
+        key = f"{service_type.__module__}.{service_type.__name__}"
+
+        if key in self._instances:
+            return self._instances[key]
+
+        async with self._lock:
+            # Double-check after acquiring lock
+            if key in self._instances:
+                return self._instances[key]
+
+            instance = service_type()
+            self._instances[key] = instance
+            return instance
+
+    def clear(self) -> None:
+        """Clear all cached instances (for testing)."""
+        self._instances.clear()
+
+
+# Module-level singleton
+_service_pool = ServiceInstancePool()
+
+
+def get_service_pool() -> ServiceInstancePool:
+    """Get the global service instance pool."""
+    return _service_pool
 
 
 def default_runtime() -> RpcRuntime:
@@ -44,123 +71,6 @@ def default_runtime() -> RpcRuntime:
 
 def _get_effective_runtime(runtime: RpcRuntime | None) -> RpcRuntime:
     return runtime or default_runtime()
-
-
-class _DeprecatedRuntimeView:
-    """A dynamic view over the current default runtime.
-
-    This exists to keep backward compatibility with older code that imports
-    `service_funcs`, `service_instances`, etc.
-
-    These views always reflect the *current* default runtime (get_runtime()),
-    rather than capturing one at import-time.
-    """
-
-    __slots__ = ("_name",)
-
-    def __init__(self, name: str):
-        self._name = name
-
-    def _target(self):
-        return getattr(default_runtime(), self._name)
-
-
-class _RuntimeMappingView(_DeprecatedRuntimeView, MutableMapping[str, Any]):
-    def __getitem__(self, key: str) -> Any:
-        warnings.warn(
-            f"Importing '{self._name}' from service_call is deprecated; use explicit runtime access.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._target()[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        warnings.warn(
-            f"Mutating '{self._name}' from service_call is deprecated; use explicit runtime access.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self._target()[key] = value
-
-    def __delitem__(self, key: str) -> None:
-        warnings.warn(
-            f"Mutating '{self._name}' from service_call is deprecated; use explicit runtime access.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        del self._target()[key]
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self._target())
-
-    def __len__(self) -> int:
-        return len(self._target())
-
-
-class _RuntimeListView(_DeprecatedRuntimeView, MutableSequence[_T]):
-    def __getitem__(self, i: int) -> _T:
-        warnings.warn(
-            f"Importing '{self._name}' from service_call is deprecated; use explicit runtime access.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._target()[i]
-
-    def __setitem__(self, i: int, item: _T) -> None:
-        warnings.warn(
-            f"Mutating '{self._name}' from service_call is deprecated; use explicit runtime access.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self._target()[i] = item
-
-    def __delitem__(self, i: int) -> None:
-        warnings.warn(
-            f"Mutating '{self._name}' from service_call is deprecated; use explicit runtime access.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        del self._target()[i]
-
-    def __len__(self) -> int:
-        return len(self._target())
-
-    def insert(self, index: int, value: _T) -> None:
-        warnings.warn(
-            f"Mutating '{self._name}' from service_call is deprecated; use explicit runtime access.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self._target().insert(index, value)
-
-
-class _RuntimeAttrView(_DeprecatedRuntimeView):
-    def get(self) -> Any:
-        warnings.warn(
-            f"Accessing '{self._name}' from service_call is deprecated; use explicit runtime access.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._target()
-
-    def set(self, value: Any) -> None:
-        warnings.warn(
-            f"Mutating '{self._name}' from service_call is deprecated; use explicit runtime access.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        setattr(default_runtime(), self._name, value)
-
-
-# ---------------------------------------------------------------------------
-# Backward-compatible module-level views (deprecated)
-# ---------------------------------------------------------------------------
-service_instances: MutableMapping[str, Any] = _RuntimeMappingView("service_instances")
-client_instances: MutableMapping[str, Any] = _RuntimeMappingView("client_instances")
-service_funcs: MutableMapping[str, ServiceFunc] = _RuntimeMappingView("service_funcs")  # type: ignore[assignment]
-client_funcs: MutableMapping[str, ServiceFunc] = _RuntimeMappingView("client_funcs")  # type: ignore[assignment]
-interceptors: MutableSequence[ClientRequestInterceptor] = _RuntimeListView("interceptors")
-credentials_provider: _RuntimeAttrView = _RuntimeAttrView("credentials_provider")
 
 
 class FuncCallContext:
@@ -198,6 +108,7 @@ class FuncCallContext:
     def reset(cls) -> None:
         """Reset default runtime state (primarily for tests)."""
         cls._rt().reset()
+        get_service_pool().clear()
 
 
 import importlib
@@ -234,13 +145,8 @@ def fallback_function(fallback: Callable[..., Any], *args, **kwargs) -> Any:
     # No need to catch/raise, just preserve original traceback.
     # fallback may be sync or async.
     if asyncio.iscoroutinefunction(fallback):
-        return AsyncUtils.run_async(fallback(*args, **kwargs))
+        return run_anyio(fallback, *args, **kwargs)
     return fallback(*args, **kwargs)
-
-
-def _compose_remote_method(service_name: str, func_qualname: str) -> str:
-    """Compose stable RPC method name sent to server."""
-    return MethodName.format_v2(service_name, func_qualname)
 
 
 def _default_handler_name(func: Callable[..., Any]) -> str:
@@ -260,6 +166,68 @@ def _call_maybe_async(fn: Callable[..., Any], *args, **kwargs) -> Any:
     if inspect.isawaitable(result):
         return result
     return result
+
+
+def _is_async_iterable(value: Any) -> bool:
+    return inspect.isasyncgen(value) or hasattr(value, "__aiter__")
+
+
+def _extract_stream_source(data: dict[str, Any]) -> Any | None:
+    if len(data.items()) > 1:
+        raise ValueError("When using client streaming or bidirectional streaming, only one stream source is allowed.")
+    for key, value in list(data.items()):
+        if _is_async_iterable(value):
+            data.pop(key)
+            return value
+    return None
+
+
+async def _iter_stream_items(source: Any) -> AsyncIterator[Any]:
+    if source is None:
+        return
+    if _is_async_iterable(source):
+        async for item in source:
+            yield item
+        return
+    if isinstance(source, (list, tuple, set)):
+        for item in source:
+            yield item
+        return
+    yield source
+
+
+def _raise_for_rpc_error(value: Any, *, message: str | None = None) -> None:
+    if value is None:
+        return
+
+    from aduib_rpc.protocol.v2 import AduibRpcResponse, ErrorCode, RpcError, exception_from_code
+
+    err = None
+    if isinstance(value, RpcError):
+        err = value
+    elif isinstance(value, AduibRpcResponse):
+        err = value.error
+    else:
+        err = getattr(value, "error", None)
+
+    if err is None:
+        return
+
+    code = getattr(err, "code", None)
+    if code is None:
+        code = int(ErrorCode.INTERNAL_ERROR)
+    msg = getattr(err, "message", None) or message or "RPC error"
+    if isinstance(err, Mapping):
+        data = dict(err)
+        code = data.get("code", code)
+        msg = data.get("message", msg)
+        name = data.get("name")
+    else:
+        data = err.model_dump() if hasattr(err, "model_dump") else {"code": code, "message": msg}
+        name = getattr(err, "name", None)
+    if name is not None and isinstance(data, dict):
+        data.setdefault("name", name)
+    raise exception_from_code(int(code), message=msg, data=data)
 
 
 def _make_wrappers(
@@ -385,13 +353,87 @@ def service_function(  # noqa: PLR0915
     return async_wrapper if is_async_func else sync_wrapper
 
 
+# Attribute name for storing stream metadata on functions
+_METADATA_ATTR = "_rpc_metadata"
+
+
+def function(
+    *,
+    idempotent_key:str |None=None,
+    timeout:int | None = None,
+    client_stream: bool = False,
+    server_stream: bool = False,
+    bidirectional_stream: bool = False,
+    long_running: bool = False,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Decorator to mark a service method with streaming capabilities.
+
+    Usage:
+        @function(server=True)
+        async def stream_data(self, request: Request) -> AsyncIterator[Response]:
+            ...
+
+        @function(client=True)
+        async def upload_data(self, stream: AsyncIterator[Chunk]) -> Result:
+            ...
+
+        @function(bidirectional=True)
+        async def chat(self, stream: AsyncIterator[Message]) -> AsyncIterator[Message]:
+            ...
+
+    Args:
+        client: Enable client-side streaming (client sends stream of messages).
+        server: Enable server-side streaming (server sends stream of messages).
+        bidirectional: Enable bidirectional streaming (both client and server stream).
+            If True, implicitly sets client=True and server=True.
+
+    Returns:
+        A decorator that attaches stream metadata to the function.
+    """
+    # Bidirectional implies both client and server streaming
+    if bidirectional_stream:
+        client_stream = True
+        server_stream = True
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        setattr(func, _METADATA_ATTR, {
+            "client_stream": client_stream,
+            "server_stream": server_stream,
+            "bidirectional_stream": bidirectional_stream,
+            "idempotent_key": idempotent_key,
+            "timeout": timeout,
+            "long_running": long_running,
+        })
+        return func
+
+    return decorator
+
+
+def get_func_metadata(func: Callable[..., Any]) -> dict[str, bool]:
+    """Get stream metadata from a function decorated with @streaming.
+
+    Args:
+        func: The function to get stream metadata from.
+
+    Returns:
+        A dict with keys: client_stream, server_stream, bidirectional_stream.
+        All values default to False if the function is not decorated.
+    """
+    return getattr(func, _METADATA_ATTR, {
+        "client_stream": False,
+        "server_stream": False,
+        "bidirectional_stream": False,
+        "idempotent_key": None,
+        "timeout": None,
+        "long_running": False,
+    })
+
+
 def client_function(  # noqa: PLR0915
         func: Callable | None = None,
         *,
-        module_name: str | None = None,
-        method_name: str | None = None,
+        handler_name: str | None = None,
         service_name: str | None = None,
-        stream: bool = True,
         fallback: Callable[..., Any] = None,
         runtime: RpcRuntime | None = None,
 ) -> Callable:
@@ -407,17 +449,21 @@ def client_function(  # noqa: PLR0915
     if func is None:
         return functools.partial(
             client_function,
-            module_name=module_name,
-            method_name=method_name,
+            handler_name=handler_name,
             service_name=service_name,
-            stream=stream,
             fallback=fallback,
             runtime=runtime,
         )
+    from aduib_rpc.app import get_global_app,RpcApp
+    app: RpcApp = get_global_app()
+    effective_runtime = _get_effective_runtime(runtime)
 
-    handler_name = method_name or _default_handler_name(func)
-    # Treat async-generator functions as async as well.
-    is_async_func = inspect.iscoroutinefunction(func) or inspect.isasyncgenfunction(func)
+    client_func: ServiceFunc = effective_runtime.client_funcs.get(handler_name)
+
+    if client_func is None:
+        raise ValueError(f"Client function '{handler_name}' is not registered in the runtime.")
+
+    is_async_func = client_func.is_async
 
     logger.debug(
         'Start call for %s (service=%s), is_async_func %s',
@@ -426,12 +472,9 @@ def client_function(  # noqa: PLR0915
         is_async_func,
     )
 
-    effective_runtime = _get_effective_runtime(runtime)
-
     @functools.wraps(func)
     async def _client_call(*args, **kwargs) -> Any:
         from aduib_rpc.discover.registry.registry_factory import ServiceRegistryFactory
-        from aduib_rpc.client.client_factory import AduibRpcClientFactory
         from aduib_rpc.client.service_resolver import RegistryServiceResolver
 
         if not service_name:
@@ -444,16 +487,24 @@ def client_function(  # noqa: PLR0915
         dict_data = args_to_dict(func, *args, **kwargs)
         dict_data.pop('self', None)
 
-        remote_method = _compose_remote_method(service_name, handler_name)
+        if client_func.deprecated:
+            logger.warning("Calling deprecated client function '%s': %s",
+                           handler_name,
+                           client_func.deprecation_message or "No deprecation message provided.")
+        method_name= client_func.full_name
+        if client_func.replaced_by:
+            logger.info("Client function '%s' has been replaced by '%s'.",
+                        handler_name,
+                        client_func.replaced_by)
 
-        # Optional per-call load balancing controls via meta.
-        # - lb_policy: int enum value from LoadBalancePolicy
-        # - lb_key: string key for consistent hashing
-        lb_policy = None
-        lb_key = None
-        if isinstance(dict_data.get('meta'), dict):
-            lb_policy = dict_data['meta'].get('lb_policy')
-            lb_key = dict_data['meta'].get('lb_key')
+            method_name = MethodName.format_v2(service_name,client_func.replaced_by) or method_name
+
+        logger.debug('called remote service %s', service_name, extra={"rpc.method": method_name})
+        error_context = f"RPC call failed: {method_name}"
+
+        metadata=client_func.metadata or  {}
+        lb_policy = metadata.get("lb_policy", 0)
+        lb_key = metadata.get("lb_key", "")
 
         resolver_policy = None
         if lb_policy is not None:
@@ -463,36 +514,138 @@ def client_function(  # noqa: PLR0915
             except Exception:
                 logger.warning("Invalid lb_policy=%r; falling back to default", lb_policy)
 
-        resolver = RegistryServiceResolver(registries, policy=resolver_policy or None, key=lb_key)
-        resolved = resolver.resolve(service_name)
+        resolver = RegistryServiceResolver(registries, policy=resolver_policy or app.resolver_policy)
+        resolved = await resolver.resolve(service_name,lb_key=lb_key)
         if not resolved:
             raise RuntimeError(f"Service '{service_name}' not found")
 
-        client = AduibRpcClientFactory.create_client(
-            resolved.url,
-            stream,
-            resolved.scheme,
-            interceptors=effective_runtime.interceptors,
-        )
+        client = app.create_client(resolved)
 
-        # BaseAduibRpcClient.completion returns an AsyncIterator (async generator).
-        # Some custom implementations might return an awaitable that resolves to an async iterator.
-        resp = client.completion(
-            module_name,
-            remote_method,
-            dict_data,
-            resolved.meta(),
-        )
-        if inspect.isawaitable(resp) and not hasattr(resp, "__aiter__"):
-            resp = await resp
+        client_stream = client_func.client_stream
+        server_stream = client_func.server_stream
+        bidirectional_stream = client_func.bidirectional_stream
+        if bidirectional_stream and not resolved.instance.capabilities.bidirectional:
+            raise RuntimeError(f"Service '{service_name}' does not support bidirectional streaming")
 
-        logger.debug('called remote service %s', service_name, extra={"rpc.method": method_name})
+        if client_stream and not resolved.instance.capabilities.streaming:
+            raise RuntimeError(f"Service '{service_name}' does not support client streaming")
 
-        result = None
-        async for r in resp:
-            result = r.result
+        if server_stream and not resolved.instance.capabilities.streaming:
+            raise RuntimeError(f"Service '{service_name}' does not support server streaming")
 
-        return result
+        trace_context = get_current_trace_context()
+        if trace_context is None:
+            trace_context = TraceContext.create(baggage=resolved.meta())
+            set_current_trace_context(trace_context)
+
+        qos_config=QosConfig(timeout_ms=client_func.timeout,idempotency_key=dict_data.get('idempotency_key', None) if client_func.idempotent_key else None,retry=app.config.resilience.retry)
+        request_meta = RequestMetadata.create(effective_runtime.tenant_id,client_id=app.get_client_id())
+
+        if client_func.long_running:
+            request_meta.long_task=True
+            if client_stream or bidirectional_stream:
+                raise RuntimeError("long_running cannot be combined with client/bidirectional streaming.")
+            request_meta.long_task_method=TaskMethod.SUBMIT_TASK
+            request = AduibRpcRequest.create(id=str(uuid.uuid4()), name=service_name, method=method_name, data=dict_data,
+                                            meta=resolved.meta(), trace_context=trace_context, qos=qos_config,
+                                            metadata=request_meta, )
+
+            submit_resp = await client.task_submit(TaskSubmitRequest(target_method=request_meta.long_task_method,params=request.model_dump()))
+            task_id = submit_resp.task_id
+            if not task_id:
+                raise RuntimeError("long_running task submit did not return task_id")
+
+            logger.info("Task '%s' returned status '%s'.", handler_name, submit_resp.status)
+            if submit_resp.status!=TaskStatus.FAILED:
+                request_meta.long_task_method=TaskMethod.SUBMIT_TASK
+                async def _results():
+                    async for resp in client.task_subscribe(TaskSubscribeRequest(task_id=task_id)):
+                        yield resp
+                        if resp.event==TaskEventType.COMPLETED:
+                            logger.info("Task '%s' completed status '%s'.", handler_name, submit_resp.status)
+                            return
+
+                return _results()
+            else:
+                logger.warning("Task '%s' failed status '%s'.", handler_name, submit_resp.status)
+                return None
+
+        stream_source = None
+        if client_stream or bidirectional_stream:
+            stream_source = _extract_stream_source(dict_data)
+
+
+            async def _iter_requests():
+                async for item in _iter_stream_items(stream_source):
+                    yield AduibRpcRequest.create(
+                        id=str(uuid.uuid4()),
+                        name=service_name,
+                        method=method_name,
+                        data=item,
+                        meta=resolved.meta(),
+                        trace_context=trace_context,
+                        qos=qos_config,
+                        metadata=request_meta,
+                    )
+
+
+            if bidirectional_stream:
+                resp_stream = client.call_bidirectional(_iter_requests())
+
+                async def _results():
+                    async for r in resp_stream:
+                        _raise_for_rpc_error(r, message=error_context)
+                        yield r.result
+
+                return _results()
+
+            if client_stream:
+                resp = await client.call_client_stream(_iter_requests())
+                _raise_for_rpc_error(resp, message=error_context)
+                return resp.result
+            return None
+        elif server_stream:
+            resp=client.call_server_stream(AduibRpcRequest.create(
+                id=str(uuid.uuid4()),
+                name=service_name,
+                method=method_name,
+                data=dict_data,
+                meta=resolved.meta(),
+                trace_context=trace_context,
+                qos=qos_config,
+                metadata=request_meta,
+            ))
+            async def _results():
+                async for r in resp:
+                    _raise_for_rpc_error(r, message=error_context)
+                    yield r.result
+
+            return _results()
+        else:
+            resp = await client.call(AduibRpcRequest.create(
+                id=str(uuid.uuid4()),
+                name=service_name,
+                method=method_name,
+                data=dict_data,
+                meta=resolved.meta(),
+                trace_context=trace_context,
+                qos=qos_config,
+                metadata=request_meta,
+            ))
+
+            if inspect.isawaitable(resp) and not hasattr(resp, "__aiter__"):
+                resp = await resp
+            if _is_async_iterable(resp):
+                result = None
+                async for r in resp:
+                    _raise_for_rpc_error(r, message=error_context)
+                    result = r.result
+                return result
+            if hasattr(resp, "result"):
+                _raise_for_rpc_error(resp, message=error_context)
+                return resp.result
+            _raise_for_rpc_error(resp, message=error_context)
+            return resp
 
     async_wrapper, _sync_wrapper = _make_wrappers(
         kind="client",
@@ -512,72 +665,123 @@ def client_function(  # noqa: PLR0915
     return async_wrapper if is_async_func else sync_wrapper
 
 
-def service(service_name: str, *, runtime: RpcRuntime | None = None):
-    """Decorator to register a service executor class."""
+def service(
+            name: str | None = None,
+            *,
+            version: str = "1.0.0",
+            deprecated: bool = False,
+            deprecation_message: str = "",
+            replaced_by: str | None = None,
+            metadata: dict[str, Any] | None = None,
+            runtime: RpcRuntime | None = None):
+    """Decorator to register a service executor class.
+
+    Usage:
+        @service("MyService")  # with name
+        @service(name="MyService")  # keyword argument
+        @service()  # use class name
+    """
 
     effective_runtime = _get_effective_runtime(runtime)
 
     def decorator(cls: Any):
-        service = f"{service_name}.{cls.__name__}"
+        service_name = name if name else cls.__name__
         for method_name, function in inspect.getmembers(cls, inspect.isfunction):
-            handler_name = f"{cls.__name__}.{method_name}"
+            handler_name = f"{service_name}.{method_name}"
+            full_handler_name = MethodName.format_v2(effective_runtime.service_info.service_name, handler_name)
 
             setattr(
                 cls,
                 method_name,
-                service_function(func_name=handler_name, fallback=None, runtime=effective_runtime)(function),
+                service_function(func_name=handler_name, fallback=None,
+                                 runtime=effective_runtime)(function),
             )
             wrapper_func = getattr(cls, method_name)
-            service_func: ServiceFunc = ServiceFunc.from_function(function, handler_name, function.__doc__)
-            # Keep a persistent copy so we can rehydrate runtime after reset().
-            service_func.wrap_fn = wrapper_func
-            effective_runtime.service_funcs[handler_name] = service_func
+            func_metadata = get_func_metadata(function)
+            merged_metadata = {**(metadata or {}), **func_metadata}
+            service_func: ServiceFunc = ServiceFunc.from_function(function,
+                                                                  wrapper_func,
+                                                                  handler_name,
+                                                                  full_handler_name,
+                                                                  function.__doc__,
+                                                                  version=version,
+                                                                  deprecated=deprecated,
+                                                                  deprecation_message=deprecation_message,
+                                                                  replaced_by=replaced_by,
+                                                                  idempotent_key=func_metadata["idempotent_key"],
+                                                                  timeout=func_metadata["timeout"],
+                                                                  long_running=func_metadata["long_running"],
+                                                                  metadata=merged_metadata,
+                                                                  client_stream=func_metadata["client_stream"],
+                                                                  server_stream=func_metadata["server_stream"],
+                                                                  bidirectional_stream=func_metadata["bidirectional_stream"],
+                                                                  )
+            effective_runtime.register_service(handler_name, service_func)
 
 
-        # Keep a persistent copy so we can rehydrate runtime after reset().
-            _SERVICE_FUNC_CATALOG[handler_name] = service_func
-
-        effective_runtime.service_instances[service] = cls
-        _SERVICE_CATALOG[service] = cls
-
+        effective_runtime.register_service_instance(service_name, cls)
         return cls
 
     return decorator
 
 
-def client(service_name: str, stream: bool = True, fallback: Callable[..., Any] = None, *, runtime: RpcRuntime | None = None):
+def client(service_name: str,
+           fallback: Callable[..., Any] = None,
+           *,
+            version: str = "1.0.0",
+            deprecated: bool = False,
+            deprecation_message: str = "",
+            metadata: dict[str, Any] | None = None,
+           runtime: RpcRuntime | None = None,
+           ):
     """Decorator to register a client class whose methods call remote services."""
 
     effective_runtime = _get_effective_runtime(runtime)
 
     def decorator(cls: Any):
-        service = f"{cls.__name__}.{cls.__name__}"
         for method_name, function in inspect.getmembers(cls, inspect.isfunction):
             if method_name.startswith('__') and method_name.endswith('__'):
                 continue
 
             handler_name = f"{cls.__name__}.{method_name}" if cls.__name__ else method_name
+            full_handler_name = MethodName.format_v2(service_name, handler_name)
 
             setattr(
                 cls,
                 method_name,
                 client_function(
-                    module_name=service,
-                    method_name=handler_name,
+                    handler_name=handler_name,
                     service_name=service_name,
-                    stream=stream,
                     fallback=fallback,
                     runtime=effective_runtime,
                 )(function),
             )
             wrapper_func = getattr(cls, method_name)
-            client_func: ServiceFunc = ServiceFunc.from_function(function, handler_name, function.__doc__)
+            func_metadata = get_func_metadata(function)
+            merged_metadata = {**(metadata or {}), **func_metadata}
+            client_func: ServiceFunc = ServiceFunc.from_function(function,
+                                                                 wrapper_func,
+                                                                 handler_name,
+                                                                 full_handler_name,
+                                                                 function.__doc__,
+                                                                 version=version,
+                                                                 deprecated=deprecated,
+                                                                 deprecation_message=deprecation_message,
+                                                                 replaced_by=None,
+                                                                 idempotent_key=func_metadata["idempotent_key"],
+                                                                 timeout=func_metadata["timeout"],
+                                                                 long_running=func_metadata["long_running"],
+                                                                 metadata=merged_metadata,
+                                                                 client_stream=func_metadata["client_stream"],
+                                                                 server_stream=func_metadata["server_stream"],
+                                                                 bidirectional_stream=func_metadata["bidirectional_stream"],
+                                                                 )
             client_func.wrap_fn = wrapper_func
-            effective_runtime.client_funcs[handler_name] = client_func
+            effective_runtime.register_client(handler_name, client_func)
 
         if fallback:
             setattr(cls, 'fallback', staticmethod(fallback))
-        effective_runtime.client_instances[cls.__name__] = cls
+        effective_runtime.register_client_instance(cls.__name__, cls)
         return cls
 
     return decorator
@@ -600,33 +804,20 @@ class ServiceCaller:
     def from_service_caller(cls, service_name: str, runtime: RpcRuntime | None = None):
         effective_runtime = _get_effective_runtime(runtime)
         service_type = effective_runtime.service_instances.get(service_name)
-        if service_type is None:
-            service_type = _SERVICE_CATALOG.get(service_name)
-            if service_type is not None:
-                effective_runtime.service_instances[service_name] = service_type
-
-                prefix = f"{service_name}."
-                for full_name, service_func in _SERVICE_FUNC_CATALOG.items():
-                    if full_name.startswith(prefix):
-                        effective_runtime.service_funcs.setdefault(full_name, service_func)
         return cls(service_type, service_name, runtime=effective_runtime)
 
     async def call(self, func_name: str, *args, **kwargs):
         # func_name may be "method" or "Class.method" depending on the caller.
-        handler = func_name
-        if "." not in handler and self.service_type is not None:
-            handler = f"{self.service_type.__name__}.{func_name}"
+        logger.debug("Calling service function: %s", func_name)
 
-        service_func_name = f"{handler}"
-        logger.debug("Calling service function: %s", service_func_name)
-
-        service_func = self._runtime.service_funcs.get(service_func_name)
+        service_func = self._runtime.service_funcs.get(func_name)
         if not service_func:
-            raise ValueError(f"Service function '{service_func_name}' is not registered.")
+            raise ValueError(f"Service function '{func_name}' is not registered.")
         if self.service_type is None:
             raise ValueError(f"Service '{self.service_name}' is not registered.")
 
-        service_instance = self.service_type()
+        # Use pooled service instances to avoid per-call instantiation overhead.
+        service_instance = await _service_pool.get_or_create(self.service_type)
 
         # IMPORTANT:
         # Methods on the service class are wrapped by @service, so their signatures
@@ -662,77 +853,3 @@ class ClientCaller:
         arguments = args_to_dict(method, *args, **kwargs)
         arguments['self'] = service_instance
         return await service_func.run(arguments)
-
-# ------------------------------
-# 示例使用
-# ------------------------------
-
-# class test_add(BaseModel):
-#     x: int = 1
-#     y: int = 2
-#
-# @service("MyService")
-# class MyService:
-#     def add(self, x, y):
-#         """同步加法"""
-#         return x + y
-#
-#     def add2(self, data:test_add):
-#         """同步加法"""
-#         return data.x + data.y
-#
-#     async def async_mul(self, x, y):
-#         """异步乘法"""
-#         await asyncio.sleep(0.1)
-#         return x * y
-#
-#     def fail(self, x):
-#         """会失败的函数"""
-#         raise RuntimeError("Oops!")
-#
-#
-# class MyServiceFallback(Callable[..., Any]):
-#     def __call__(self, *args, **kwargs) -> Any:
-#         return "Fallback result"
-#
-# @client("MyService2", fallback=MyServiceFallback())
-# class MyService2:
-#     def add(self, x, y):
-#         """同步加法"""
-#         return x + y
-#
-#     def add2(self, data:test_add):
-#         """同步加法"""
-#         return data.x + data.y
-#
-#     async def async_mul(self, x, y):
-#         """异步乘法"""
-#         await asyncio.sleep(0.1)
-#         return x * y
-#
-#     def fail(self, x):
-#         """会失败的函数"""
-#         raise RuntimeError("Oops!")
-# ------------------------------
-# 调用示例
-# ------------------------------
-# async def main():
-#     # caller = ServiceCaller.from_service_caller("MyService")
-#     #
-#     # res1 = await caller.call("add", 1, 2)
-#     # res3 = await caller.call("add2", test_add())
-#     # res2 = await caller.call("async_mul", 3, 4)
-#     # # res3 = await caller.call("fail", 123)
-#     #
-#     # print("add:", res1)
-#     # print("add2:", res3)
-#     # print("async_mul:", res2)
-#     # print("fail:", res3)
-#
-#     myservice = MyService2()
-#     print("MyService2 add:", myservice.add(5, 6))
-#     print("MyService2 async_mul:", await myservice.async_mul(7, 8))
-#     print("MyService2 fail:", myservice.fail(123))  # 调用会触发 fallback
-#
-#
-# asyncio.run(main())

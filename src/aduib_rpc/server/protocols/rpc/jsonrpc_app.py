@@ -1,7 +1,7 @@
 import contextlib
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Callable
 
 from fastapi import FastAPI
 from sse_starlette import EventSourceResponse
@@ -11,12 +11,15 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from aduib_rpc.server.context import ServerContext
-from aduib_rpc.server.request_handlers.jsonrpc_handler import JSONRPCHandler
+from aduib_rpc.server.request_handlers.jsonrpc_v2_handler import JSONRPCV2Handler
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
 from aduib_rpc.types import JsonRpcMessageRequest, JsonRpcStreamingMessageRequest, JSONRPCError, JSONRPCErrorResponse, \
     JSONRPCRequest, AduibJSONRpcRequest, AduibJSONRPCResponse, \
     JsonRpcStreamingMessageResponse
-from aduib_rpc.utils.constant import DEFAULT_STREAM_HEADER, DEFAULT_RPC_PATH
+from aduib_rpc.protocol.v2 import ErrorCode, ERROR_CODE_NAMES
+from aduib_rpc.protocol.v2 import RpcError
+from aduib_rpc.utils.error_handlers import exception_to_error
+from aduib_rpc.utils.constant import DEFAULT_RPC_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +40,13 @@ class DefaultServerContextBuilder(ServerContextBuilder):
         metadata = {}
         with contextlib.suppress(Exception):
             state['headers'] = dict(request.headers)
-            metadata[DEFAULT_STREAM_HEADER] = state['headers'].get(DEFAULT_STREAM_HEADER) or 'false'
+            headers = state.get("headers", {}) or {}
+            tenant_id = (
+                headers.get("X-Tenant-ID") or headers.get("x-tenant-id")
+                or headers.get("X-Tenant") or headers.get("x-tenant")
+            )
+            if tenant_id:
+                state["tenant_id"] = str(tenant_id)
         return ServerContext(state=state,metadata=metadata)
 
 class RpcPathValidatorMiddleware(BaseHTTPMiddleware):
@@ -84,9 +93,28 @@ class JsonRpcApp(ABC):
         """
         self.context_builder = context_builder or DefaultServerContextBuilder()
         self.request_handler = request_handler
-        self.handler = JSONRPCHandler(
+        self.handler = JSONRPCV2Handler(
             request_handler=request_handler,
         )
+        self._method_map = self._build_method_map()
+
+    def _build_method_map(self) -> dict[str, tuple[Callable[..., Any], bool, bool]]:
+        return {
+            "rpc.v2/AduibRpcService/Call": (self.handler.Call, False, False),
+            "rpc.v2/AduibRpcService/CallServerStream": (self.handler.CallServerStream, True, False),
+            "rpc.v2/AduibRpcService/CallClientStream": (self.handler.CallClientStream, False, True),
+            "rpc.v2/AduibRpcService/CallBidirectional": (self.handler.CallBidirectional, True, True),
+            "rpc.v2/TaskService/Submit": (self.handler.Submit, False, False),
+            "rpc.v2/TaskService/Query": (self.handler.Query, False, False),
+            "rpc.v2/TaskService/Cancel": (self.handler.Cancel, False, False),
+            "rpc.v2/TaskService/Subscribe": (self.handler.Subscribe, True, False),
+            "rpc.v2/HealthService/Check": (self.handler.Check, False, False),
+            "rpc.v2/HealthService/Watch": (self.handler.Watch, True, False),
+        }
+
+    def _is_streaming(self, request: Request, method: str) -> bool:
+        entry = self._method_map.get(method)
+        return bool(entry and entry[1])
 
     def _init_middlewares(self, app:Any)->None:
         """Initializes middleware for the application.
@@ -100,7 +128,7 @@ class JsonRpcApp(ABC):
     def _generate_error_response(
         self,
         request_id: str,
-        error: JSONRPCError
+        error: JSONRPCError | RpcError
     ) -> JSONResponse:
         """Generates a JSON-RPC error response.
 
@@ -113,16 +141,24 @@ class JsonRpcApp(ABC):
         Returns:
             A dictionary representing the JSON-RPC error response.
         """
-        error_response =JSONRPCErrorResponse(
+        jsonrpc_error = error
+        if isinstance(error, RpcError):
+            payload = error.model_dump(mode="json", exclude_none=True)
+            jsonrpc_error = JSONRPCError(
+                code=int(payload.get("code") or 0),
+                message=str(payload.get("message") or ""),
+                data=payload,
+            )
+        error_response = JSONRPCErrorResponse(
             id=request_id,
-            error=error
+            error=jsonrpc_error,
         )
         logger.log(
             logging.ERROR,
             "Request Error ID=%s, Code=%d, Message=%s",
             request_id,
-            error.code,
-            error.message,
+            error_response.error.code,
+            error_response.error.message,
             ', Data=' + str(error_response.error.data)
             if error_response.error.data
             else '',
@@ -145,7 +181,6 @@ class JsonRpcApp(ABC):
             A `Response` object containing the JSON-RPC response.
         """
         request_id: str = None
-        body = None
         try:
             body = await request.json()
             if isinstance(body,dict):
@@ -155,53 +190,70 @@ class JsonRpcApp(ABC):
         except Exception as e:
             return self._generate_error_response(
                 request_id=request_id,
-                error=JSONRPCError(
-                    code=-32603,
-                    message="Parse error",
-                    data=str(e),
-                ),
+                error=exception_to_error(e, code=int(ErrorCode.INVALID_MESSAGE)),
             )
 
         try:
             base_request=JSONRPCRequest.model_validate(body)
             method = base_request.method
-            model_class = self.MODEL[method]
+            if not method.strip().lstrip("/").startswith("rpc.v2/"):
+                return self._generate_error_response(
+                    request_id=body.get('id'),
+                    error=RpcError(
+                        code=int(ErrorCode.METHOD_NOT_FOUND),
+                        name=ERROR_CODE_NAMES.get(int(ErrorCode.METHOD_NOT_FOUND), "UNKNOWN"),
+                        message="JSON-RPC v2 requires method starting with 'rpc.v2/'",
+                    ),
+                )
+            is_streaming = self._is_streaming(request, method)
+            model_class = JsonRpcStreamingMessageRequest if is_streaming else JsonRpcMessageRequest
             rpc_request = model_class.model_validate(body)
         except Exception as e:
             logger.exception("Failed to validate request ID=%s", request_id)
             return self._generate_error_response(
                 request_id=body.get('id'),
-                error=JSONRPCError(
-                    code=-32603,
-                    message="Invalid params",
-                    data=str(e),
-                ),
+                error=exception_to_error(e, code=int(ErrorCode.INVALID_PARAMS)),
             )
 
         context = self.context_builder.build_context(request)
         request_id = rpc_request.id
-        aduib_request=AduibJSONRpcRequest(root=rpc_request)
-        request_object = aduib_request.root
+        method_entry = self._method_map.get(method)
 
         try:
-            if isinstance(request_object, JsonRpcStreamingMessageRequest):
-                return await self._process_streaming_request(
+            if method_entry:
+                handler_fn, is_streaming, expects_iter = method_entry
+                if expects_iter:
+                    async def _iter():
+                        yield rpc_request
+                    if is_streaming:
+                        response_obj = handler_fn(_iter(), context)
+                    else:
+                        response_obj = await handler_fn(_iter(), context)
+                else:
+                    if is_streaming:
+                        response_obj = handler_fn(rpc_request, context)
+                    else:
+                        response_obj = await handler_fn(rpc_request, context)
+            else:
+                if isinstance(rpc_request, JsonRpcStreamingMessageRequest):
+                    response_obj = self.handler.on_stream_message(
+                        request=rpc_request,
+                        context=context,
+                    )
+                else:
+                    response_obj = await self.handler.on_message(
+                        request=rpc_request,
+                        context=context,
+                    )
+            return self._create_response(
                 request_id=request_id,
-                request=aduib_request,
-                context=context,
-            )
-            return await self._process_non_streaming_request(
-                request_id=request_id,
-                request=aduib_request,
+                response=response_obj,
                 context=context,
             )
         except Exception as e:
             return self._generate_error_response(
                 request_id=request_id,
-                error=JSONRPCError(
-                    code=-32603,
-                    message="Server error,"+ str(e),
-                ),
+                error=exception_to_error(e, code=int(ErrorCode.INTERNAL_ERROR)),
             )
 
     async def _process_streaming_request(self,
@@ -226,11 +278,17 @@ class JsonRpcApp(ABC):
             )
 
         if response_obj is None:
+            payload = {
+                "code": int(ErrorCode.INTERNAL_ERROR),
+                "name": ERROR_CODE_NAMES.get(int(ErrorCode.INTERNAL_ERROR), "UNKNOWN"),
+                "message": "unsupported request type",
+            }
             response_obj = JSONRPCErrorResponse(
                 id=request_id,
                 error=JSONRPCError(
-                    code=-32603,
-                    message="unsupported request type"
+                    code=int(ErrorCode.INTERNAL_ERROR),
+                    message="unsupported request type",
+                    data=payload,
                 )
             )
 
@@ -262,11 +320,17 @@ class JsonRpcApp(ABC):
                 )
 
         if response_obj is None:
-            response_obj=JSONRPCErrorResponse(
+            payload = {
+                "code": int(ErrorCode.INTERNAL_ERROR),
+                "name": ERROR_CODE_NAMES.get(int(ErrorCode.INTERNAL_ERROR), "UNKNOWN"),
+                "message": "unsupported request type",
+            }
+            response_obj = JSONRPCErrorResponse(
                 id=request_id,
                 error=JSONRPCError(
-                    code=-32603,
-                    message="unsupported request type"
+                    code=int(ErrorCode.INTERNAL_ERROR),
+                    message="unsupported request type",
+                    data=payload,
                 )
             )
 

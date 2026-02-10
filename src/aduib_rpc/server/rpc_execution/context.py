@@ -1,7 +1,7 @@
 import uuid
 
+from aduib_rpc.protocol.v2 import AduibRpcRequest
 from aduib_rpc.server.context import ServerContext
-from aduib_rpc.types import AduibRpcRequest
 
 
 class RequestContext:
