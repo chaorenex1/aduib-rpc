@@ -1,0 +1,83 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4A90D9', 'secondaryColor': '#67B7DC', 'tertiaryColor': '#F0F0F0'}}}%%
+flowchart TB
+    subgraph Client["Client Layer"]
+        direction TB
+        CD["@client Decorator"]
+        CF["ClientFactory"]
+        CT["ClientTransport"]
+        SR["ServiceResolver"]
+        LB["LoadBalancer"]
+
+        CD --> CF
+        CF --> CT
+        SR --> LB
+        LB --> CT
+    end
+
+    subgraph Transport["Transport Protocols"]
+        direction LR
+        GRPC["gRPC"]
+        REST["REST/HTTP"]
+        JSONRPC["JSON-RPC 2.0"]
+        THRIFT["Thrift"]
+    end
+
+    subgraph Server["Server Layer"]
+        direction TB
+        SF["AduibServiceFactory"]
+        PS["Protocol Server"]
+        PH["Protocol Handler"]
+        DRH["DefaultRequestHandler"]
+        SC["ServiceCaller"]
+        RE["RequestExecutor"]
+        TM["TaskManager"]
+        RT["RpcRuntime"]
+        SD["@service Decorator"]
+
+        SF --> PS
+        PS --> PH
+        PH --> DRH
+        DRH --> SC
+        DRH --> RE
+        DRH --> TM
+        SC --> RT
+        SD --> RT
+    end
+
+    subgraph Discovery["Service Discovery"]
+        direction TB
+        REG["ServiceRegistry"]
+        IM["InMemory"]
+        NC["Nacos"]
+        HC["HealthChecker"]
+
+        REG --> IM
+        REG --> NC
+        REG --> HC
+    end
+
+    subgraph CrossCutting["Cross-Cutting Concerns"]
+        direction LR
+        RES["Resilience<br/>(Circuit/Rate/Retry)"]
+        SEC["Security<br/>(mTLS/RBAC)"]
+        OBS["Observability<br/>(Logs/Metrics/Trace)"]
+        CFG["Config<br/>(Dynamic)"]
+    end
+
+    CT <--> GRPC
+    CT <--> REST
+    CT <--> JSONRPC
+    CT <--> THRIFT
+
+    GRPC <--> PS
+    REST <--> PS
+    JSONRPC <--> PS
+    THRIFT <--> PS
+
+    SR <--> REG
+    SF --> REG
+
+    DRH -.-> RES
+    DRH -.-> SEC
+    DRH -.-> OBS
+    SF -.-> CFG

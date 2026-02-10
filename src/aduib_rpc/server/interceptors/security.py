@@ -7,7 +7,6 @@ This module provides security-related interceptors including:
 """
 from __future__ import annotations
 
-import logging
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
@@ -26,8 +25,6 @@ from aduib_rpc.security.rbac import (
 from aduib_rpc.protocol.v2.errors import ERROR_CODE_NAMES, ErrorCode
 from aduib_rpc.server.context import InterceptContext, ServerContext, ServerInterceptor
 from aduib_rpc.types import AduibRpcRequest
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass

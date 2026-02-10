@@ -16,9 +16,9 @@ from concurrent import futures
 
 import grpc
 
-from aduib_rpc.grpc import aduib_rpc_pb2_grpc
-from aduib_rpc.server.request_handlers import DefaultRequestHandler, GrpcHandler
-from aduib_rpc.server.request_handlers.grpc_handler import DefaultServerContentBuilder
+from aduib_rpc.grpc import aduib_rpc_v2_pb2_grpc
+from aduib_rpc.server.request_handlers import DefaultRequestHandler
+from aduib_rpc.server.request_handlers.grpc_v2_handler import GrpcV2Handler
 from aduib_rpc.server.rpc_execution.service_call import service
 
 logging.basicConfig(level=logging.INFO)
@@ -45,14 +45,14 @@ async def serve(host: str, port: int) -> None:
     handler = DefaultRequestHandler()
 
     server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
-    aduib_rpc_pb2_grpc.add_AduibRpcServiceServicer_to_server(
-        GrpcHandler(context_builder=DefaultServerContentBuilder(), request_handler=handler),
+    aduib_rpc_v2_pb2_grpc.add_AduibRpcServiceServicer_to_server(
+        GrpcV2Handler(request_handler=handler),
         server,
     )
 
     server.add_insecure_port(f"{host}:{port}")
     await server.start()
-    logging.getLogger(__name__).info("gRPC test server listening on %s:%s", host, port)
+    logging.getLogger(__name__).info("gRPC v2 test server listening on %s:%s", host, port)
     await server.wait_for_termination()
 
 

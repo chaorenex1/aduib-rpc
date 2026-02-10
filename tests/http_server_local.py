@@ -1,7 +1,7 @@
 """Local HTTP server for Rust integration tests (REST + JSON-RPC).
 
 Starts two uvicorn servers:
-- REST:    http://127.0.0.1:<rest_port>/aduib_rpc/v1/message/completion
+- REST:    http://127.0.0.1:<rest_port>/aduib_rpc/v2/rpc
 - JSONRPC: http://127.0.0.1:<jsonrpc_port>/aduib_rpc
 
 Usage (manual):

@@ -1,0 +1,112 @@
+%%{init: {'theme': 'base'}}%%
+graph TB
+    subgraph types["aduib_rpc.types"]
+        AduibRpcRequest
+        AduibRpcResponse
+        V1Request["V1Request (deprecated)"]
+        V1Response["V1Response (deprecated)"]
+    end
+
+    subgraph protocol["aduib_rpc.protocol"]
+        v2types["v2/types.py"]
+        v2meta["v2/metadata.py"]
+        v2qos["v2/qos.py"]
+        v2stream["v2/stream.py"]
+        compat["compatibility.py"]
+    end
+
+    subgraph server["aduib_rpc.server"]
+        direction TB
+        subgraph handlers["request_handlers"]
+            DRH["DefaultRequestHandler"]
+            GrpcV2["GrpcV2Handler"]
+            RestV2["RESTV2Handler"]
+            JsonRpcV2["JsonRpcV2Handler"]
+            ThriftV2["ThriftV2Handler"]
+        end
+
+        subgraph execution["rpc_execution"]
+            Runtime["RpcRuntime"]
+            ServiceCall["service_call.py"]
+            ServiceCaller
+            RequestExecutor
+            RequestContext
+        end
+
+        subgraph protocols["protocols"]
+            FastAPI["rest/fastapi_app.py"]
+            Starlette["rpc/starlette_app.py"]
+        end
+
+        subgraph tasks["tasks"]
+            TaskManager["InMemoryTaskManager"]
+            DistributedTM["DistributedTaskManager"]
+        end
+    end
+
+    subgraph client["aduib_rpc.client"]
+        BaseClient["BaseAduibRpcClient"]
+        ClientFactory["AduibRpcClientFactory"]
+        subgraph transports["transports"]
+            GrpcT["GrpcTransport"]
+            RestT["RestTransport"]
+            JsonRpcT["JsonRpcTransport"]
+        end
+        ServiceResolver
+        Interceptors["ClientRequestInterceptor"]
+    end
+
+    subgraph discover["aduib_rpc.discover"]
+        subgraph registry["registry"]
+            ServiceRegistry
+            InMemory
+            Nacos
+        end
+        subgraph loadbalance["load_balance"]
+            LoadBalancer
+            RoundRobin
+            WeightedRR
+            ConsistentHash
+        end
+        subgraph health["health"]
+            HealthChecker
+            HealthAwareRegistry
+        end
+        ServiceFactory["AduibServiceFactory"]
+    end
+
+    subgraph resilience["aduib_rpc.resilience"]
+        CircuitBreaker
+        RateLimiter
+        RetryPolicy
+        Bulkhead
+        Fallback
+    end
+
+    subgraph security["aduib_rpc.security"]
+        mTLS["mtls.py"]
+        RBAC["rbac.py"]
+        Audit["audit.py"]
+    end
+
+    subgraph observability["aduib_rpc.observability"]
+        Logging["logging.py"]
+        Metrics["metrics.py"]
+        OtelIntercept["interceptor.py"]
+    end
+
+    %% Dependencies
+    types --> protocol
+    server --> types
+    client --> types
+    handlers --> execution
+    ServiceFactory --> handlers
+    ServiceFactory --> protocols
+    client --> transports
+    client --> discover
+    ServiceResolver --> registry
+    ServiceResolver --> loadbalance
+    registry --> health
+    handlers -.-> resilience
+    handlers -.-> security
+    handlers -.-> observability

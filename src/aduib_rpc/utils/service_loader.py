@@ -28,5 +28,21 @@ def import_service_modules(modules: Iterable[str]) -> None:
         if not m:
             continue
         logger.debug("Importing service module: %s", m)
-        importlib.import_module(m)
+        try:
+            package = importlib.import_module(m)
+        except Exception:
+            logger.exception("Failed to import package %s", m)
+            return
+
+        package_path = getattr(package, "__path__", None)
+        if not package_path:
+            return
+
+        import pkgutil
+        for _, module_name, _ in pkgutil.iter_modules(package_path):
+            full_module_name = f"{package_path}.{module_name}"
+            try:
+                importlib.import_module(full_module_name)
+            except Exception:
+                logger.exception("Failed to import plugin module %s", full_module_name)
 

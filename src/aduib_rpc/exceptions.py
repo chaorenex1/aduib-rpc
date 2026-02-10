@@ -20,7 +20,7 @@ class RpcException(Exception):
             object.__setattr__(self, "__suppress_context__", True)
 
     def to_error_dict(self) -> dict[str, Any]:
-        """Return a dict compatible with AduibRpcError."""
+        """Return a dict compatible with RpcError payloads."""
         return {"code": self.code, "message": self.message, "data": self.data}
 
 

@@ -1,14 +1,13 @@
 [project]
 name = "aduib-rpc"
 dynamic = ["version"]
-#version = "0.0.0"
 description = "Aduib RPC - A Python library for Aduib AI RPC framework."
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
 authors = [{name = "chaorenex1", email = "24537608z@gmail.com"},]
 dependencies = [
-    "httpx>=0.28.1",
+    "httpx>=0.25.1",
     "httpx-sse>=0.4.0",
     "pydantic>=2.11.0",
     "protobuf>=4.24.3",
@@ -19,7 +18,9 @@ dependencies = [
     "grpcio>=1.66.1",
     "grpcio-tools>=1.66.1",
     "grpcio_reflection>=1.66.1",
-    "thrift"
+    "thrift",
+    "aiothrift",
+    "thriftpy2"
 ]
 
 classifiers = [
@@ -45,6 +46,9 @@ telemetry = [
 nacos = ["nacos-sdk-python>2.0.1"]
 uvicorn = ["uvicorn>=0.1.5"]
 a2a = ["a2a-sdk>=0.2.4"]
+msgpack = ["msgpack>=1.0.0"]
+avro = ["fastavro>=1.9.0"]
+serialization = ["msgpack>=1.0.0", "fastavro>=1.9.0"]
 
 [project.urls]
 homepage = "https://github.com/chaorenex1/aduib_rpc"

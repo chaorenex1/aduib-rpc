@@ -1,15 +1,11 @@
 import asyncio
 import logging
 
-from aduib_rpc.discover.entities import ServiceInstance
-from aduib_rpc.discover.registry.registry_factory import ServiceRegistryFactory
-from aduib_rpc.discover.service import AduibServiceFactory
-from aduib_rpc.utils.constant import AIProtocols, TransportSchemes
+from aduib_rpc.server.tasks.task_manager import TaskManagerConfig
+from aduib_rpc.utils.constant import TransportSchemes
+from aduib_rpc.app import run_serve
 
 logging.basicConfig(level=logging.DEBUG)
-logging.getLogger("requests").setLevel(logging.DEBUG)
-logging.getLogger("urllib3").setLevel(logging.DEBUG)
-logging.getLogger("v2").setLevel(logging.DEBUG)
 
 async def main():
     registry_config = {
@@ -18,14 +14,25 @@ async def main():
         "group_name": "DEFAULT_GROUP",
         "username": "nacos",
         "password": "nacos11.",
-        "max_retry": 3
+        "max_retry": 3,
+        "DISCOVERY_SERVICE_TYPE": "nacos",
+        "APP_NAME": "test_app"
     }
-    registry=ServiceRegistryFactory.from_service_registry('nacos', **registry_config)
-    service = ServiceInstance(service_name='test_thrift_app', host='10.0.0.169', port=5009,
-                                   protocol=AIProtocols.AduibRpc, weight=1, scheme=TransportSchemes.THRIFT)
-    factory = AduibServiceFactory(service_instance=service)
-    await registry.register_service(service)
-    await factory.run_server()
+    app = await run_serve(
+        registry_type="nacos",
+        service_modules=["tests.fixtures_service_module"],
+        service_name="test_app",
+        registry_config=registry_config,
+        service_scheme=TransportSchemes.THRIFT,
+        service_host="127.0.0.1",
+        service_port=5010,
+        service_weight=1,
+        service_metadata={
+            "version": "2.0.0",
+            "description": "A test gRPC service",
+        },
+        task_manager_config=TaskManagerConfig()
+    )
 
 if __name__ == '__main__':
     asyncio.run(main())

@@ -11,6 +11,14 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     for item in items:
         marker = item.get_closest_marker("anyio")
-        if marker is not None:
-            marker.kwargs["backend"] = "asyncio"
+        if marker is None:
+            continue
 
+        # Remove the original anyio marker and replace it with one that pins backend.
+        # This avoids mutating marker.kwargs (read-only in some pytest versions).
+        try:
+            item.own_markers = [m for m in item.own_markers if m.name != "anyio"]  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+        item.add_marker(pytest.mark.anyio(backend="asyncio"))

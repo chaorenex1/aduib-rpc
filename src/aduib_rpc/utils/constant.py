@@ -1,7 +1,5 @@
 from enum import StrEnum, IntEnum
 
-DEFAULT_STREAM_HEADER = "x-rpc-streaming"
-DEFAULT_STREAM_KEY = "stream"
 DEFAULT_RPC_PATH = "/aduib_rpc"
 
 
@@ -45,8 +43,11 @@ class TransportSchemes(StrEnum):
     WebSocket
     """
     HTTP = "http"
+    HTTPS = "https"
     GRPC = "grpc"
+    GRPCS="grpcs"
     JSONRPC = "jsonrpc"
+    JSONRPCS = "jsonrpcs"
     THRIFT = "thrift"
 
     @classmethod
@@ -57,10 +58,16 @@ class TransportSchemes(StrEnum):
         match value:
             case "http":
                 return TransportSchemes.HTTP
+            case "https":
+                return TransportSchemes.HTTPS
             case "grpc":
                 return TransportSchemes.GRPC
+            case "grpcs":
+                return TransportSchemes.GRPCS
             case "jsonrpc":
                 return TransportSchemes.JSONRPC
+            case "jsonrpcs":
+                return TransportSchemes.JSONRPCS
             case "thrift":
                 return TransportSchemes.THRIFT
             case _:
@@ -71,10 +78,16 @@ class TransportSchemes(StrEnum):
         match scheme:
             case TransportSchemes.HTTP:
                 return "http"
+            case TransportSchemes.HTTPS:
+                return "https"
             case TransportSchemes.GRPC:
                 return ""
             case TransportSchemes.JSONRPC:
                 return "http"
+            case TransportSchemes.JSONRPCS:
+                return "https"
+            case TransportSchemes.THRIFT:
+                return "thrift"
             case _:
                 raise ValueError(f"Unsupported transport scheme: {scheme}")
 

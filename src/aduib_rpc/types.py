@@ -1,72 +1,79 @@
+"""Aduib RPC Types - v2 Protocol.
+
+Primary types (v2):
+    AduibRpcRequest - v2.0 request envelope
+    AduibRpcResponse - v2.0 response envelope
+    RpcError - v2.0 error structure
+    TraceContext - W3C trace context
+    RequestMetadata, ResponseMetadata - Structured metadata
+    QosConfig - Quality of service configuration
+    StreamMessage - Streaming message types
+"""
 from __future__ import annotations
 
-from typing import Any, Literal, Optional, TypeVar, Union
+from typing import Any, Literal, Union
+
 from pydantic import BaseModel, RootModel
 
-T = TypeVar('T')
+from aduib_rpc.protocol.v2.types import (
+    AduibRpcResponse as V2Response,
+    AduibRpcRequest as V2Request,
+)
+from aduib_rpc.protocol.v2.health import HealthCheckRequest, HealthCheckResponse
+from aduib_rpc.server.tasks.types import (
+    TaskCancelRequest,
+    TaskCancelResponse,
+    TaskEvent,
+    TaskQueryRequest,
+    TaskQueryResponse,
+    TaskSubmitRequest,
+    TaskSubmitResponse,
+    TaskSubscribeRequest,
+)
 
+# ============================================================
+# v2 Protocol Types (Primary Export)
+# ============================================================
 
-class AduibRpcError(BaseModel):
-    """Canonical error shape used across transports.
+# ============================================================
+# Primary Type Exports (v2)
+# ============================================================
 
-    This intentionally matches the JSON-RPC error object structure (code/message/data),
-    but is also reused by the Aduib RPC 1.0 envelope.
-    """
+AduibRpcRequest = V2Request
+AduibRpcResponse = V2Response
+
+# ============================================================
+# JSON-RPC Union Types
+# ============================================================
+
+JsonRpcParams = Union[
+    AduibRpcRequest,
+    TaskSubmitRequest,
+    TaskQueryRequest,
+    TaskCancelRequest,
+    TaskSubscribeRequest,
+    HealthCheckRequest,
+]
+
+JsonRpcResult = Union[
+    AduibRpcResponse,
+    TaskSubmitResponse,
+    TaskQueryResponse,
+    TaskCancelResponse,
+    TaskEvent,
+    HealthCheckResponse,
+]
+
+# ============================================================
+# JSON-RPC Wrapper Types
+# ============================================================
+
+class JSONRPCError(BaseModel):
+    """Represents a JSON-RPC 2.0 Error object (code/message/data)."""
 
     code: int
     message: str
     data: Any | None = None
-
-
-# Backward compatible alias (old name)
-AduibRPCError = AduibRpcError
-
-
-class AduibRpcRequest(BaseModel):
-    aduib_rpc: Literal['1.0'] = '1.0'
-    # Backward compatible: older callers didn't provide `name`.
-    name: str | None = None
-    method: str
-    data: Union[dict[str, Any], Any, None] = None
-    meta: Optional[dict[str, Any]] = None
-    id: Union[str, int, None] = None
-
-    def add_meta(self, key: str, value: Any) -> None:
-        if self.meta is None:
-            self.meta = {}
-        self.meta[key] = value
-
-    def cast(self, typ: type) -> Any:
-        if self.data is None:
-            return None
-        if isinstance(self.data, typ):
-            return self.data
-        return typ(**self.data)
-
-
-class AduibRpcResponse(BaseModel):
-    aduib_rpc: Literal['1.0'] = '1.0'
-    result: Union[dict[str, Any], Any, None] = None
-    error: Optional[AduibRpcError] = None
-    id: Union[str, int, None] = None
-    status: str = 'success'  # 'success' or 'error'
-
-    def is_success(self) -> bool:
-        return self.status == 'success' and self.error is None
-
-    def cast(self, typ: type) -> Any:
-        if self.result is None:
-            return None
-        if isinstance(self.result, typ):
-            return self.result
-        return typ(**self.result)
-
-
-"""jsonrpc types"""
-
-
-# Backward compatible alias: JSONRPCError is the same shape as our canonical error
-JSONRPCError = AduibRpcError
 
 
 class JSONRPCErrorResponse(BaseModel):
@@ -83,7 +90,7 @@ class JSONRPCRequest(BaseModel):
     id: str | int | None = None
     jsonrpc: Literal['2.0'] = '2.0'
     method: str
-    params: dict[str, Any] | None = None
+    params: JsonRpcParams | None = None
 
 
 class JSONRPCSuccessResponse(BaseModel):
@@ -91,33 +98,35 @@ class JSONRPCSuccessResponse(BaseModel):
 
     id: str | int | None = None
     jsonrpc: Literal['2.0'] = '2.0'
-    result: Any
+    result: JsonRpcResult
 
 
 class JsonRpcMessageRequest(BaseModel):
     id: str | int
     jsonrpc: Literal['2.0'] = '2.0'
-    method: Literal['message/completion'] = 'message/completion'
-    params: AduibRpcRequest
+    # v2: JSON-RPC method carries the v2 RPC method path, e.g. "rpc.v2/UserService/GetUser".
+    method: str
+    params: JsonRpcParams | None = None
 
 
 class JsonRpcStreamingMessageRequest(BaseModel):
     id: str | int
     jsonrpc: Literal['2.0'] = '2.0'
-    method: Literal['message/completion/stream'] = 'message/completion/stream'
-    params: AduibRpcRequest
+    # v2: JSON-RPC method carries the v2 RPC method path.
+    method: str
+    params: JsonRpcParams | None = None
 
 
 class JsonRpcMessageSuccessResponse(BaseModel):
     id: str | int | None = None
     jsonrpc: Literal['2.0'] = '2.0'
-    result: AduibRpcResponse
+    result: JsonRpcResult
 
 
 class JsonRpcStreamingMessageSuccessResponse(BaseModel):
     id: str | int | None = None
     jsonrpc: Literal['2.0'] = '2.0'
-    result: AduibRpcResponse
+    result: JsonRpcResult
 
 
 class AduibJSONRPCResponse(

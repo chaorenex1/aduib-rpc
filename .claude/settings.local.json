@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest:*)",
+      "Bash(dir \"C:\\\\Users\\\\zarag\\\\PycharmProjects\\\\aduib_rpc\\\\src\\\\aduib_rpc\\\\protocol\\\\v2\" /b)"
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 """Helper functions for building JSON-RPC response objects."""
 from typing import TypeVar
 
+from aduib_rpc.protocol.v2.errors import ErrorCode
 from aduib_rpc.types import JsonRpcMessageSuccessResponse, \
     JsonRpcStreamingMessageSuccessResponse, JsonRpcMessageResponse, JsonRpcStreamingMessageResponse, JSONRPCError, \
     JSONRPCErrorResponse, AduibRpcResponse
@@ -76,7 +77,7 @@ def prepare_response_object(
         return build_error_response(request_id, response, response_type)
 
     response = JSONRPCError(
-        code=-32603,
+        code=int(ErrorCode.INTERNAL_ERROR),
         message='Internal error',
         data=f'Handler returned invalid response type: {type(response)}'
     )
