@@ -1,0 +1,197 @@
+# Aduib RPC configuration template.
+# Note: The config loader expects top-level sections under `aduib_rpc` that
+# match `src/aduib_rpc/config/models.py`:
+# - client
+# - server
+# - resilience (client-side resilience settings)
+# - security (server-side security settings)
+# - observability
+# - health_check (discovery health checks)
+#
+# Environment variable expansion supports the syntax ${VAR:-default}.
+
+aduib_rpc:
+  client:
+    # Enable or disable streaming mode for client requests.
+    streaming: ${ADUIB_RPC_CLIENT_STREAMING:-true}
+
+    # Optional: injected httpx.AsyncClient (set in code, not via YAML).
+    httpx_client: null
+
+    # Optional: injected gRPC channel factory (set in code, not via YAML).
+    grpc_channel_factory: null
+
+    # Allowed transports (grpc | http | jsonrpc | thrift).
+    supported_transports: ${ADUIB_RPC_CLIENT_SUPPORTED_TRANSPORTS:-[grpc,jsonrpc]}
+
+    # Reuse underlying httpx/grpc connections when possible.
+    pooling_enabled: ${ADUIB_RPC_CLIENT_POOLING_ENABLED:-true}
+
+    # Default HTTP timeout (seconds); set to null to disable.
+    http_timeout: ${ADUIB_RPC_CLIENT_HTTP_TIMEOUT:-60.0}
+
+    # Default gRPC timeout (seconds); set to null to disable.
+    grpc_timeout: ${ADUIB_RPC_CLIENT_GRPC_TIMEOUT:-60.0}
+
+    # Global retry switch (default off).
+    retry_enabled: ${ADUIB_RPC_CLIENT_RETRY_ENABLED:-false}
+
+    # Max retry attempts (must be >= 1).
+    retry_max_attempts: ${ADUIB_RPC_CLIENT_RETRY_MAX_ATTEMPTS:-1}
+
+    # Base backoff in milliseconds.
+    retry_backoff_ms: ${ADUIB_RPC_CLIENT_RETRY_BACKOFF_MS:-200}
+
+    # Max backoff in milliseconds (must be >= retry_backoff_ms).
+    retry_max_backoff_ms: ${ADUIB_RPC_CLIENT_RETRY_MAX_BACKOFF_MS:-2000}
+
+    # Jitter ratio between 0.0 and 1.0.
+    retry_jitter: ${ADUIB_RPC_CLIENT_RETRY_JITTER:-0.1}
+
+  server:
+    # Bind host for the server.
+    host: ${ADUIB_RPC_SERVER_HOST:-0.0.0.0}
+
+    # Listening port (0-65535).
+    port: ${ADUIB_RPC_SERVER_PORT:-50051}
+
+    # Transport scheme (grpc | http | jsonrpc | thrift).
+    scheme: ${ADUIB_RPC_SERVER_SCHEME:-grpc}
+
+  resilience:
+    # Enable or disable the resilience middleware globally.
+    enabled: ${ADUIB_RPC_RESILIENCE_ENABLED:-true}
+
+    # Circuit breaker configuration.
+    circuit_breaker:
+      # Failures required to open the circuit.
+      failure_threshold: ${ADUIB_RPC_CB_FAILURE_THRESHOLD:-5}
+      # Successes required to close the circuit from half-open.
+      success_threshold: ${ADUIB_RPC_CB_SUCCESS_THRESHOLD:-3}
+      # Time to stay open before probing (seconds).
+      timeout_seconds: ${ADUIB_RPC_CB_TIMEOUT_SECONDS:-30.0}
+      # Max in-flight calls allowed in half-open.
+      half_open_max_calls: ${ADUIB_RPC_CB_HALF_OPEN_MAX_CALLS:-3}
+      # Exceptions that do not count as failures (configure in code if needed).
+      excluded_exceptions: ${ADUIB_RPC_CB_EXCLUDED_EXCEPTIONS:-[]}
+
+    # Rate limiter configuration.
+    rate_limiter:
+      # token_bucket | sliding_window | fixed_window.
+      algorithm: ${ADUIB_RPC_RL_ALGORITHM:-token_bucket}
+      # Tokens/requests per second.
+      rate: ${ADUIB_RPC_RL_RATE:-100.0}
+      # Burst capacity for token bucket.
+      burst: ${ADUIB_RPC_RL_BURST:-150}
+      # Max time to wait in acquire_or_wait (ms).
+      wait_timeout_ms: ${ADUIB_RPC_RL_WAIT_TIMEOUT_MS:-1000}
+
+    # Retry policy configuration.
+    retry:
+      # Maximum retry attempts (>= 1).
+      max_attempts: ${ADUIB_RPC_RETRY_MAX_ATTEMPTS:-3}
+      # fixed | exponential | linear.
+      strategy: ${ADUIB_RPC_RETRY_STRATEGY:-exponential}
+      # Initial delay in milliseconds.
+      initial_delay_ms: ${ADUIB_RPC_RETRY_INITIAL_DELAY_MS:-100}
+      # Max delay in milliseconds.
+      max_delay_ms: ${ADUIB_RPC_RETRY_MAX_DELAY_MS:-10000}
+      # Multiplier for backoff growth.
+      backoff_multiplier: ${ADUIB_RPC_RETRY_BACKOFF_MULTIPLIER:-2.0}
+      # Jitter ratio between 0.0 and 1.0.
+      jitter: ${ADUIB_RPC_RETRY_JITTER:-0.1}
+      # Retryable numeric error codes; empty list means retry on any error.
+      retryable_codes: ${ADUIB_RPC_RETRY_CODES:-[]}
+      # Respect circuit breaker state when retrying.
+      respect_circuit_breaker: ${ADUIB_RPC_RETRY_RESPECT_CB:-true}
+
+    # Fallback policy (optional). YAML cannot construct handler objects, so keep null
+    # unless you inject FallbackPolicy in code.
+    fallback: null
+    # fallback:
+    #   # List of FallbackHandler instances (configure in code).
+    #   handlers: []
+    #   # Exception types that trigger fallback (null means all).
+    #   fallback_on: null
+    #   # Re-raise original error if handlers fail.
+    #   propagate_original_error: true
+    #   # Include function context in handler calls.
+    #   include_context: true
+
+    # Optional per-service overrides (application must apply these explicitly).
+    service_overrides: {}
+
+  security:
+    # Enable RBAC authorization checks.
+    rbac_enabled: ${ADUIB_RPC_SECURITY_RBAC_ENABLED:-true}
+
+    # Enable security audit logging.
+    audit_enabled: ${ADUIB_RPC_SECURITY_AUDIT_ENABLED:-true}
+
+    # Default role assigned to unauthenticated principals.
+    default_role: ${ADUIB_RPC_SECURITY_DEFAULT_ROLE:-anonymous}
+
+    # Role name that bypasses checks; set to null to disable.
+    superadmin_role: ${ADUIB_RPC_SECURITY_SUPERADMIN_ROLE:-admin}
+
+    # Require authentication for all methods unless whitelisted.
+    require_auth: ${ADUIB_RPC_SECURITY_REQUIRE_AUTH:-false}
+
+    # Methods allowed without authentication (suffix match).
+    anonymous_methods: ${ADUIB_RPC_SECURITY_ANON_METHODS:-[health,metrics,ping]}
+
+    # mTLS settings for server-side verification.
+    mtls:
+      # Enable mutual TLS verification.
+      enabled: ${ADUIB_RPC_MTLS_ENABLED:-false}
+
+      # TLS configuration used by server-side TLS/mTLS.
+      tls:
+        # Server certificate path (required for TLS).
+        server_cert_path: null
+        # Server private key path (required for TLS).
+        server_key_path: null
+        # Password for encrypted private keys.
+        server_key_password: null
+        # CA bundle path for client cert verification (mTLS).
+        ca_cert_path: null
+        # Client cert verification mode (CERT_NONE | CERT_OPTIONAL | CERT_REQUIRED or numeric).
+        client_cert_verification: ${ADUIB_RPC_MTLS_VERIFY_MODE:-2}
+        # Minimum TLS version (TLSv1.2 | TLSv1.3).
+        minimum_version: ${ADUIB_RPC_MTLS_MIN_VERSION:-TLSv1.2}
+        # Maximum TLS version (null means no upper bound).
+        maximum_version: null
+        # OpenSSL cipher string (optional).
+        ciphers: null
+
+      # Allowed subject common names.
+      allowed_common_names: ${ADUIB_RPC_MTLS_ALLOWED_CNS:-[]}
+      # Allowed subject alternative DNS names.
+      allowed_san_dns: ${ADUIB_RPC_MTLS_ALLOWED_SAN_DNS:-[]}
+      # Allowed issuer common names.
+      allowed_issuer_common_names: ${ADUIB_RPC_MTLS_ALLOWED_ISSUER_CNS:-[]}
+
+  observability:
+    logging:
+      # Enable structured logging.
+      enabled: ${ADUIB_RPC_LOGGING_ENABLED:-true}
+      # Log level (DEBUG | INFO | WARNING | ERROR | CRITICAL).
+      level: ${ADUIB_RPC_LOGGING_LEVEL:-INFO}
+      # Format: json or console.
+      format: ${ADUIB_RPC_LOGGING_FORMAT:-json}
+
+    metrics:
+      # Enable metrics export/collection.
+      enabled: ${ADUIB_RPC_METRICS_ENABLED:-true}
+
+  health_check:
+    # Interval between health checks (seconds).
+    interval_seconds: ${ADUIB_RPC_HEALTH_INTERVAL_SECONDS:-10.0}
+    # Per-check timeout (seconds).
+    timeout_seconds: ${ADUIB_RPC_HEALTH_TIMEOUT_SECONDS:-5.0}
+    # Consecutive successes to mark healthy.
+    healthy_threshold: ${ADUIB_RPC_HEALTH_HEALTHY_THRESHOLD:-2}
+    # Consecutive failures to mark unhealthy.
+    unhealthy_threshold: ${ADUIB_RPC_HEALTH_UNHEALTHY_THRESHOLD:-3}
+    # Health endpoint path for HTTP checks.
+    path: ${ADUIB_RPC_HEALTH_PATH:-/health}
