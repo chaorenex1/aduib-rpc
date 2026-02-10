@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Asynchronous rate limiter implementations.
 
 This module provides a single RateLimiter class that can enforce different
@@ -23,6 +21,8 @@ Example:
         await call_service()
 """
 
+from __future__ import annotations
+
 import asyncio
 import enum
 import math
@@ -31,15 +31,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Deque
 
-from aduib_rpc.exceptions import RpcException
-
-__all__ = [
-    "RateLimitAlgorithm",
-    "RateLimiterConfig",
-    "RateLimiter",
-    "RateLimitError",
-]
-
+from aduib_rpc.exceptions import RateLimitedError
 
 class RateLimitAlgorithm(str, enum.Enum):
     """Supported rate limiting algorithms."""
@@ -64,19 +56,6 @@ class RateLimiterConfig:
     rate: float = 100.0
     burst: int = 150
     wait_timeout_ms: int = 1000
-
-
-@dataclass(frozen=True)
-class RateLimitError(RpcException):
-    """Raised when a rate limit wait exceeds the configured timeout.
-
-    Attributes:
-        retry_after_ms: Suggested time to wait before retrying.
-    """
-
-    retry_after_ms: int = 0
-    code: int = 5020
-    message: str = "Rate limited"
 
 
 class RateLimiter:
@@ -130,13 +109,13 @@ class RateLimiter:
         return acquired
 
     async def acquire_or_wait(self, tokens: int = 1) -> None:
-        """Block until tokens are available or raise RateLimitError.
+        """Block until tokens are available or raise RateLimitedError.
 
         Args:
             tokens: Number of tokens to consume.
 
         Raises:
-            RateLimitError: If the wait exceeds wait_timeout_ms.
+            RateLimitedError: If the wait exceeds wait_timeout_ms; data includes retry_after_ms.
             ValueError: If tokens is not a positive integer.
         """
 
@@ -151,15 +130,15 @@ class RateLimiter:
                 return
 
             if wait_ms is None:
-                raise RateLimitError(retry_after_ms=0)
+                raise RateLimitedError(data={"retry_after_ms": 0})
 
             last_wait_ms = max(0, int(wait_ms))
             if timeout_s <= 0:
-                raise RateLimitError(retry_after_ms=last_wait_ms)
+                raise RateLimitedError(data={"retry_after_ms": last_wait_ms})
 
             now = self._now()
             if now >= deadline:
-                raise RateLimitError(retry_after_ms=last_wait_ms)
+                raise RateLimitedError(data={"retry_after_ms": last_wait_ms})
 
             remaining = max(0.0, deadline - now)
             wait_s = min(remaining, last_wait_ms / 1000.0)

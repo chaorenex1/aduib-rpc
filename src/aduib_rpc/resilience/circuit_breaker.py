@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Circuit breaker implementation for resilient service calls.
 
 This module provides an asyncio-friendly circuit breaker that can guard both
@@ -39,6 +37,8 @@ Timing notes:
     - OPEN -> HALF_OPEN transitions are evaluated lazily on incoming calls.
 """
 
+from __future__ import annotations
+
 import asyncio
 import enum
 import inspect
@@ -46,14 +46,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, TypeVar
 
-from aduib_rpc.exceptions import RpcException
-
-__all__ = [
-    "CircuitState",
-    "CircuitBreakerConfig",
-    "CircuitBreaker",
-    "CircuitBreakerOpenError",
-]
+from aduib_rpc.exceptions import CircuitBreakerOpenError
 
 T = TypeVar("T")
 CallableResult = Callable[..., T | Awaitable[T]]
@@ -84,14 +77,6 @@ class CircuitBreakerConfig:
     timeout_seconds: float = 30.0
     half_open_max_calls: int = 3
     excluded_exceptions: tuple[type[BaseException], ...] = ()
-
-
-@dataclass(frozen=True)
-class CircuitBreakerOpenError(RpcException):
-    """Raised when a circuit breaker prevents the call."""
-
-    code: int = 5010
-    message: str = "Circuit breaker open"
 
 
 class CircuitBreaker:
