@@ -23,22 +23,6 @@ enum AuthScheme {
   AUTH_SCHEME_MTLS = 3,
 }
 
-enum ContentType {
-  CONTENT_TYPE_UNSPECIFIED = 0,
-  CONTENT_TYPE_JSON = 1,
-  CONTENT_TYPE_MSGPACK = 2,
-  CONTENT_TYPE_PROTOBUF = 3,
-  CONTENT_TYPE_AVRO = 4,
-}
-
-enum Compression {
-  COMPRESSION_UNSPECIFIED = 0,
-  COMPRESSION_NONE = 1,
-  COMPRESSION_GZIP = 2,
-  COMPRESSION_ZSTD = 3,
-  COMPRESSION_LZ4 = 4,
-}
-
 enum Priority {
   PRIORITY_UNSPECIFIED = 0,
   PRIORITY_LOW = 1,
@@ -102,33 +86,16 @@ struct AuthContext {
   4: list<string> roles,
 }
 
-struct Pagination {
-  1: i64 total,
-  2: i32 page,
-  3: i32 page_size,
-  4: bool has_next,
-  5: optional string cursor,
-}
-
-struct RateLimitInfo {
-  1: i32 limit,
-  2: i32 remaining,
-  3: i64 reset_at_ms,
-}
-
 struct RequestMetadata {
   1: i64 timestamp_ms,
   2: optional string client_id,
   3: optional string client_version,
   4: optional AuthContext auth,
   5: optional string tenant_id,
-  6: ContentType content_type,
-  7: list<ContentType> accept,
-  8: optional Compression compression,
   9: StringMap headers,
   10: optional bool long_task,
-  11: optional string long_task_method
-  12: optional i32 long_task_timeout
+  11: optional string long_task_method,
+  12: optional i32 long_task_timeout,
 }
 
 struct ResponseMetadata {
@@ -136,9 +103,6 @@ struct ResponseMetadata {
   2: i64 duration_ms,
   3: optional string server_id,
   4: optional string server_version,
-  5: optional Pagination pagination,
-  6: optional RateLimitInfo rate_limit,
-  7: StringMap headers,
 }
 
 struct RetryConfig {
@@ -152,7 +116,7 @@ struct RetryConfig {
 struct QosConfig {
   1: Priority priority,
   2: optional i64 timeout_ms,
-  3: optional RetryConfig retry,
+  3: optional RetryConfig retry_config,
   4: optional string idempotency_key,
 }
 
@@ -215,11 +179,6 @@ struct TaskSubmitRequest {
   // JSON-encoded google.protobuf.Struct
   2: optional string params_json,
   3: Priority priority,
-  4: i32 max_attempts,
-  5: optional i64 timeout_ms,
-  6: optional i64 scheduled_at_ms,
-  7: optional string idempotency_key,
-  8: StringMap metadata,
 }
 
 struct TaskSubmitResponse {
@@ -259,7 +218,7 @@ struct TaskEvent {
 }
 
 struct HealthCheckRequest {
-  1: optional string service,
+  1: optional string service_name,
 }
 
 struct HealthCheckResponse {

@@ -59,54 +59,6 @@ class AuthScheme(object):
     }
 
 
-class ContentType(object):
-    CONTENT_TYPE_UNSPECIFIED = 0
-    CONTENT_TYPE_JSON = 1
-    CONTENT_TYPE_MSGPACK = 2
-    CONTENT_TYPE_PROTOBUF = 3
-    CONTENT_TYPE_AVRO = 4
-
-    _VALUES_TO_NAMES = {
-        0: "CONTENT_TYPE_UNSPECIFIED",
-        1: "CONTENT_TYPE_JSON",
-        2: "CONTENT_TYPE_MSGPACK",
-        3: "CONTENT_TYPE_PROTOBUF",
-        4: "CONTENT_TYPE_AVRO",
-    }
-
-    _NAMES_TO_VALUES = {
-        "CONTENT_TYPE_UNSPECIFIED": 0,
-        "CONTENT_TYPE_JSON": 1,
-        "CONTENT_TYPE_MSGPACK": 2,
-        "CONTENT_TYPE_PROTOBUF": 3,
-        "CONTENT_TYPE_AVRO": 4,
-    }
-
-
-class Compression(object):
-    COMPRESSION_UNSPECIFIED = 0
-    COMPRESSION_NONE = 1
-    COMPRESSION_GZIP = 2
-    COMPRESSION_ZSTD = 3
-    COMPRESSION_LZ4 = 4
-
-    _VALUES_TO_NAMES = {
-        0: "COMPRESSION_UNSPECIFIED",
-        1: "COMPRESSION_NONE",
-        2: "COMPRESSION_GZIP",
-        3: "COMPRESSION_ZSTD",
-        4: "COMPRESSION_LZ4",
-    }
-
-    _NAMES_TO_VALUES = {
-        "COMPRESSION_UNSPECIFIED": 0,
-        "COMPRESSION_NONE": 1,
-        "COMPRESSION_GZIP": 2,
-        "COMPRESSION_ZSTD": 3,
-        "COMPRESSION_LZ4": 4,
-    }
-
-
 class Priority(object):
     PRIORITY_UNSPECIFIED = 0
     PRIORITY_LOW = 1
@@ -697,190 +649,6 @@ class AuthContext(object):
         return not (self == other)
 
 
-class Pagination(object):
-    """
-    Attributes:
-     - total
-     - page
-     - page_size
-     - has_next
-     - cursor
-
-    """
-    thrift_spec = None
-
-
-    def __init__(self, total = None, page = None, page_size = None, has_next = None, cursor = None,):
-        self.total = total
-        self.page = page
-        self.page_size = page_size
-        self.has_next = has_next
-        self.cursor = cursor
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.I64:
-                    self.total = iprot.readI64()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 2:
-                if ftype == TType.I32:
-                    self.page = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 3:
-                if ftype == TType.I32:
-                    self.page_size = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 4:
-                if ftype == TType.BOOL:
-                    self.has_next = iprot.readBool()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 5:
-                if ftype == TType.STRING:
-                    self.cursor = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        self.validate()
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('Pagination')
-        if self.total is not None:
-            oprot.writeFieldBegin('total', TType.I64, 1)
-            oprot.writeI64(self.total)
-            oprot.writeFieldEnd()
-        if self.page is not None:
-            oprot.writeFieldBegin('page', TType.I32, 2)
-            oprot.writeI32(self.page)
-            oprot.writeFieldEnd()
-        if self.page_size is not None:
-            oprot.writeFieldBegin('page_size', TType.I32, 3)
-            oprot.writeI32(self.page_size)
-            oprot.writeFieldEnd()
-        if self.has_next is not None:
-            oprot.writeFieldBegin('has_next', TType.BOOL, 4)
-            oprot.writeBool(self.has_next)
-            oprot.writeFieldEnd()
-        if self.cursor is not None:
-            oprot.writeFieldBegin('cursor', TType.STRING, 5)
-            oprot.writeString(self.cursor.encode('utf-8') if sys.version_info[0] == 2 else self.cursor)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-
-
-class RateLimitInfo(object):
-    """
-    Attributes:
-     - limit
-     - remaining
-     - reset_at_ms
-
-    """
-    thrift_spec = None
-
-
-    def __init__(self, limit = None, remaining = None, reset_at_ms = None,):
-        self.limit = limit
-        self.remaining = remaining
-        self.reset_at_ms = reset_at_ms
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.I32:
-                    self.limit = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 2:
-                if ftype == TType.I32:
-                    self.remaining = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 3:
-                if ftype == TType.I64:
-                    self.reset_at_ms = iprot.readI64()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        self.validate()
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('RateLimitInfo')
-        if self.limit is not None:
-            oprot.writeFieldBegin('limit', TType.I32, 1)
-            oprot.writeI32(self.limit)
-            oprot.writeFieldEnd()
-        if self.remaining is not None:
-            oprot.writeFieldBegin('remaining', TType.I32, 2)
-            oprot.writeI32(self.remaining)
-            oprot.writeFieldEnd()
-        if self.reset_at_ms is not None:
-            oprot.writeFieldBegin('reset_at_ms', TType.I64, 3)
-            oprot.writeI64(self.reset_at_ms)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-
-
 class RequestMetadata(object):
     """
     Attributes:
@@ -889,9 +657,6 @@ class RequestMetadata(object):
      - client_version
      - auth
      - tenant_id
-     - content_type
-     - accept
-     - compression
      - headers
      - long_task
      - long_task_method
@@ -901,15 +666,12 @@ class RequestMetadata(object):
     thrift_spec = None
 
 
-    def __init__(self, timestamp_ms = None, client_id = None, client_version = None, auth = None, tenant_id = None, content_type = None, accept = None, compression = None, headers = None, long_task = None, long_task_method = None, long_task_timeout = None,):
+    def __init__(self, timestamp_ms = None, client_id = None, client_version = None, auth = None, tenant_id = None, headers = None, long_task = None, long_task_method = None, long_task_timeout = None,):
         self.timestamp_ms = timestamp_ms
         self.client_id = client_id
         self.client_version = client_version
         self.auth = auth
         self.tenant_id = tenant_id
-        self.content_type = content_type
-        self.accept = accept
-        self.compression = compression
         self.headers = headers
         self.long_task = long_task
         self.long_task_method = long_task_method
@@ -950,34 +712,14 @@ class RequestMetadata(object):
                     self.tenant_id = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 6:
-                if ftype == TType.I32:
-                    self.content_type = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 7:
-                if ftype == TType.LIST:
-                    self.accept = []
-                    (_etype35, _size32) = iprot.readListBegin()
-                    for _i36 in range(_size32):
-                        _elem37 = iprot.readI32()
-                        self.accept.append(_elem37)
-                    iprot.readListEnd()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 8:
-                if ftype == TType.I32:
-                    self.compression = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
             elif fid == 9:
                 if ftype == TType.MAP:
                     self.headers = {}
-                    (_ktype39, _vtype40, _size38) = iprot.readMapBegin()
-                    for _i42 in range(_size38):
-                        _key43 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        _val44 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.headers[_key43] = _val44
+                    (_ktype33, _vtype34, _size32) = iprot.readMapBegin()
+                    for _i36 in range(_size32):
+                        _key37 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        _val38 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.headers[_key37] = _val38
                     iprot.readMapEnd()
                 else:
                     iprot.skip(ftype)
@@ -1027,27 +769,12 @@ class RequestMetadata(object):
             oprot.writeFieldBegin('tenant_id', TType.STRING, 5)
             oprot.writeString(self.tenant_id.encode('utf-8') if sys.version_info[0] == 2 else self.tenant_id)
             oprot.writeFieldEnd()
-        if self.content_type is not None:
-            oprot.writeFieldBegin('content_type', TType.I32, 6)
-            oprot.writeI32(self.content_type)
-            oprot.writeFieldEnd()
-        if self.accept is not None:
-            oprot.writeFieldBegin('accept', TType.LIST, 7)
-            oprot.writeListBegin(TType.I32, len(self.accept))
-            for iter45 in self.accept:
-                oprot.writeI32(iter45)
-            oprot.writeListEnd()
-            oprot.writeFieldEnd()
-        if self.compression is not None:
-            oprot.writeFieldBegin('compression', TType.I32, 8)
-            oprot.writeI32(self.compression)
-            oprot.writeFieldEnd()
         if self.headers is not None:
             oprot.writeFieldBegin('headers', TType.MAP, 9)
             oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.headers))
-            for kiter46, viter47 in self.headers.items():
-                oprot.writeString(kiter46.encode('utf-8') if sys.version_info[0] == 2 else kiter46)
-                oprot.writeString(viter47.encode('utf-8') if sys.version_info[0] == 2 else viter47)
+            for kiter39, viter40 in self.headers.items():
+                oprot.writeString(kiter39.encode('utf-8') if sys.version_info[0] == 2 else kiter39)
+                oprot.writeString(viter40.encode('utf-8') if sys.version_info[0] == 2 else viter40)
             oprot.writeMapEnd()
             oprot.writeFieldEnd()
         if self.long_task is not None:
@@ -1087,22 +814,16 @@ class ResponseMetadata(object):
      - duration_ms
      - server_id
      - server_version
-     - pagination
-     - rate_limit
-     - headers
 
     """
     thrift_spec = None
 
 
-    def __init__(self, timestamp_ms = None, duration_ms = None, server_id = None, server_version = None, pagination = None, rate_limit = None, headers = None,):
+    def __init__(self, timestamp_ms = None, duration_ms = None, server_id = None, server_version = None,):
         self.timestamp_ms = timestamp_ms
         self.duration_ms = duration_ms
         self.server_id = server_id
         self.server_version = server_version
-        self.pagination = pagination
-        self.rate_limit = rate_limit
-        self.headers = headers
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1133,29 +854,6 @@ class ResponseMetadata(object):
                     self.server_version = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 5:
-                if ftype == TType.STRUCT:
-                    self.pagination = Pagination()
-                    self.pagination.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            elif fid == 6:
-                if ftype == TType.STRUCT:
-                    self.rate_limit = RateLimitInfo()
-                    self.rate_limit.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            elif fid == 7:
-                if ftype == TType.MAP:
-                    self.headers = {}
-                    (_ktype49, _vtype50, _size48) = iprot.readMapBegin()
-                    for _i52 in range(_size48):
-                        _key53 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        _val54 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.headers[_key53] = _val54
-                    iprot.readMapEnd()
-                else:
-                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1182,22 +880,6 @@ class ResponseMetadata(object):
         if self.server_version is not None:
             oprot.writeFieldBegin('server_version', TType.STRING, 4)
             oprot.writeString(self.server_version.encode('utf-8') if sys.version_info[0] == 2 else self.server_version)
-            oprot.writeFieldEnd()
-        if self.pagination is not None:
-            oprot.writeFieldBegin('pagination', TType.STRUCT, 5)
-            self.pagination.write(oprot)
-            oprot.writeFieldEnd()
-        if self.rate_limit is not None:
-            oprot.writeFieldBegin('rate_limit', TType.STRUCT, 6)
-            self.rate_limit.write(oprot)
-            oprot.writeFieldEnd()
-        if self.headers is not None:
-            oprot.writeFieldBegin('headers', TType.MAP, 7)
-            oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.headers))
-            for kiter55, viter56 in self.headers.items():
-                oprot.writeString(kiter55.encode('utf-8') if sys.version_info[0] == 2 else kiter55)
-                oprot.writeString(viter56.encode('utf-8') if sys.version_info[0] == 2 else viter56)
-            oprot.writeMapEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1269,10 +951,10 @@ class RetryConfig(object):
             elif fid == 5:
                 if ftype == TType.LIST:
                     self.retryable_codes = []
-                    (_etype60, _size57) = iprot.readListBegin()
-                    for _i61 in range(_size57):
-                        _elem62 = iprot.readI32()
-                        self.retryable_codes.append(_elem62)
+                    (_etype44, _size41) = iprot.readListBegin()
+                    for _i45 in range(_size41):
+                        _elem46 = iprot.readI32()
+                        self.retryable_codes.append(_elem46)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -1306,8 +988,8 @@ class RetryConfig(object):
         if self.retryable_codes is not None:
             oprot.writeFieldBegin('retryable_codes', TType.LIST, 5)
             oprot.writeListBegin(TType.I32, len(self.retryable_codes))
-            for iter63 in self.retryable_codes:
-                oprot.writeI32(iter63)
+            for iter47 in self.retryable_codes:
+                oprot.writeI32(iter47)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -1333,17 +1015,17 @@ class QosConfig(object):
     Attributes:
      - priority
      - timeout_ms
-     - retry
+     - retry_config
      - idempotency_key
 
     """
     thrift_spec = None
 
 
-    def __init__(self, priority = None, timeout_ms = None, retry = None, idempotency_key = None,):
+    def __init__(self, priority = None, timeout_ms = None, retry_config = None, idempotency_key = None,):
         self.priority = priority
         self.timeout_ms = timeout_ms
-        self.retry = retry
+        self.retry_config = retry_config
         self.idempotency_key = idempotency_key
 
     def read(self, iprot):
@@ -1367,8 +1049,8 @@ class QosConfig(object):
                     iprot.skip(ftype)
             elif fid == 3:
                 if ftype == TType.STRUCT:
-                    self.retry = RetryConfig()
-                    self.retry.read(iprot)
+                    self.retry_config = RetryConfig()
+                    self.retry_config.read(iprot)
                 else:
                     iprot.skip(ftype)
             elif fid == 4:
@@ -1395,9 +1077,9 @@ class QosConfig(object):
             oprot.writeFieldBegin('timeout_ms', TType.I64, 2)
             oprot.writeI64(self.timeout_ms)
             oprot.writeFieldEnd()
-        if self.retry is not None:
-            oprot.writeFieldBegin('retry', TType.STRUCT, 3)
-            self.retry.write(oprot)
+        if self.retry_config is not None:
+            oprot.writeFieldBegin('retry_config', TType.STRUCT, 3)
+            self.retry_config.write(oprot)
             oprot.writeFieldEnd()
         if self.idempotency_key is not None:
             oprot.writeFieldBegin('idempotency_key', TType.STRING, 4)
@@ -1874,21 +1556,21 @@ class TaskRecord(object):
             elif fid == 15:
                 if ftype == TType.MAP:
                     self.metadata = {}
-                    (_ktype65, _vtype66, _size64) = iprot.readMapBegin()
-                    for _i68 in range(_size64):
-                        _key69 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        _val70 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.metadata[_key69] = _val70
+                    (_ktype49, _vtype50, _size48) = iprot.readMapBegin()
+                    for _i52 in range(_size48):
+                        _key53 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        _val54 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.metadata[_key53] = _val54
                     iprot.readMapEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 16:
                 if ftype == TType.LIST:
                     self.tags = []
-                    (_etype74, _size71) = iprot.readListBegin()
-                    for _i75 in range(_size71):
-                        _elem76 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.tags.append(_elem76)
+                    (_etype58, _size55) = iprot.readListBegin()
+                    for _i59 in range(_size55):
+                        _elem60 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.tags.append(_elem60)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -1962,16 +1644,16 @@ class TaskRecord(object):
         if self.metadata is not None:
             oprot.writeFieldBegin('metadata', TType.MAP, 15)
             oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.metadata))
-            for kiter77, viter78 in self.metadata.items():
-                oprot.writeString(kiter77.encode('utf-8') if sys.version_info[0] == 2 else kiter77)
-                oprot.writeString(viter78.encode('utf-8') if sys.version_info[0] == 2 else viter78)
+            for kiter61, viter62 in self.metadata.items():
+                oprot.writeString(kiter61.encode('utf-8') if sys.version_info[0] == 2 else kiter61)
+                oprot.writeString(viter62.encode('utf-8') if sys.version_info[0] == 2 else viter62)
             oprot.writeMapEnd()
             oprot.writeFieldEnd()
         if self.tags is not None:
             oprot.writeFieldBegin('tags', TType.LIST, 16)
             oprot.writeListBegin(TType.STRING, len(self.tags))
-            for iter79 in self.tags:
-                oprot.writeString(iter79.encode('utf-8') if sys.version_info[0] == 2 else iter79)
+            for iter63 in self.tags:
+                oprot.writeString(iter63.encode('utf-8') if sys.version_info[0] == 2 else iter63)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -2090,25 +1772,15 @@ class TaskSubmitRequest(object):
      - target_method
      - params_json
      - priority
-     - max_attempts
-     - timeout_ms
-     - scheduled_at_ms
-     - idempotency_key
-     - metadata
 
     """
     thrift_spec = None
 
 
-    def __init__(self, target_method = None, params_json = None, priority = None, max_attempts = None, timeout_ms = None, scheduled_at_ms = None, idempotency_key = None, metadata = None,):
+    def __init__(self, target_method = None, params_json = None, priority = None,):
         self.target_method = target_method
         self.params_json = params_json
         self.priority = priority
-        self.max_attempts = max_attempts
-        self.timeout_ms = timeout_ms
-        self.scheduled_at_ms = scheduled_at_ms
-        self.idempotency_key = idempotency_key
-        self.metadata = metadata
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -2134,37 +1806,6 @@ class TaskSubmitRequest(object):
                     self.priority = iprot.readI32()
                 else:
                     iprot.skip(ftype)
-            elif fid == 4:
-                if ftype == TType.I32:
-                    self.max_attempts = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 5:
-                if ftype == TType.I64:
-                    self.timeout_ms = iprot.readI64()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 6:
-                if ftype == TType.I64:
-                    self.scheduled_at_ms = iprot.readI64()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 7:
-                if ftype == TType.STRING:
-                    self.idempotency_key = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 8:
-                if ftype == TType.MAP:
-                    self.metadata = {}
-                    (_ktype81, _vtype82, _size80) = iprot.readMapBegin()
-                    for _i84 in range(_size80):
-                        _key85 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        _val86 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.metadata[_key85] = _val86
-                    iprot.readMapEnd()
-                else:
-                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -2187,30 +1828,6 @@ class TaskSubmitRequest(object):
         if self.priority is not None:
             oprot.writeFieldBegin('priority', TType.I32, 3)
             oprot.writeI32(self.priority)
-            oprot.writeFieldEnd()
-        if self.max_attempts is not None:
-            oprot.writeFieldBegin('max_attempts', TType.I32, 4)
-            oprot.writeI32(self.max_attempts)
-            oprot.writeFieldEnd()
-        if self.timeout_ms is not None:
-            oprot.writeFieldBegin('timeout_ms', TType.I64, 5)
-            oprot.writeI64(self.timeout_ms)
-            oprot.writeFieldEnd()
-        if self.scheduled_at_ms is not None:
-            oprot.writeFieldBegin('scheduled_at_ms', TType.I64, 6)
-            oprot.writeI64(self.scheduled_at_ms)
-            oprot.writeFieldEnd()
-        if self.idempotency_key is not None:
-            oprot.writeFieldBegin('idempotency_key', TType.STRING, 7)
-            oprot.writeString(self.idempotency_key.encode('utf-8') if sys.version_info[0] == 2 else self.idempotency_key)
-            oprot.writeFieldEnd()
-        if self.metadata is not None:
-            oprot.writeFieldBegin('metadata', TType.MAP, 8)
-            oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.metadata))
-            for kiter87, viter88 in self.metadata.items():
-                oprot.writeString(kiter87.encode('utf-8') if sys.version_info[0] == 2 else kiter87)
-                oprot.writeString(viter88.encode('utf-8') if sys.version_info[0] == 2 else viter88)
-            oprot.writeMapEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -2612,10 +2229,10 @@ class TaskSubscribeRequest(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.events = []
-                    (_etype92, _size89) = iprot.readListBegin()
-                    for _i93 in range(_size89):
-                        _elem94 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.events.append(_elem94)
+                    (_etype67, _size64) = iprot.readListBegin()
+                    for _i68 in range(_size64):
+                        _elem69 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.events.append(_elem69)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -2637,8 +2254,8 @@ class TaskSubscribeRequest(object):
         if self.events is not None:
             oprot.writeFieldBegin('events', TType.LIST, 2)
             oprot.writeListBegin(TType.STRING, len(self.events))
-            for iter95 in self.events:
-                oprot.writeString(iter95.encode('utf-8') if sys.version_info[0] == 2 else iter95)
+            for iter70 in self.events:
+                oprot.writeString(iter70.encode('utf-8') if sys.version_info[0] == 2 else iter70)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -2744,14 +2361,14 @@ class TaskEvent(object):
 class HealthCheckRequest(object):
     """
     Attributes:
-     - service
+     - service_name
 
     """
     thrift_spec = None
 
 
-    def __init__(self, service = None,):
-        self.service = service
+    def __init__(self, service_name = None,):
+        self.service_name = service_name
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -2764,7 +2381,7 @@ class HealthCheckRequest(object):
                 break
             if fid == 1:
                 if ftype == TType.STRING:
-                    self.service = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                    self.service_name = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             else:
@@ -2778,9 +2395,9 @@ class HealthCheckRequest(object):
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
         oprot.writeStructBegin('HealthCheckRequest')
-        if self.service is not None:
-            oprot.writeFieldBegin('service', TType.STRING, 1)
-            oprot.writeString(self.service.encode('utf-8') if sys.version_info[0] == 2 else self.service)
+        if self.service_name is not None:
+            oprot.writeFieldBegin('service_name', TType.STRING, 1)
+            oprot.writeString(self.service_name.encode('utf-8') if sys.version_info[0] == 2 else self.service_name)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -2831,11 +2448,11 @@ class HealthCheckResponse(object):
             elif fid == 2:
                 if ftype == TType.MAP:
                     self.services = {}
-                    (_ktype97, _vtype98, _size96) = iprot.readMapBegin()
-                    for _i100 in range(_size96):
-                        _key101 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        _val102 = iprot.readI32()
-                        self.services[_key101] = _val102
+                    (_ktype72, _vtype73, _size71) = iprot.readMapBegin()
+                    for _i75 in range(_size71):
+                        _key76 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        _val77 = iprot.readI32()
+                        self.services[_key76] = _val77
                     iprot.readMapEnd()
                 else:
                     iprot.skip(ftype)
@@ -2857,9 +2474,9 @@ class HealthCheckResponse(object):
         if self.services is not None:
             oprot.writeFieldBegin('services', TType.MAP, 2)
             oprot.writeMapBegin(TType.STRING, TType.I32, len(self.services))
-            for kiter103, viter104 in self.services.items():
-                oprot.writeString(kiter103.encode('utf-8') if sys.version_info[0] == 2 else kiter103)
-                oprot.writeI32(viter104)
+            for kiter78, viter79 in self.services.items():
+                oprot.writeString(kiter78.encode('utf-8') if sys.version_info[0] == 2 else kiter78)
+                oprot.writeI32(viter79)
             oprot.writeMapEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -2919,22 +2536,6 @@ AuthContext.thrift_spec = (
     (3, TType.STRING, 'principal', 'UTF8', None, ),  # 3
     (4, TType.LIST, 'roles', (TType.STRING, 'UTF8', False), None, ),  # 4
 )
-all_structs.append(Pagination)
-Pagination.thrift_spec = (
-    None,  # 0
-    (1, TType.I64, 'total', None, None, ),  # 1
-    (2, TType.I32, 'page', None, None, ),  # 2
-    (3, TType.I32, 'page_size', None, None, ),  # 3
-    (4, TType.BOOL, 'has_next', None, None, ),  # 4
-    (5, TType.STRING, 'cursor', 'UTF8', None, ),  # 5
-)
-all_structs.append(RateLimitInfo)
-RateLimitInfo.thrift_spec = (
-    None,  # 0
-    (1, TType.I32, 'limit', None, None, ),  # 1
-    (2, TType.I32, 'remaining', None, None, ),  # 2
-    (3, TType.I64, 'reset_at_ms', None, None, ),  # 3
-)
 all_structs.append(RequestMetadata)
 RequestMetadata.thrift_spec = (
     None,  # 0
@@ -2943,9 +2544,9 @@ RequestMetadata.thrift_spec = (
     (3, TType.STRING, 'client_version', 'UTF8', None, ),  # 3
     (4, TType.STRUCT, 'auth', [AuthContext, None], None, ),  # 4
     (5, TType.STRING, 'tenant_id', 'UTF8', None, ),  # 5
-    (6, TType.I32, 'content_type', None, None, ),  # 6
-    (7, TType.LIST, 'accept', (TType.I32, None, False), None, ),  # 7
-    (8, TType.I32, 'compression', None, None, ),  # 8
+    None,  # 6
+    None,  # 7
+    None,  # 8
     (9, TType.MAP, 'headers', (TType.STRING, 'UTF8', TType.STRING, 'UTF8', False), None, ),  # 9
     (10, TType.BOOL, 'long_task', None, None, ),  # 10
     (11, TType.STRING, 'long_task_method', 'UTF8', None, ),  # 11
@@ -2958,9 +2559,6 @@ ResponseMetadata.thrift_spec = (
     (2, TType.I64, 'duration_ms', None, None, ),  # 2
     (3, TType.STRING, 'server_id', 'UTF8', None, ),  # 3
     (4, TType.STRING, 'server_version', 'UTF8', None, ),  # 4
-    (5, TType.STRUCT, 'pagination', [Pagination, None], None, ),  # 5
-    (6, TType.STRUCT, 'rate_limit', [RateLimitInfo, None], None, ),  # 6
-    (7, TType.MAP, 'headers', (TType.STRING, 'UTF8', TType.STRING, 'UTF8', False), None, ),  # 7
 )
 all_structs.append(RetryConfig)
 RetryConfig.thrift_spec = (
@@ -2976,7 +2574,7 @@ QosConfig.thrift_spec = (
     None,  # 0
     (1, TType.I32, 'priority', None, None, ),  # 1
     (2, TType.I64, 'timeout_ms', None, None, ),  # 2
-    (3, TType.STRUCT, 'retry', [RetryConfig, None], None, ),  # 3
+    (3, TType.STRUCT, 'retry_config', [RetryConfig, None], None, ),  # 3
     (4, TType.STRING, 'idempotency_key', 'UTF8', None, ),  # 4
 )
 all_structs.append(Request)
@@ -3041,11 +2639,6 @@ TaskSubmitRequest.thrift_spec = (
     (1, TType.STRING, 'target_method', 'UTF8', None, ),  # 1
     (2, TType.STRING, 'params_json', 'UTF8', None, ),  # 2
     (3, TType.I32, 'priority', None, None, ),  # 3
-    (4, TType.I32, 'max_attempts', None, None, ),  # 4
-    (5, TType.I64, 'timeout_ms', None, None, ),  # 5
-    (6, TType.I64, 'scheduled_at_ms', None, None, ),  # 6
-    (7, TType.STRING, 'idempotency_key', 'UTF8', None, ),  # 7
-    (8, TType.MAP, 'metadata', (TType.STRING, 'UTF8', TType.STRING, 'UTF8', False), None, ),  # 8
 )
 all_structs.append(TaskSubmitResponse)
 TaskSubmitResponse.thrift_spec = (
@@ -3093,7 +2686,7 @@ TaskEvent.thrift_spec = (
 all_structs.append(HealthCheckRequest)
 HealthCheckRequest.thrift_spec = (
     None,  # 0
-    (1, TType.STRING, 'service', 'UTF8', None, ),  # 1
+    (1, TType.STRING, 'service_name', 'UTF8', None, ),  # 1
 )
 all_structs.append(HealthCheckResponse)
 HealthCheckResponse.thrift_spec = (

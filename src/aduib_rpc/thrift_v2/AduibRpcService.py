@@ -532,11 +532,11 @@ class CallServerStream_result(object):
             if fid == 0:
                 if ftype == TType.LIST:
                     self.success = []
-                    (_etype108, _size105) = iprot.readListBegin()
-                    for _i109 in range(_size105):
-                        _elem110 = Response()
-                        _elem110.read(iprot)
-                        self.success.append(_elem110)
+                    (_etype101, _size98) = iprot.readListBegin()
+                    for _i102 in range(_size98):
+                        _elem103 = Response()
+                        _elem103.read(iprot)
+                        self.success.append(_elem103)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -554,8 +554,8 @@ class CallServerStream_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
-            for iter111 in self.success:
-                iter111.write(oprot)
+            for iter104 in self.success:
+                iter104.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -604,11 +604,11 @@ class CallClientStream_args(object):
             if fid == 1:
                 if ftype == TType.LIST:
                     self.requests = []
-                    (_etype115, _size112) = iprot.readListBegin()
-                    for _i116 in range(_size112):
-                        _elem117 = Request()
-                        _elem117.read(iprot)
-                        self.requests.append(_elem117)
+                    (_etype108, _size105) = iprot.readListBegin()
+                    for _i109 in range(_size105):
+                        _elem110 = Request()
+                        _elem110.read(iprot)
+                        self.requests.append(_elem110)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -626,8 +626,8 @@ class CallClientStream_args(object):
         if self.requests is not None:
             oprot.writeFieldBegin('requests', TType.LIST, 1)
             oprot.writeListBegin(TType.STRUCT, len(self.requests))
-            for iter118 in self.requests:
-                iter118.write(oprot)
+            for iter111 in self.requests:
+                iter111.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -741,11 +741,11 @@ class CallBidirectional_args(object):
             if fid == 1:
                 if ftype == TType.LIST:
                     self.requests = []
-                    (_etype122, _size119) = iprot.readListBegin()
-                    for _i123 in range(_size119):
-                        _elem124 = Request()
-                        _elem124.read(iprot)
-                        self.requests.append(_elem124)
+                    (_etype115, _size112) = iprot.readListBegin()
+                    for _i116 in range(_size112):
+                        _elem117 = Request()
+                        _elem117.read(iprot)
+                        self.requests.append(_elem117)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -763,8 +763,8 @@ class CallBidirectional_args(object):
         if self.requests is not None:
             oprot.writeFieldBegin('requests', TType.LIST, 1)
             oprot.writeListBegin(TType.STRUCT, len(self.requests))
-            for iter125 in self.requests:
-                iter125.write(oprot)
+            for iter118 in self.requests:
+                iter118.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -814,11 +814,11 @@ class CallBidirectional_result(object):
             if fid == 0:
                 if ftype == TType.LIST:
                     self.success = []
-                    (_etype129, _size126) = iprot.readListBegin()
-                    for _i130 in range(_size126):
-                        _elem131 = Response()
-                        _elem131.read(iprot)
-                        self.success.append(_elem131)
+                    (_etype122, _size119) = iprot.readListBegin()
+                    for _i123 in range(_size119):
+                        _elem124 = Response()
+                        _elem124.read(iprot)
+                        self.success.append(_elem124)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -836,8 +836,8 @@ class CallBidirectional_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
-            for iter132 in self.success:
-                iter132.write(oprot)
+            for iter125 in self.success:
+                iter125.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
