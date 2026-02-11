@@ -17,7 +17,7 @@ class TelemetryConfig:
 
     Environment variables:
     - OTEL_SERVICE_NAME: Service name for traces/metrics
-    - OTEL_EXPORTER_OTLP_ENDPOINT: OTLP endpoint (e.g., "http://localhost:4318")
+    - OTEL_EXPORTER_OTLP_ENDPOINT: OTLP endpoint (e.g., "http://localhost:4317")
     - OTEL_EXPORTER_OTLP_PROTOCOL: Protocol (http/protobuf, grpc)
     """
 
@@ -25,8 +25,8 @@ class TelemetryConfig:
     enabled: bool = True
     service_name: str = "aduib-rpc"
 
-    # OTLP endpoint, e.g., "http://localhost:4318"
-    otlp_endpoint: str = "http://10.0.0.96:4317"
+    # OTLP endpoint, e.g., "http://localhost:4317"
+    otlp_endpoint: str = "http://localhost:4317"
     otlp_protocol: str = "grpc"
 
     # Tracing
