@@ -16,6 +16,7 @@ import logging
 from .ttypes import *
 from thrift.Thrift import TProcessor
 from thrift.transport import TTransport
+
 all_structs = []
 
 
@@ -70,7 +71,7 @@ class Client(Iface):
         return self.recv_Call()
 
     def send_Call(self, request):
-        self._oprot.writeMessageBegin('Call', TMessageType.CALL, self._seqid)
+        self._oprot.writeMessageBegin("Call", TMessageType.CALL, self._seqid)
         args = Call_args()
         args.request = request
         args.write(self._oprot)
@@ -102,7 +103,7 @@ class Client(Iface):
         return self.recv_CallServerStream()
 
     def send_CallServerStream(self, request):
-        self._oprot.writeMessageBegin('CallServerStream', TMessageType.CALL, self._seqid)
+        self._oprot.writeMessageBegin("CallServerStream", TMessageType.CALL, self._seqid)
         args = CallServerStream_args()
         args.request = request
         args.write(self._oprot)
@@ -134,7 +135,7 @@ class Client(Iface):
         return self.recv_CallClientStream()
 
     def send_CallClientStream(self, requests):
-        self._oprot.writeMessageBegin('CallClientStream', TMessageType.CALL, self._seqid)
+        self._oprot.writeMessageBegin("CallClientStream", TMessageType.CALL, self._seqid)
         args = CallClientStream_args()
         args.requests = requests
         args.write(self._oprot)
@@ -166,7 +167,7 @@ class Client(Iface):
         return self.recv_CallBidirectional()
 
     def send_CallBidirectional(self, requests):
-        self._oprot.writeMessageBegin('CallBidirectional', TMessageType.CALL, self._seqid)
+        self._oprot.writeMessageBegin("CallBidirectional", TMessageType.CALL, self._seqid)
         args = CallBidirectional_args()
         args.requests = requests
         args.write(self._oprot)
@@ -209,7 +210,7 @@ class Processor(Iface, TProcessor):
         if name not in self._processMap:
             iprot.skip(TType.STRUCT)
             iprot.readMessageEnd()
-            x = TApplicationException(TApplicationException.UNKNOWN_METHOD, 'Unknown function %s' % (name))
+            x = TApplicationException(TApplicationException.UNKNOWN_METHOD, "Unknown function %s" % (name))
             oprot.writeMessageBegin(name, TMessageType.EXCEPTION, seqid)
             x.write(oprot)
             oprot.writeMessageEnd()
@@ -230,13 +231,13 @@ class Processor(Iface, TProcessor):
         except TTransport.TTransportException:
             raise
         except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
+            logging.exception("TApplication exception in handler")
             msg_type = TMessageType.EXCEPTION
             result = ex
         except Exception:
-            logging.exception('Unexpected exception in handler')
+            logging.exception("Unexpected exception in handler")
             msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, "Internal error")
         oprot.writeMessageBegin("Call", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
@@ -253,13 +254,13 @@ class Processor(Iface, TProcessor):
         except TTransport.TTransportException:
             raise
         except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
+            logging.exception("TApplication exception in handler")
             msg_type = TMessageType.EXCEPTION
             result = ex
         except Exception:
-            logging.exception('Unexpected exception in handler')
+            logging.exception("Unexpected exception in handler")
             msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, "Internal error")
         oprot.writeMessageBegin("CallServerStream", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
@@ -276,13 +277,13 @@ class Processor(Iface, TProcessor):
         except TTransport.TTransportException:
             raise
         except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
+            logging.exception("TApplication exception in handler")
             msg_type = TMessageType.EXCEPTION
             result = ex
         except Exception:
-            logging.exception('Unexpected exception in handler')
+            logging.exception("Unexpected exception in handler")
             msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, "Internal error")
         oprot.writeMessageBegin("CallClientStream", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
@@ -299,17 +300,18 @@ class Processor(Iface, TProcessor):
         except TTransport.TTransportException:
             raise
         except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
+            logging.exception("TApplication exception in handler")
             msg_type = TMessageType.EXCEPTION
             result = ex
         except Exception:
-            logging.exception('Unexpected exception in handler')
+            logging.exception("Unexpected exception in handler")
             msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, "Internal error")
         oprot.writeMessageBegin("CallBidirectional", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
+
 
 # HELPER FUNCTIONS AND STRUCTURES
 
@@ -320,14 +322,21 @@ class Call_args(object):
      - request
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, request = None,):
+    def __init__(
+        self,
+        request=None,
+    ):
         self.request = request
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -351,9 +360,9 @@ class Call_args(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('Call_args')
+        oprot.writeStructBegin("Call_args")
         if self.request is not None:
-            oprot.writeFieldBegin('request', TType.STRUCT, 1)
+            oprot.writeFieldBegin("request", TType.STRUCT, 1)
             self.request.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -363,19 +372,26 @@ class Call_args(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(Call_args)
 Call_args.thrift_spec = (
     None,  # 0
-    (1, TType.STRUCT, 'request', [Request, None], None, ),  # 1
+    (
+        1,
+        TType.STRUCT,
+        "request",
+        [Request, None],
+        None,
+    ),  # 1
 )
 
 
@@ -385,14 +401,21 @@ class Call_result(object):
      - success
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, success = None,):
+    def __init__(
+        self,
+        success=None,
+    ):
         self.success = success
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -416,9 +439,9 @@ class Call_result(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('Call_result')
+        oprot.writeStructBegin("Call_result")
         if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            oprot.writeFieldBegin("success", TType.STRUCT, 0)
             self.success.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -428,18 +451,25 @@ class Call_result(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(Call_result)
 Call_result.thrift_spec = (
-    (0, TType.STRUCT, 'success', [Response, None], None, ),  # 0
+    (
+        0,
+        TType.STRUCT,
+        "success",
+        [Response, None],
+        None,
+    ),  # 0
 )
 
 
@@ -449,14 +479,21 @@ class CallServerStream_args(object):
      - request
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, request = None,):
+    def __init__(
+        self,
+        request=None,
+    ):
         self.request = request
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -480,9 +517,9 @@ class CallServerStream_args(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('CallServerStream_args')
+        oprot.writeStructBegin("CallServerStream_args")
         if self.request is not None:
-            oprot.writeFieldBegin('request', TType.STRUCT, 1)
+            oprot.writeFieldBegin("request", TType.STRUCT, 1)
             self.request.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -492,19 +529,26 @@ class CallServerStream_args(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(CallServerStream_args)
 CallServerStream_args.thrift_spec = (
     None,  # 0
-    (1, TType.STRUCT, 'request', [Request, None], None, ),  # 1
+    (
+        1,
+        TType.STRUCT,
+        "request",
+        [Request, None],
+        None,
+    ),  # 1
 )
 
 
@@ -514,14 +558,21 @@ class CallServerStream_result(object):
      - success
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, success = None,):
+    def __init__(
+        self,
+        success=None,
+    ):
         self.success = success
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -550,9 +601,9 @@ class CallServerStream_result(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('CallServerStream_result')
+        oprot.writeStructBegin("CallServerStream_result")
         if self.success is not None:
-            oprot.writeFieldBegin('success', TType.LIST, 0)
+            oprot.writeFieldBegin("success", TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
             for iter104 in self.success:
                 iter104.write(oprot)
@@ -565,18 +616,25 @@ class CallServerStream_result(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(CallServerStream_result)
 CallServerStream_result.thrift_spec = (
-    (0, TType.LIST, 'success', (TType.STRUCT, [Response, None], False), None, ),  # 0
+    (
+        0,
+        TType.LIST,
+        "success",
+        (TType.STRUCT, [Response, None], False),
+        None,
+    ),  # 0
 )
 
 
@@ -586,14 +644,21 @@ class CallClientStream_args(object):
      - requests
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, requests = None,):
+    def __init__(
+        self,
+        requests=None,
+    ):
         self.requests = requests
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -622,9 +687,9 @@ class CallClientStream_args(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('CallClientStream_args')
+        oprot.writeStructBegin("CallClientStream_args")
         if self.requests is not None:
-            oprot.writeFieldBegin('requests', TType.LIST, 1)
+            oprot.writeFieldBegin("requests", TType.LIST, 1)
             oprot.writeListBegin(TType.STRUCT, len(self.requests))
             for iter111 in self.requests:
                 iter111.write(oprot)
@@ -637,19 +702,26 @@ class CallClientStream_args(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(CallClientStream_args)
 CallClientStream_args.thrift_spec = (
     None,  # 0
-    (1, TType.LIST, 'requests', (TType.STRUCT, [Request, None], False), None, ),  # 1
+    (
+        1,
+        TType.LIST,
+        "requests",
+        (TType.STRUCT, [Request, None], False),
+        None,
+    ),  # 1
 )
 
 
@@ -659,14 +731,21 @@ class CallClientStream_result(object):
      - success
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, success = None,):
+    def __init__(
+        self,
+        success=None,
+    ):
         self.success = success
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -690,9 +769,9 @@ class CallClientStream_result(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('CallClientStream_result')
+        oprot.writeStructBegin("CallClientStream_result")
         if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            oprot.writeFieldBegin("success", TType.STRUCT, 0)
             self.success.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -702,18 +781,25 @@ class CallClientStream_result(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(CallClientStream_result)
 CallClientStream_result.thrift_spec = (
-    (0, TType.STRUCT, 'success', [Response, None], None, ),  # 0
+    (
+        0,
+        TType.STRUCT,
+        "success",
+        [Response, None],
+        None,
+    ),  # 0
 )
 
 
@@ -723,14 +809,21 @@ class CallBidirectional_args(object):
      - requests
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, requests = None,):
+    def __init__(
+        self,
+        requests=None,
+    ):
         self.requests = requests
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -759,9 +852,9 @@ class CallBidirectional_args(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('CallBidirectional_args')
+        oprot.writeStructBegin("CallBidirectional_args")
         if self.requests is not None:
-            oprot.writeFieldBegin('requests', TType.LIST, 1)
+            oprot.writeFieldBegin("requests", TType.LIST, 1)
             oprot.writeListBegin(TType.STRUCT, len(self.requests))
             for iter118 in self.requests:
                 iter118.write(oprot)
@@ -774,19 +867,26 @@ class CallBidirectional_args(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(CallBidirectional_args)
 CallBidirectional_args.thrift_spec = (
     None,  # 0
-    (1, TType.LIST, 'requests', (TType.STRUCT, [Request, None], False), None, ),  # 1
+    (
+        1,
+        TType.LIST,
+        "requests",
+        (TType.STRUCT, [Request, None], False),
+        None,
+    ),  # 1
 )
 
 
@@ -796,14 +896,21 @@ class CallBidirectional_result(object):
      - success
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, success = None,):
+    def __init__(
+        self,
+        success=None,
+    ):
         self.success = success
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -832,9 +939,9 @@ class CallBidirectional_result(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('CallBidirectional_result')
+        oprot.writeStructBegin("CallBidirectional_result")
         if self.success is not None:
-            oprot.writeFieldBegin('success', TType.LIST, 0)
+            oprot.writeFieldBegin("success", TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
             for iter125 in self.success:
                 iter125.write(oprot)
@@ -847,18 +954,25 @@ class CallBidirectional_result(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(CallBidirectional_result)
 CallBidirectional_result.thrift_spec = (
-    (0, TType.LIST, 'success', (TType.STRUCT, [Response, None], False), None, ),  # 0
+    (
+        0,
+        TType.LIST,
+        "success",
+        (TType.STRUCT, [Response, None], False),
+        None,
+    ),  # 0
 )
 fix_spec(all_structs)
 del all_structs

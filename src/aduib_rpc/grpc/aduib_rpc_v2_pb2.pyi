@@ -48,6 +48,7 @@ class TaskStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TASK_STATUS_FAILED: _ClassVar[TaskStatus]
     TASK_STATUS_CANCELED: _ClassVar[TaskStatus]
     TASK_STATUS_RETRYING: _ClassVar[TaskStatus]
+
 RESPONSE_STATUS_UNSPECIFIED: ResponseStatus
 RESPONSE_STATUS_SUCCESS: ResponseStatus
 RESPONSE_STATUS_ERROR: ResponseStatus
@@ -93,7 +94,17 @@ class Request(_message.Message):
     trace_context: TraceContext
     metadata: RequestMetadata
     qos: QosConfig
-    def __init__(self, aduib_rpc: _Optional[str] = ..., id: _Optional[str] = ..., method: _Optional[str] = ..., name: _Optional[str] = ..., data: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., trace_context: _Optional[_Union[TraceContext, _Mapping]] = ..., metadata: _Optional[_Union[RequestMetadata, _Mapping]] = ..., qos: _Optional[_Union[QosConfig, _Mapping]] = ...) -> None: ...
+    def __init__(
+        self,
+        aduib_rpc: _Optional[str] = ...,
+        id: _Optional[str] = ...,
+        method: _Optional[str] = ...,
+        name: _Optional[str] = ...,
+        data: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
+        trace_context: _Optional[_Union[TraceContext, _Mapping]] = ...,
+        metadata: _Optional[_Union[RequestMetadata, _Mapping]] = ...,
+        qos: _Optional[_Union[QosConfig, _Mapping]] = ...,
+    ) -> None: ...
 
 class Response(_message.Message):
     __slots__ = ("aduib_rpc", "id", "status", "result", "error", "trace_context", "metadata")
@@ -111,7 +122,16 @@ class Response(_message.Message):
     error: RpcError
     trace_context: TraceContext
     metadata: ResponseMetadata
-    def __init__(self, aduib_rpc: _Optional[str] = ..., id: _Optional[str] = ..., status: _Optional[_Union[ResponseStatus, str]] = ..., result: _Optional[_Union[_struct_pb2.Value, _Mapping]] = ..., error: _Optional[_Union[RpcError, _Mapping]] = ..., trace_context: _Optional[_Union[TraceContext, _Mapping]] = ..., metadata: _Optional[_Union[ResponseMetadata, _Mapping]] = ...) -> None: ...
+    def __init__(
+        self,
+        aduib_rpc: _Optional[str] = ...,
+        id: _Optional[str] = ...,
+        status: _Optional[_Union[ResponseStatus, str]] = ...,
+        result: _Optional[_Union[_struct_pb2.Value, _Mapping]] = ...,
+        error: _Optional[_Union[RpcError, _Mapping]] = ...,
+        trace_context: _Optional[_Union[TraceContext, _Mapping]] = ...,
+        metadata: _Optional[_Union[ResponseMetadata, _Mapping]] = ...,
+    ) -> None: ...
 
 class RpcError(_message.Message):
     __slots__ = ("code", "name", "message", "details", "debug")
@@ -125,7 +145,14 @@ class RpcError(_message.Message):
     message: str
     details: _containers.RepeatedCompositeFieldContainer[ErrorDetail]
     debug: DebugInfo
-    def __init__(self, code: _Optional[int] = ..., name: _Optional[str] = ..., message: _Optional[str] = ..., details: _Optional[_Iterable[_Union[ErrorDetail, _Mapping]]] = ..., debug: _Optional[_Union[DebugInfo, _Mapping]] = ...) -> None: ...
+    def __init__(
+        self,
+        code: _Optional[int] = ...,
+        name: _Optional[str] = ...,
+        message: _Optional[str] = ...,
+        details: _Optional[_Iterable[_Union[ErrorDetail, _Mapping]]] = ...,
+        debug: _Optional[_Union[DebugInfo, _Mapping]] = ...,
+    ) -> None: ...
 
 class ErrorDetail(_message.Message):
     __slots__ = ("type", "field", "reason", "metadata")
@@ -136,6 +163,7 @@ class ErrorDetail(_message.Message):
         key: str
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+
     TYPE_FIELD_NUMBER: _ClassVar[int]
     FIELD_FIELD_NUMBER: _ClassVar[int]
     REASON_FIELD_NUMBER: _ClassVar[int]
@@ -144,7 +172,13 @@ class ErrorDetail(_message.Message):
     field: str
     reason: str
     metadata: _containers.ScalarMap[str, str]
-    def __init__(self, type: _Optional[str] = ..., field: _Optional[str] = ..., reason: _Optional[str] = ..., metadata: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(
+        self,
+        type: _Optional[str] = ...,
+        field: _Optional[str] = ...,
+        reason: _Optional[str] = ...,
+        metadata: _Optional[_Mapping[str, str]] = ...,
+    ) -> None: ...
 
 class DebugInfo(_message.Message):
     __slots__ = ("stack_trace", "internal_message", "timestamp_ms")
@@ -154,7 +188,12 @@ class DebugInfo(_message.Message):
     stack_trace: str
     internal_message: str
     timestamp_ms: int
-    def __init__(self, stack_trace: _Optional[str] = ..., internal_message: _Optional[str] = ..., timestamp_ms: _Optional[int] = ...) -> None: ...
+    def __init__(
+        self,
+        stack_trace: _Optional[str] = ...,
+        internal_message: _Optional[str] = ...,
+        timestamp_ms: _Optional[int] = ...,
+    ) -> None: ...
 
 class TraceContext(_message.Message):
     __slots__ = ("trace_id", "span_id", "parent_span_id", "sampled", "baggage")
@@ -165,6 +204,7 @@ class TraceContext(_message.Message):
         key: str
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+
     TRACE_ID_FIELD_NUMBER: _ClassVar[int]
     SPAN_ID_FIELD_NUMBER: _ClassVar[int]
     PARENT_SPAN_ID_FIELD_NUMBER: _ClassVar[int]
@@ -175,10 +215,27 @@ class TraceContext(_message.Message):
     parent_span_id: str
     sampled: bool
     baggage: _containers.ScalarMap[str, str]
-    def __init__(self, trace_id: _Optional[str] = ..., span_id: _Optional[str] = ..., parent_span_id: _Optional[str] = ..., sampled: bool = ..., baggage: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(
+        self,
+        trace_id: _Optional[str] = ...,
+        span_id: _Optional[str] = ...,
+        parent_span_id: _Optional[str] = ...,
+        sampled: bool = ...,
+        baggage: _Optional[_Mapping[str, str]] = ...,
+    ) -> None: ...
 
 class RequestMetadata(_message.Message):
-    __slots__ = ("timestamp_ms", "client_id", "client_version", "auth", "tenant_id", "headers", "long_task", "long_task_method", "long_task_timeout")
+    __slots__ = (
+        "timestamp_ms",
+        "client_id",
+        "client_version",
+        "auth",
+        "tenant_id",
+        "headers",
+        "long_task",
+        "long_task_method",
+        "long_task_timeout",
+    )
     class HeadersEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -186,6 +243,7 @@ class RequestMetadata(_message.Message):
         key: str
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+
     TIMESTAMP_MS_FIELD_NUMBER: _ClassVar[int]
     CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
     CLIENT_VERSION_FIELD_NUMBER: _ClassVar[int]
@@ -204,7 +262,18 @@ class RequestMetadata(_message.Message):
     long_task: bool
     long_task_method: str
     long_task_timeout: int
-    def __init__(self, timestamp_ms: _Optional[int] = ..., client_id: _Optional[str] = ..., client_version: _Optional[str] = ..., auth: _Optional[_Union[AuthContext, _Mapping]] = ..., tenant_id: _Optional[str] = ..., headers: _Optional[_Mapping[str, str]] = ..., long_task: bool = ..., long_task_method: _Optional[str] = ..., long_task_timeout: _Optional[int] = ...) -> None: ...
+    def __init__(
+        self,
+        timestamp_ms: _Optional[int] = ...,
+        client_id: _Optional[str] = ...,
+        client_version: _Optional[str] = ...,
+        auth: _Optional[_Union[AuthContext, _Mapping]] = ...,
+        tenant_id: _Optional[str] = ...,
+        headers: _Optional[_Mapping[str, str]] = ...,
+        long_task: bool = ...,
+        long_task_method: _Optional[str] = ...,
+        long_task_timeout: _Optional[int] = ...,
+    ) -> None: ...
 
 class ResponseMetadata(_message.Message):
     __slots__ = ("timestamp_ms", "duration_ms", "server_id", "server_version")
@@ -216,7 +285,13 @@ class ResponseMetadata(_message.Message):
     duration_ms: int
     server_id: str
     server_version: str
-    def __init__(self, timestamp_ms: _Optional[int] = ..., duration_ms: _Optional[int] = ..., server_id: _Optional[str] = ..., server_version: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self,
+        timestamp_ms: _Optional[int] = ...,
+        duration_ms: _Optional[int] = ...,
+        server_id: _Optional[str] = ...,
+        server_version: _Optional[str] = ...,
+    ) -> None: ...
 
 class AuthContext(_message.Message):
     __slots__ = ("scheme", "credentials", "principal", "roles")
@@ -228,7 +303,13 @@ class AuthContext(_message.Message):
     credentials: str
     principal: str
     roles: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, scheme: _Optional[_Union[AuthScheme, str]] = ..., credentials: _Optional[str] = ..., principal: _Optional[str] = ..., roles: _Optional[_Iterable[str]] = ...) -> None: ...
+    def __init__(
+        self,
+        scheme: _Optional[_Union[AuthScheme, str]] = ...,
+        credentials: _Optional[str] = ...,
+        principal: _Optional[str] = ...,
+        roles: _Optional[_Iterable[str]] = ...,
+    ) -> None: ...
 
 class QosConfig(_message.Message):
     __slots__ = ("priority", "timeout_ms", "retry", "idempotency_key")
@@ -240,7 +321,13 @@ class QosConfig(_message.Message):
     timeout_ms: int
     retry: RetryConfig
     idempotency_key: str
-    def __init__(self, priority: _Optional[_Union[Priority, str]] = ..., timeout_ms: _Optional[int] = ..., retry: _Optional[_Union[RetryConfig, _Mapping]] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self,
+        priority: _Optional[_Union[Priority, str]] = ...,
+        timeout_ms: _Optional[int] = ...,
+        retry: _Optional[_Union[RetryConfig, _Mapping]] = ...,
+        idempotency_key: _Optional[str] = ...,
+    ) -> None: ...
 
 class RetryConfig(_message.Message):
     __slots__ = ("max_attempts", "initial_delay_ms", "max_delay_ms", "backoff_multiplier", "retryable_codes")
@@ -254,10 +341,34 @@ class RetryConfig(_message.Message):
     max_delay_ms: int
     backoff_multiplier: float
     retryable_codes: _containers.RepeatedScalarFieldContainer[int]
-    def __init__(self, max_attempts: _Optional[int] = ..., initial_delay_ms: _Optional[int] = ..., max_delay_ms: _Optional[int] = ..., backoff_multiplier: _Optional[float] = ..., retryable_codes: _Optional[_Iterable[int]] = ...) -> None: ...
+    def __init__(
+        self,
+        max_attempts: _Optional[int] = ...,
+        initial_delay_ms: _Optional[int] = ...,
+        max_delay_ms: _Optional[int] = ...,
+        backoff_multiplier: _Optional[float] = ...,
+        retryable_codes: _Optional[_Iterable[int]] = ...,
+    ) -> None: ...
 
 class TaskRecord(_message.Message):
-    __slots__ = ("task_id", "parent_task_id", "status", "priority", "created_at_ms", "scheduled_at_ms", "started_at_ms", "completed_at_ms", "attempt", "max_attempts", "next_retry_at_ms", "result", "error", "progress", "metadata", "tags")
+    __slots__ = (
+        "task_id",
+        "parent_task_id",
+        "status",
+        "priority",
+        "created_at_ms",
+        "scheduled_at_ms",
+        "started_at_ms",
+        "completed_at_ms",
+        "attempt",
+        "max_attempts",
+        "next_retry_at_ms",
+        "result",
+        "error",
+        "progress",
+        "metadata",
+        "tags",
+    )
     class MetadataEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -265,6 +376,7 @@ class TaskRecord(_message.Message):
         key: str
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+
     TASK_ID_FIELD_NUMBER: _ClassVar[int]
     PARENT_TASK_ID_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
@@ -297,7 +409,25 @@ class TaskRecord(_message.Message):
     progress: TaskProgress
     metadata: _containers.ScalarMap[str, str]
     tags: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, task_id: _Optional[str] = ..., parent_task_id: _Optional[str] = ..., status: _Optional[_Union[TaskStatus, str]] = ..., priority: _Optional[_Union[Priority, str]] = ..., created_at_ms: _Optional[int] = ..., scheduled_at_ms: _Optional[int] = ..., started_at_ms: _Optional[int] = ..., completed_at_ms: _Optional[int] = ..., attempt: _Optional[int] = ..., max_attempts: _Optional[int] = ..., next_retry_at_ms: _Optional[int] = ..., result: _Optional[_Union[_struct_pb2.Value, _Mapping]] = ..., error: _Optional[_Union[RpcError, _Mapping]] = ..., progress: _Optional[_Union[TaskProgress, _Mapping]] = ..., metadata: _Optional[_Mapping[str, str]] = ..., tags: _Optional[_Iterable[str]] = ...) -> None: ...
+    def __init__(
+        self,
+        task_id: _Optional[str] = ...,
+        parent_task_id: _Optional[str] = ...,
+        status: _Optional[_Union[TaskStatus, str]] = ...,
+        priority: _Optional[_Union[Priority, str]] = ...,
+        created_at_ms: _Optional[int] = ...,
+        scheduled_at_ms: _Optional[int] = ...,
+        started_at_ms: _Optional[int] = ...,
+        completed_at_ms: _Optional[int] = ...,
+        attempt: _Optional[int] = ...,
+        max_attempts: _Optional[int] = ...,
+        next_retry_at_ms: _Optional[int] = ...,
+        result: _Optional[_Union[_struct_pb2.Value, _Mapping]] = ...,
+        error: _Optional[_Union[RpcError, _Mapping]] = ...,
+        progress: _Optional[_Union[TaskProgress, _Mapping]] = ...,
+        metadata: _Optional[_Mapping[str, str]] = ...,
+        tags: _Optional[_Iterable[str]] = ...,
+    ) -> None: ...
 
 class TaskProgress(_message.Message):
     __slots__ = ("current", "total", "message", "percentage")
@@ -309,7 +439,13 @@ class TaskProgress(_message.Message):
     total: int
     message: str
     percentage: float
-    def __init__(self, current: _Optional[int] = ..., total: _Optional[int] = ..., message: _Optional[str] = ..., percentage: _Optional[float] = ...) -> None: ...
+    def __init__(
+        self,
+        current: _Optional[int] = ...,
+        total: _Optional[int] = ...,
+        message: _Optional[str] = ...,
+        percentage: _Optional[float] = ...,
+    ) -> None: ...
 
 class TaskSubmitRequest(_message.Message):
     __slots__ = ("target_method", "params", "priority")
@@ -319,7 +455,12 @@ class TaskSubmitRequest(_message.Message):
     target_method: str
     params: _struct_pb2.Struct
     priority: Priority
-    def __init__(self, target_method: _Optional[str] = ..., params: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., priority: _Optional[_Union[Priority, str]] = ...) -> None: ...
+    def __init__(
+        self,
+        target_method: _Optional[str] = ...,
+        params: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
+        priority: _Optional[_Union[Priority, str]] = ...,
+    ) -> None: ...
 
 class TaskSubmitResponse(_message.Message):
     __slots__ = ("task_id", "status", "created_at_ms")
@@ -329,7 +470,12 @@ class TaskSubmitResponse(_message.Message):
     task_id: str
     status: TaskStatus
     created_at_ms: int
-    def __init__(self, task_id: _Optional[str] = ..., status: _Optional[_Union[TaskStatus, str]] = ..., created_at_ms: _Optional[int] = ...) -> None: ...
+    def __init__(
+        self,
+        task_id: _Optional[str] = ...,
+        status: _Optional[_Union[TaskStatus, str]] = ...,
+        created_at_ms: _Optional[int] = ...,
+    ) -> None: ...
 
 class TaskQueryRequest(_message.Message):
     __slots__ = ("task_id",)
@@ -359,7 +505,9 @@ class TaskCancelResponse(_message.Message):
     task_id: str
     status: TaskStatus
     canceled: bool
-    def __init__(self, task_id: _Optional[str] = ..., status: _Optional[_Union[TaskStatus, str]] = ..., canceled: bool = ...) -> None: ...
+    def __init__(
+        self, task_id: _Optional[str] = ..., status: _Optional[_Union[TaskStatus, str]] = ..., canceled: bool = ...
+    ) -> None: ...
 
 class TaskSubscribeRequest(_message.Message):
     __slots__ = ("task_id", "events")
@@ -377,7 +525,12 @@ class TaskEvent(_message.Message):
     event: str
     task: TaskRecord
     timestamp_ms: int
-    def __init__(self, event: _Optional[str] = ..., task: _Optional[_Union[TaskRecord, _Mapping]] = ..., timestamp_ms: _Optional[int] = ...) -> None: ...
+    def __init__(
+        self,
+        event: _Optional[str] = ...,
+        task: _Optional[_Union[TaskRecord, _Mapping]] = ...,
+        timestamp_ms: _Optional[int] = ...,
+    ) -> None: ...
 
 class HealthCheckRequest(_message.Message):
     __slots__ = ("service",)
@@ -394,8 +547,11 @@ class HealthCheckResponse(_message.Message):
         key: str
         value: HealthStatus
         def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[HealthStatus, str]] = ...) -> None: ...
+
     STATUS_FIELD_NUMBER: _ClassVar[int]
     SERVICES_FIELD_NUMBER: _ClassVar[int]
     status: HealthStatus
     services: _containers.ScalarMap[str, HealthStatus]
-    def __init__(self, status: _Optional[_Union[HealthStatus, str]] = ..., services: _Optional[_Mapping[str, HealthStatus]] = ...) -> None: ...
+    def __init__(
+        self, status: _Optional[_Union[HealthStatus, str]] = ..., services: _Optional[_Mapping[str, HealthStatus]] = ...
+    ) -> None: ...

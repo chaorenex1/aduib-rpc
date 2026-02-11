@@ -16,6 +16,7 @@ import logging
 from .ttypes import *
 from thrift.Thrift import TProcessor
 from thrift.transport import TTransport
+
 all_structs = []
 
 
@@ -54,7 +55,7 @@ class Client(Iface):
         return self.recv_Check()
 
     def send_Check(self, request):
-        self._oprot.writeMessageBegin('Check', TMessageType.CALL, self._seqid)
+        self._oprot.writeMessageBegin("Check", TMessageType.CALL, self._seqid)
         args = Check_args()
         args.request = request
         args.write(self._oprot)
@@ -86,7 +87,7 @@ class Client(Iface):
         return self.recv_Watch()
 
     def send_Watch(self, request):
-        self._oprot.writeMessageBegin('Watch', TMessageType.CALL, self._seqid)
+        self._oprot.writeMessageBegin("Watch", TMessageType.CALL, self._seqid)
         args = Watch_args()
         args.request = request
         args.write(self._oprot)
@@ -127,7 +128,7 @@ class Processor(Iface, TProcessor):
         if name not in self._processMap:
             iprot.skip(TType.STRUCT)
             iprot.readMessageEnd()
-            x = TApplicationException(TApplicationException.UNKNOWN_METHOD, 'Unknown function %s' % (name))
+            x = TApplicationException(TApplicationException.UNKNOWN_METHOD, "Unknown function %s" % (name))
             oprot.writeMessageBegin(name, TMessageType.EXCEPTION, seqid)
             x.write(oprot)
             oprot.writeMessageEnd()
@@ -148,13 +149,13 @@ class Processor(Iface, TProcessor):
         except TTransport.TTransportException:
             raise
         except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
+            logging.exception("TApplication exception in handler")
             msg_type = TMessageType.EXCEPTION
             result = ex
         except Exception:
-            logging.exception('Unexpected exception in handler')
+            logging.exception("Unexpected exception in handler")
             msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, "Internal error")
         oprot.writeMessageBegin("Check", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
@@ -171,17 +172,18 @@ class Processor(Iface, TProcessor):
         except TTransport.TTransportException:
             raise
         except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
+            logging.exception("TApplication exception in handler")
             msg_type = TMessageType.EXCEPTION
             result = ex
         except Exception:
-            logging.exception('Unexpected exception in handler')
+            logging.exception("Unexpected exception in handler")
             msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, "Internal error")
         oprot.writeMessageBegin("Watch", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
+
 
 # HELPER FUNCTIONS AND STRUCTURES
 
@@ -192,14 +194,21 @@ class Check_args(object):
      - request
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, request = None,):
+    def __init__(
+        self,
+        request=None,
+    ):
         self.request = request
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -223,9 +232,9 @@ class Check_args(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('Check_args')
+        oprot.writeStructBegin("Check_args")
         if self.request is not None:
-            oprot.writeFieldBegin('request', TType.STRUCT, 1)
+            oprot.writeFieldBegin("request", TType.STRUCT, 1)
             self.request.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -235,19 +244,26 @@ class Check_args(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(Check_args)
 Check_args.thrift_spec = (
     None,  # 0
-    (1, TType.STRUCT, 'request', [HealthCheckRequest, None], None, ),  # 1
+    (
+        1,
+        TType.STRUCT,
+        "request",
+        [HealthCheckRequest, None],
+        None,
+    ),  # 1
 )
 
 
@@ -257,14 +273,21 @@ class Check_result(object):
      - success
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, success = None,):
+    def __init__(
+        self,
+        success=None,
+    ):
         self.success = success
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -288,9 +311,9 @@ class Check_result(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('Check_result')
+        oprot.writeStructBegin("Check_result")
         if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            oprot.writeFieldBegin("success", TType.STRUCT, 0)
             self.success.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -300,18 +323,25 @@ class Check_result(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(Check_result)
 Check_result.thrift_spec = (
-    (0, TType.STRUCT, 'success', [HealthCheckResponse, None], None, ),  # 0
+    (
+        0,
+        TType.STRUCT,
+        "success",
+        [HealthCheckResponse, None],
+        None,
+    ),  # 0
 )
 
 
@@ -321,14 +351,21 @@ class Watch_args(object):
      - request
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, request = None,):
+    def __init__(
+        self,
+        request=None,
+    ):
         self.request = request
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -352,9 +389,9 @@ class Watch_args(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('Watch_args')
+        oprot.writeStructBegin("Watch_args")
         if self.request is not None:
-            oprot.writeFieldBegin('request', TType.STRUCT, 1)
+            oprot.writeFieldBegin("request", TType.STRUCT, 1)
             self.request.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -364,19 +401,26 @@ class Watch_args(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(Watch_args)
 Watch_args.thrift_spec = (
     None,  # 0
-    (1, TType.STRUCT, 'request', [HealthCheckRequest, None], None, ),  # 1
+    (
+        1,
+        TType.STRUCT,
+        "request",
+        [HealthCheckRequest, None],
+        None,
+    ),  # 1
 )
 
 
@@ -386,14 +430,21 @@ class Watch_result(object):
      - success
 
     """
+
     thrift_spec = None
 
-
-    def __init__(self, success = None,):
+    def __init__(
+        self,
+        success=None,
+    ):
         self.success = success
 
     def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+        if (
+            iprot._fast_decode is not None
+            and isinstance(iprot.trans, TTransport.CReadableTransport)
+            and self.thrift_spec is not None
+        ):
             iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
             return
         iprot.readStructBegin()
@@ -422,9 +473,9 @@ class Watch_result(object):
         if oprot._fast_encode is not None and self.thrift_spec is not None:
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
-        oprot.writeStructBegin('Watch_result')
+        oprot.writeStructBegin("Watch_result")
         if self.success is not None:
-            oprot.writeFieldBegin('success', TType.LIST, 0)
+            oprot.writeFieldBegin("success", TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
             for iter139 in self.success:
                 iter139.write(oprot)
@@ -437,18 +488,25 @@ class Watch_result(object):
         return
 
     def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+        L = ["%s=%r" % (key, value) for key, value in self.__dict__.items()]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(L))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         return not (self == other)
+
+
 all_structs.append(Watch_result)
 Watch_result.thrift_spec = (
-    (0, TType.LIST, 'success', (TType.STRUCT, [HealthCheckResponse, None], False), None, ),  # 0
+    (
+        0,
+        TType.LIST,
+        "success",
+        (TType.STRUCT, [HealthCheckResponse, None], False),
+        None,
+    ),  # 0
 )
 fix_spec(all_structs)
 del all_structs
