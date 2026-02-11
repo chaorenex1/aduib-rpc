@@ -24,8 +24,14 @@ from aduib_rpc.resilience.fallback import (
 from aduib_rpc.resilience.rate_limiter import (
     RateLimitAlgorithm,
     RateLimiter,
+    RateLimiterBase,
     RateLimiterConfig,
     RateLimitedError,
+)
+from aduib_rpc.resilience.cache import (
+    Cache,
+    InMemoryCache,
+    InMemoryIdempotencyCache,
 )
 from aduib_rpc.resilience.retry_policy import (
     RetryCondition,
@@ -33,6 +39,7 @@ from aduib_rpc.resilience.retry_policy import (
     RetryPolicy,
     RetryStrategy,
 )
+from aduib_rpc.resilience.resilience import ResilienceConfig
 
 __all__ = [
     "Bulkhead",
@@ -51,11 +58,16 @@ __all__ = [
     "FallbackPolicy",
     "RateLimitAlgorithm",
     "RateLimiter",
+    "RateLimiterBase",
     "RateLimiterConfig",
     "RateLimitedError",
+    "Cache",
+    "InMemoryCache",
+    "InMemoryIdempotencyCache",
     "RetryCondition",
     "RetryExecutor",
     "RetryPolicy",
     "RetryStrategy",
     "StaticValueFallback",
+    "ResilienceConfig",
 ]

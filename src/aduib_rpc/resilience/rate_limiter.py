@@ -30,6 +30,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from typing import Deque
+from abc import ABC, abstractmethod
 
 from aduib_rpc.exceptions import RateLimitedError
 
@@ -58,7 +59,39 @@ class RateLimiterConfig:
     wait_timeout_ms: int = 1000
 
 
-class RateLimiter:
+class RateLimiterBase(ABC):
+    """Abstract rate limiter interface."""
+
+    @abstractmethod
+    async def acquire(self, tokens: int = 1) -> bool:
+        """Try to acquire tokens without waiting."""
+
+    @abstractmethod
+    async def acquire_or_wait(self, tokens: int = 1) -> None:
+        """Block until tokens are available or raise RateLimitedError."""
+
+    @abstractmethod
+    async def get_available_tokens(self) -> int:
+        """Return the current number of tokens that can be acquired."""
+
+    @abstractmethod
+    async def reset(self) -> None:
+        """Reset the limiter to its initial state."""
+
+    @abstractmethod
+    async def update_config(self, config: RateLimiterConfig) -> None:
+        """Update limiter configuration and reset state."""
+
+    @abstractmethod
+    def get_config(self) -> RateLimiterConfig:
+        """Return current configuration."""
+
+    @abstractmethod
+    async def close(self) -> None:
+        """Release resources held by limiter."""
+
+
+class RateLimiter(RateLimiterBase):
     """Asynchronous rate limiter for token bucket, sliding window, and fixed window.
 
     All public methods are coroutines and must be awaited. The limiter can be
@@ -177,6 +210,29 @@ class RateLimiter:
             self._fixed_window_count = 0
 
         self._notify_waiters()
+
+    async def update_config(self, config: RateLimiterConfig) -> None:
+        """Update limiter configuration and reset state."""
+        async with self._lock:
+            self._config = config
+            self._algorithm = self._config.algorithm
+            self._rate = max(0.0, float(self._config.rate))
+            self._burst = max(0, int(self._config.burst))
+            self._wait_timeout_ms = max(0, int(self._config.wait_timeout_ms))
+            now = self._now()
+            self._bucket_tokens = float(self._burst)
+            self._bucket_last = now
+            self._sliding_window.clear()
+            self._sliding_count = 0
+            self._fixed_window_start = now
+            self._fixed_window_count = 0
+        self._notify_waiters()
+
+    def get_config(self) -> RateLimiterConfig:
+        return self._config
+
+    async def close(self) -> None:
+        await self.reset()
 
     def _now(self) -> float:
         return time.monotonic()
