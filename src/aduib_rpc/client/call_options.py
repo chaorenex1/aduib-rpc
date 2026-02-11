@@ -30,4 +30,3 @@ def resolve_timeout_s(
                 return config_timeout_s
 
     return config_timeout_s
-

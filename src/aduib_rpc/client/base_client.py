@@ -28,7 +28,7 @@ except ImportError:
     httpx = None  # type: ignore
     Channel = None  # type: ignore
 
-logger=logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class AduibRpcClient(ABC):
@@ -42,13 +42,12 @@ class AduibRpcClient(ABC):
         if self._middleware is None:
             self._middleware = []
 
-
     @abstractmethod
     async def completion(
         self,
         name: str,
         method: str,
-        data: Any= None,
+        data: Any = None,
         meta: Optional[dict[str, Any]] = None,
         *,
         context: ClientContext | None = None,
@@ -179,7 +178,6 @@ class AduibRpcClient(ABC):
         self._middleware.append(middleware)
 
 
-
 class BaseAduibRpcClient(AduibRpcClient):
     """Base implementation of the AduibRpc client, containing transport-independent logic."""
 
@@ -201,27 +199,22 @@ class BaseAduibRpcClient(AduibRpcClient):
         if context is None:
             context = ClientContext()
 
-        context.state['http_kwargs'] = (
-            {'headers': meta['headers']}
-            if meta and 'headers' in meta
-            else context.state.get('http_kwargs')
+        context.state["http_kwargs"] = (
+            {"headers": meta["headers"]} if meta and "headers" in meta else context.state.get("http_kwargs")
         )
-        context.state['security_schema'] = (
-            meta.get('security_schema')
-            if meta
-            else context.state.get('security_schema')
-        )
-        context.state['config']=self._config
+        context.state["security_schema"] = meta.get("security_schema") if meta else context.state.get("security_schema")
+        context.state["config"] = self._config
         return context
 
-    async def completion(self,
-                         name:str,
-                         method: str,
-                         data: Any = None,
-                         meta: Optional[dict[str, Any]] = None,
-                         *,
-                         context: ClientContext | None = None) -> AsyncIterator[
-        AduibRpcResponse]:
+    async def completion(
+        self,
+        name: str,
+        method: str,
+        data: Any = None,
+        meta: Optional[dict[str, Any]] = None,
+        *,
+        context: ClientContext | None = None,
+    ) -> AsyncIterator[AduibRpcResponse]:
         """Sends a message to the agent.
         This method handles both streaming and non-streaming (polling) interactions
         based on the client configuration and agent capabilities. It will yield
@@ -237,21 +230,17 @@ class BaseAduibRpcClient(AduibRpcClient):
         context = self._prepare_context(context, meta)
 
         if meta:
-            if 'stream' in meta:
+            if "stream" in meta:
                 logger.warning("The 'stream' meta field is managed by the client configuration and will be overridden.")
-            meta['stream'] = str(self._config.streaming).lower()
+            meta["stream"] = str(self._config.streaming).lower()
 
-        request = AduibRpcRequest(name=name,method=method, data=data, meta=meta, id=str(uuid.uuid4()))
+        request = AduibRpcRequest(name=name, method=method, data=data, meta=meta, id=str(uuid.uuid4()))
         if not self._config.streaming:
-            response = await self._transport.completion(
-                request, context=context
-            )
+            response = await self._transport.completion(request, context=context)
             yield response
             return
 
-        async for response in self._transport.completion_stream(
-            request, context=context
-        ):
+        async for response in self._transport.completion_stream(request, context=context):
             yield response
 
     async def call(

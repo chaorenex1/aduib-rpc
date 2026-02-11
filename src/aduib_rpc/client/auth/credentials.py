@@ -8,7 +8,7 @@ class CredentialsProvider(ABC):
     """Abstract base class for providing credentials."""
 
     @abstractmethod
-    async def get_credentials(self,scheme: str,context: ClientContext | str | None) -> str | None:
+    async def get_credentials(self, scheme: str, context: ClientContext | str | None) -> str | None:
         """Fetches credentials based on the provided scheme and context.
 
         Args:
@@ -26,7 +26,7 @@ class InMemoryCredentialsProvider(CredentialsProvider):
         """Initializes the InMemoryCredentialsProvider with optional credentials."""
         self._store: dict[str, Any] = {}
 
-    async def get_credentials(self,scheme: str,session_id: ClientContext | str | None) -> str | None:
+    async def get_credentials(self, scheme: str, session_id: ClientContext | str | None) -> str | None:
         """Returns the stored credentials.
 
         Args:
@@ -42,8 +42,7 @@ class InMemoryCredentialsProvider(CredentialsProvider):
             return None
         return bucket.get(scheme)
 
-
-    def set_credentials(self,scheme: str,credentials: str,session_id: str | None = None) -> None:
+    def set_credentials(self, scheme: str, credentials: str, session_id: str | None = None) -> None:
         """Sets the credentials for a specific scheme and session ID.
 
         Args:

@@ -91,4 +91,3 @@ def default_httpx_pool() -> HttpxClientPool:
 
 def default_grpc_pool() -> GrpcChannelPool:
     return _default_grpc_pool
-

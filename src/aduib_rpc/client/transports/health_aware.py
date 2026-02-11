@@ -99,9 +99,7 @@ class HealthAwareClientTransport(ClientTransport):
     ) -> TransportProducer:
         """Return a transport producer that wraps another producer with health checks."""
 
-        def _producer(
-            url: str, config: ClientConfig, interceptors: list[ClientRequestInterceptor]
-        ) -> ClientTransport:
+        def _producer(url: str, config: ClientConfig, interceptors: list[ClientRequestInterceptor]) -> ClientTransport:
             return cls(
                 lambda target_url: base_producer(target_url, config, interceptors),
                 default_url=url,
@@ -290,9 +288,7 @@ class HealthAwareClientTransport(ClientTransport):
             return await self._get_transport_for_url(self._default_url, cache_key="__default__")
         return await self._get_transport_for_instance(instance)
 
-    async def _select_instance(
-        self, request: AduibRpcRequest, context: ClientContext
-    ) -> ServiceInstance | None:
+    async def _select_instance(self, request: AduibRpcRequest, context: ClientContext) -> ServiceInstance | None:
         service_name = self._resolve_service_name(request, context)
         instances = await self._list_healthy_instances(service_name)
         if not instances:
@@ -301,9 +297,7 @@ class HealthAwareClientTransport(ClientTransport):
             return self._load_balancer.select_instance(instances, key=self._lb_key)
         return instances[0]
 
-    def _resolve_service_name(
-        self, request: AduibRpcRequest, context: ClientContext
-    ) -> str | None:
+    def _resolve_service_name(self, request: AduibRpcRequest, context: ClientContext) -> str | None:
         return request.name
 
     async def _list_healthy_instances(self, service_name: str | None) -> list[ServiceInstance]:
@@ -312,9 +306,7 @@ class HealthAwareClientTransport(ClientTransport):
         if self._health_registry is not None:
             if instances:
                 await self._refresh_health_registry(instances)
-            healthy = await self._maybe_await(
-                self._health_registry.list_healthy_instances(service_name or "")
-            )
+            healthy = await self._maybe_await(self._health_registry.list_healthy_instances(service_name or ""))
             if healthy:
                 return healthy
             if self._allow_unhealthy_fallback and instances:
@@ -431,9 +423,7 @@ class HealthAwareClientTransport(ClientTransport):
             )
         self._update_health_entry(instance, result)
 
-    def _update_health_entry(
-        self, instance: ServiceInstance, result: HealthCheckResult
-    ) -> None:
+    def _update_health_entry(self, instance: ServiceInstance, result: HealthCheckResult) -> None:
         entry = self._health_cache.get(self._health_key(instance))
         if entry is None:
             entry = HealthAwareServiceInstance(instance=instance)
@@ -469,4 +459,3 @@ def _service_name_from_task_request(
     request: TaskQueryRequest | TaskCancelRequest | TaskSubscribeRequest,
 ) -> str | None:
     return getattr(request, "service", None) or getattr(request, "service_name", None)
-

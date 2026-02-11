@@ -25,7 +25,8 @@ from aduib_rpc.server.tasks import (
     TaskQueryResponse,
     TaskSubmitRequest,
     TaskSubmitResponse,
-    TaskSubscribeRequest, TaskStatus,
+    TaskSubscribeRequest,
+    TaskStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,12 +50,12 @@ class GrpcTransport(ClientTransport):
         url: str,
         config: ClientConfig,
         interceptors: list[ClientRequestInterceptor],
-    ) -> 'GrpcTransport':
+    ) -> "GrpcTransport":
         if config.grpc_channel_factory is None:
-            raise ValueError('grpc_channel_factory is required when using gRPC')
+            raise ValueError("grpc_channel_factory is required when using gRPC")
         channel = config.grpc_channel_factory(url)
         if channel is None:
-            raise ValueError('grpc_channel_factory returned None')
+            raise ValueError("grpc_channel_factory returned None")
         return cls(channel)
 
     def _build_grpc_metadata(self, meta: dict[str, Any] | None) -> list[tuple[str, str]]:
@@ -72,7 +73,7 @@ class GrpcTransport(ClientTransport):
         return grpc_metadata
 
     def _resolve_deadline(self, request: V2Request | None, context: ClientContext) -> float | None:
-        cfg_timeout = getattr(context.state.get('config'), 'grpc_timeout', None)
+        cfg_timeout = getattr(context.state.get("config"), "grpc_timeout", None)
         meta = request.meta if request is not None else None
         return resolve_timeout_s(config_timeout_s=cfg_timeout, meta=meta, context_http_kwargs=None)
 

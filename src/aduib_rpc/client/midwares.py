@@ -10,29 +10,29 @@ from aduib_rpc.utils.constant import SecuritySchemes
 class ClientContext(BaseModel):
     """Client context to hold mutable state information."""
 
-    state : MutableMapping[str, Any] = Field(default_factory=dict)
+    state: MutableMapping[str, Any] = Field(default_factory=dict)
 
     def get_schema(self) -> SecuritySchemes:
         """Retrieve the security scheme from the context state."""
-        return SecuritySchemes.to_original(self.state.get('security_schema'))
+        return SecuritySchemes.to_original(self.state.get("security_schema"))
 
     def get_session_id(self) -> str:
         """Retrieve the session ID from the context state."""
-        return self.state.get('session_id', None)
-
+        return self.state.get("session_id", None)
 
 
 class ClientRequestInterceptor(ABC):
     """Abstract base class for client request interceptors."""
 
     @abstractmethod
-    async def intercept_request(self,
-                                method: str,
-                                request_body: dict[str, Any],
-                                http_kwargs: dict[str, Any],
-                                context: ClientContext,
-                                schema:SecuritySchemes
-                                ) -> Tuple[dict[str, Any], dict[str, Any]]:
+    async def intercept_request(
+        self,
+        method: str,
+        request_body: dict[str, Any],
+        http_kwargs: dict[str, Any],
+        context: ClientContext,
+        schema: SecuritySchemes,
+    ) -> Tuple[dict[str, Any], dict[str, Any]]:
         """Intercepts and potentially modifies the outgoing request.
 
         Args:

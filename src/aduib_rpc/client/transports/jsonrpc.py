@@ -35,7 +35,7 @@ from aduib_rpc.server.tasks import (
 
 
 class JsonRpcTransport(ClientTransport):
-    """ A JSON-RPC transport for the Aduib RPC client.
+    """A JSON-RPC transport for the Aduib RPC client.
 
     Pure v2 routing:
       - JSON-RPC `method` is the v2 `rpc.v2/{service}/{handler}` string.
@@ -55,14 +55,13 @@ class JsonRpcTransport(ClientTransport):
         if url:
             self.url = url
         else:
-            raise ValueError('Must provide  url')
-        if self.url.endswith('/'):
+            raise ValueError("Must provide  url")
+        if self.url.endswith("/"):
             self.url = self.url[:-1]
         if not self.url.endswith(DEFAULT_RPC_PATH):
             self.url = f"{self.url}{DEFAULT_RPC_PATH}"
         self.httpx_client = httpx_client
         self.interceptors = interceptors or []
-
 
     async def _apply_interceptors(
         self,
@@ -79,18 +78,12 @@ class JsonRpcTransport(ClientTransport):
                 final_request_payload,
                 final_http_kwargs,
             ) = await interceptor.intercept_request(
-                method_name,
-                final_request_payload,
-                final_http_kwargs,
-                context,
-                context.get_schema()
+                method_name, final_request_payload, final_http_kwargs, context, context.get_schema()
             )
         return final_request_payload, final_http_kwargs
 
-    def _get_http_args(
-        self, context: ClientContext | None
-    ) -> dict[str, Any] | None:
-        return context.state.get('http_kwargs') if context else None
+    def _get_http_args(self, context: ClientContext | None) -> dict[str, Any] | None:
+        return context.state.get("http_kwargs") if context else None
 
     @staticmethod
     def _looks_like_aduib_response(value: Any) -> bool:
@@ -164,13 +157,13 @@ class JsonRpcTransport(ClientTransport):
         rpc_request = JsonRpcMessageRequest(method=method, params=params, id=str(uuid4()))
         payload, modified_kwargs = await self._apply_interceptors(
             method,
-            rpc_request.model_dump(mode='json', exclude_none=True),
+            rpc_request.model_dump(mode="json", exclude_none=True),
             self._get_http_args(context),
             context,
         )
 
         timeout_s = resolve_timeout_s(
-            config_timeout_s=getattr(context, 'config', None).http_timeout if hasattr(context, 'config') else None,
+            config_timeout_s=getattr(context, "config", None).http_timeout if hasattr(context, "config") else None,
             meta=request_meta,
             context_http_kwargs=modified_kwargs,
         )
@@ -210,13 +203,13 @@ class JsonRpcTransport(ClientTransport):
         )
         payload, modified_kwargs = await self._apply_interceptors(
             method,
-            rpc_request.model_dump(mode='json', exclude_none=True),
+            rpc_request.model_dump(mode="json", exclude_none=True),
             self._get_http_args(context),
             context,
         )
 
         timeout_s = resolve_timeout_s(
-            config_timeout_s=getattr(context, 'config', None).http_timeout if hasattr(context, 'config') else None,
+            config_timeout_s=getattr(context, "config", None).http_timeout if hasattr(context, "config") else None,
             meta=request_meta,
             context_http_kwargs=modified_kwargs,
         )
@@ -224,27 +217,21 @@ class JsonRpcTransport(ClientTransport):
             modified_kwargs["timeout"] = timeout_s
 
         async with aconnect_sse(
-                self.httpx_client,
-                'POST',
-                self.url,
-                json=payload,
-                **modified_kwargs,
+            self.httpx_client,
+            "POST",
+            self.url,
+            json=payload,
+            **modified_kwargs,
         ) as event_source:
             try:
                 async for sse in event_source.aiter_sse():
-                    yield JsonRpcStreamingMessageResponse.model_validate(
-                        json.loads(sse.data)
-                    )
+                    yield JsonRpcStreamingMessageResponse.model_validate(json.loads(sse.data))
             except SSEError as e:
-                raise ClientHTTPError(
-                    400, f'Invalid SSE response or protocol error: {e}'
-                ) from e
+                raise ClientHTTPError(400, f"Invalid SSE response or protocol error: {e}") from e
             except json.JSONDecodeError as e:
                 raise ClientJSONError(str(e)) from e
             except httpx.RequestError as e:
-                raise ClientHTTPError(
-                    503, f'Network communication error: {e}'
-                ) from e
+                raise ClientHTTPError(503, f"Network communication error: {e}") from e
 
     async def completion(self, request: AduibRpcRequest, *, context: ClientContext) -> AduibRpcResponse:
         """Sends a non-streaming request."""
@@ -265,8 +252,9 @@ class JsonRpcTransport(ClientTransport):
             raise ClientJSONError("Invalid JSON-RPC result payload for AduibRpcResponse")
         return result
 
-    async def completion_stream(self, request: AduibRpcRequest, *, context: ClientContext) -> AsyncGenerator[
-        AduibRpcResponse, None]:
+    async def completion_stream(
+        self, request: AduibRpcRequest, *, context: ClientContext
+    ) -> AsyncGenerator[AduibRpcResponse, None]:
         """Sends a streaming request and yields responses as they arrive."""
         async for response in self._stream_requests(request, context=context):
             if isinstance(response.root, JSONRPCErrorResponse):
@@ -398,26 +386,22 @@ class JsonRpcTransport(ClientTransport):
             yield TaskEvent.model_validate(result or {})
 
     async def _send_request(
-            self,
-            rpc_request_payload: dict[str, Any],
-            http_kwargs: dict[str, Any] | None = None,
-            *,
-            request_meta: dict[str, Any] | None = None,
+        self,
+        rpc_request_payload: dict[str, Any],
+        http_kwargs: dict[str, Any] | None = None,
+        *,
+        request_meta: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         http_kwargs = http_kwargs or {}
         try:
-            response = await self.httpx_client.post(
-                self.url, json=rpc_request_payload, **http_kwargs
-            )
+            response = await self.httpx_client.post(self.url, json=rpc_request_payload, **http_kwargs)
             response.raise_for_status()
             return response.json()
         except httpx.ReadTimeout as e:
-            raise ClientHTTPError(408, 'Client request timed out') from e
+            raise ClientHTTPError(408, "Client request timed out") from e
         except httpx.HTTPStatusError as e:
             raise ClientHTTPError(e.response.status_code, str(e)) from e
         except json.JSONDecodeError as e:
             raise ClientJSONError(str(e)) from e
         except httpx.RequestError as e:
-            raise ClientHTTPError(
-                503, f'Network communication error: {e}'
-            ) from e
+            raise ClientHTTPError(503, f"Network communication error: {e}") from e

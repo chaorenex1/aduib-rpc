@@ -216,14 +216,10 @@ class ThriftTransport(ClientTransport):
                 self._service = service_name
 
             def write_message_begin(self, name, ttype, seqid):
-                return self._proto.write_message_begin(
-                    f"{self._service}:{name}", ttype, seqid
-                )
+                return self._proto.write_message_begin(f"{self._service}:{name}", ttype, seqid)
 
             def writeMessageBegin(self, name, ttype, seqid):
-                return self._proto.writeMessageBegin(
-                    f"{self._service}:{name}", ttype, seqid
-                )
+                return self._proto.writeMessageBegin(f"{self._service}:{name}", ttype, seqid)
 
             def __getattr__(self, item):
                 return getattr(self._proto, item)
@@ -559,7 +555,7 @@ class ThriftTransport(ClientTransport):
             req.events = [str(ev) for ev in sub.events]
         client = await self._get_task_client()
         items = await client.Subscribe(req)
-        for item in (items or []):
+        for item in items or []:
             record = _task_record_from_thrift(item.task)
             yield TaskEvent(event=item.event, task=record, timestamp_ms=int(item.timestamp_ms))
 
@@ -584,7 +580,7 @@ class ThriftTransport(ClientTransport):
             req.service = request.service
         client = await self._get_health_client()
         items = await client.Watch(req)
-        for item in (items or []):
+        for item in items or []:
             services = {str(k): _health_status_from_thrift(v) for k, v in (item.services or {}).items()}
             yield HealthCheckResponse(status=_health_status_from_thrift(item.status), services=services or None)
 

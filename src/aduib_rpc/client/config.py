@@ -33,4 +33,3 @@ class ClientConfig:
 
     grpc_timeout: float | None = 60.0
     """Default request timeout for gRPC unary calls (seconds)."""
-

@@ -34,7 +34,7 @@ class ResolvedService:
         lb_value = ""
         if self.lb_key and self.lb_key in self.instance.metadata:
             try:
-                lb_value= str(self.instance.metadata[self.lb_key])
+                lb_value = str(self.instance.metadata[self.lb_key])
             except Exception:
                 logger.warning("Invalid load balancing key value for %s: %s", self.instance.service_name, self.lb_key)
         return lb_value
@@ -48,7 +48,7 @@ class ServiceResolver:
     - It *does not* create clients and does not perform RPC calls.
     """
 
-    async def resolve(self, service_name: str,lb_key: str | None) -> ResolvedService | None:
+    async def resolve(self, service_name: str, lb_key: str | None) -> ResolvedService | None:
         raise NotImplementedError
 
 
@@ -99,12 +99,12 @@ class RegistryServiceResolver(ServiceResolver):
 
         return True
 
-    def _get_lb_value(self, instance: ServiceInstance,lb_key: str | None) -> str:
+    def _get_lb_value(self, instance: ServiceInstance, lb_key: str | None) -> str:
         """Get load balancing values from instance metadata."""
         lb_value = ""
         if lb_key and lb_key in instance.metadata:
             try:
-                lb_value= str(instance.metadata[lb_key])
+                lb_value = str(instance.metadata[lb_key])
             except Exception:
                 logger.warning("Invalid load balancing key value for %s: %s", instance.service_name, lb_key)
         return lb_value
@@ -116,10 +116,14 @@ class RegistryServiceResolver(ServiceResolver):
                     result = registry.list_instances(service_name)
                     if inspect.isawaitable(result):
                         result = await result
-                    instances = [i for i in (result or []) if isinstance(i, ServiceInstance) and self._validate_instance(i, service_name)]
+                    instances = [
+                        i
+                        for i in (result or [])
+                        if isinstance(i, ServiceInstance) and self._validate_instance(i, service_name)
+                    ]
                     if not instances:
                         continue
-                    inst = self._lb.select_instance(list(instances), key=self._get_lb_value(instances[0],lb_key))
+                    inst = self._lb.select_instance(list(instances), key=self._get_lb_value(instances[0], lb_key))
                 else:
                     # Backward compatibility for registries that haven't been updated.
                     inst = registry.discover_service(service_name)
@@ -131,7 +135,11 @@ class RegistryServiceResolver(ServiceResolver):
 
             if inst:
                 if isinstance(inst, dict):
-                    logger.warning("Registry %s returned dict for %s; expected ServiceInstance", type(registry).__name__, service_name)
+                    logger.warning(
+                        "Registry %s returned dict for %s; expected ServiceInstance",
+                        type(registry).__name__,
+                        service_name,
+                    )
                     continue
                 if not isinstance(inst, ServiceInstance):
                     logger.warning(
@@ -143,5 +151,5 @@ class RegistryServiceResolver(ServiceResolver):
                     continue
                 if not self._validate_instance(inst, service_name):
                     continue
-                return ResolvedService(instance=inst,lb_key=lb_key)
+                return ResolvedService(instance=inst, lb_key=lb_key)
         return None

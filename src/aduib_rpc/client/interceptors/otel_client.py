@@ -30,4 +30,3 @@ class OTelClientInterceptor(ClientRequestInterceptor):
         http_kwargs = dict(http_kwargs)
         http_kwargs["headers"] = headers
         return request_body, http_kwargs
-

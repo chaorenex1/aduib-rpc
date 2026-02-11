@@ -11,8 +11,14 @@ class AuthInterceptor(ClientRequestInterceptor):
     def __init__(self, credentialProvider: CredentialsProvider):
         self.credentialProvider = credentialProvider
 
-    async def intercept_request(self, method: str, request_body: dict[str, Any], http_kwargs: dict[str, Any],
-                                context: ClientContext,schema:SecuritySchemes) -> Tuple[dict[str, Any], dict[str, Any]]:
+    async def intercept_request(
+        self,
+        method: str,
+        request_body: dict[str, Any],
+        http_kwargs: dict[str, Any],
+        context: ClientContext,
+        schema: SecuritySchemes,
+    ) -> Tuple[dict[str, Any], dict[str, Any]]:
         """Intercepts the request to add authentication headers.
         Args:
             method: The RPC method being called.

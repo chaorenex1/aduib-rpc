@@ -14,10 +14,7 @@ class ClientTransport(ABC):
     """Abstract base class for client transport mechanisms."""
 
     @abstractmethod
-    async def completion(self,
-                   request: AduibRpcRequest,
-                   *,
-                   context: ClientContext) -> AduibRpcResponse:
+    async def completion(self, request: AduibRpcRequest, *, context: ClientContext) -> AduibRpcResponse:
         """Sends a request and returns the response.
         Args:
             request: The `AduibRpcRequest` object to be sent.
@@ -27,10 +24,9 @@ class ClientTransport(ABC):
         """
 
     @abstractmethod
-    async def completion_stream(self,
-                            request: AduibRpcRequest,
-                            *,
-                            context: ClientContext) -> AsyncGenerator[AduibRpcResponse, None]:
+    async def completion_stream(
+        self, request: AduibRpcRequest, *, context: ClientContext
+    ) -> AsyncGenerator[AduibRpcResponse, None]:
         """Sends a request and returns an async generator for streaming responses.
         Args:
             request: The `AduibRpcRequest` object to be sent.
@@ -42,68 +38,65 @@ class ClientTransport(ABC):
 
     @abstractmethod
     async def call(
-            self,
-            request: AduibRpcRequest,
-            *,
-            context: ClientContext,
+        self,
+        request: AduibRpcRequest,
+        *,
+        context: ClientContext,
     ) -> AduibRpcResponse:
         """AduibRpcService.Call."""
         raise NotImplementedError
 
     @abstractmethod
     async def call_server_stream(
-            self,
-            request: AduibRpcRequest,
-            *,
-            context: ClientContext,
+        self,
+        request: AduibRpcRequest,
+        *,
+        context: ClientContext,
     ) -> AsyncGenerator[AduibRpcResponse, None]:
         """AduibRpcService.CallServerStream."""
         raise NotImplementedError
 
     @abstractmethod
     async def call_client_stream(
-            self,
-            requests: AsyncIterator[AduibRpcRequest],
-            *,
-            context: ClientContext,
+        self,
+        requests: AsyncIterator[AduibRpcRequest],
+        *,
+        context: ClientContext,
     ) -> AduibRpcResponse:
         """AduibRpcService.CallClientStream."""
         raise NotImplementedError
 
     @abstractmethod
     async def call_bidirectional(
-            self,
-            requests: AsyncIterator[AduibRpcRequest],
-            *,
-            context: ClientContext,
+        self,
+        requests: AsyncIterator[AduibRpcRequest],
+        *,
+        context: ClientContext,
     ) -> AsyncGenerator[AduibRpcResponse, None]:
         """AduibRpcService.CallBidirectional."""
         raise NotImplementedError
 
     @abstractmethod
-    async def task_submit(self, request: TaskSubmitRequest,
-                          *, context: ClientContext) -> Any:
+    async def task_submit(self, request: TaskSubmitRequest, *, context: ClientContext) -> Any:
         """TaskService.Submit."""
         raise NotImplementedError
 
     @abstractmethod
-    async def task_query(self, request: TaskQueryRequest,
-                         *, context: ClientContext) -> Any:
+    async def task_query(self, request: TaskQueryRequest, *, context: ClientContext) -> Any:
         """TaskService.Query."""
         raise NotImplementedError
 
     @abstractmethod
-    async def task_cancel(self, request: TaskCancelRequest,
-                          *, context: ClientContext) -> Any:
+    async def task_cancel(self, request: TaskCancelRequest, *, context: ClientContext) -> Any:
         """TaskService.Cancel."""
         raise NotImplementedError
 
     @abstractmethod
     async def task_subscribe(
-            self,
-            request: TaskSubscribeRequest,
-            *,
-            context: ClientContext,
+        self,
+        request: TaskSubscribeRequest,
+        *,
+        context: ClientContext,
     ) -> AsyncGenerator[Any, None]:
         """TaskService.Subscribe."""
         raise NotImplementedError
@@ -115,10 +108,10 @@ class ClientTransport(ABC):
 
     @abstractmethod
     async def health_watch(
-            self,
-            request: HealthCheckRequest,
-            *,
-            context: ClientContext,
+        self,
+        request: HealthCheckRequest,
+        *,
+        context: ClientContext,
     ) -> AsyncGenerator[HealthCheckResponse, None]:
         """HealthService.Watch."""
         raise NotImplementedError
