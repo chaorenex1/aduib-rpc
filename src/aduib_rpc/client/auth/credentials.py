@@ -8,12 +8,12 @@ class CredentialsProvider(ABC):
     """Abstract base class for providing credentials."""
 
     @abstractmethod
-    async def get_credentials(self,scheme: str,context: ClientContext) -> str | None:
+    async def get_credentials(self,scheme: str,context: ClientContext | str | None) -> str | None:
         """Fetches credentials based on the provided scheme and context.
 
         Args:
             scheme: The authentication scheme (e.g., "Bearer", "Basic").
-            context: The client context containing request-specific information.
+            context: The client context or session identifier.
         Returns:
             The credentials as a string, or None if not available.
         """
@@ -26,7 +26,7 @@ class InMemoryCredentialsProvider(CredentialsProvider):
         """Initializes the InMemoryCredentialsProvider with optional credentials."""
         self._store: dict[str, Any] = {}
 
-    async def get_credentials(self,scheme: str,session_id: str) -> str | None:
+    async def get_credentials(self,scheme: str,session_id: ClientContext | str | None) -> str | None:
         """Returns the stored credentials.
 
         Args:
@@ -35,7 +35,12 @@ class InMemoryCredentialsProvider(CredentialsProvider):
         Returns:
             The stored credentials as a string, or None if not set.
         """
-        return self._store.get(session_id).get(scheme)
+        if isinstance(session_id, ClientContext):
+            session_id = session_id.get_session_id()
+        bucket = self._store.get(session_id)
+        if not isinstance(bucket, dict):
+            return None
+        return bucket.get(scheme)
 
 
     def set_credentials(self,scheme: str,credentials: str,session_id: str | None = None) -> None:

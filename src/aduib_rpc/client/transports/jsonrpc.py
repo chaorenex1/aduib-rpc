@@ -6,7 +6,7 @@ import httpx
 from httpx_sse import SSEError, aconnect_sse
 from pydantic import ValidationError
 
-from aduib_rpc.client.call_options import RetryOptions, resolve_call_options
+from aduib_rpc.client.call_options import resolve_timeout_s
 from aduib_rpc.client.errors import ClientHTTPError, ClientJSONError
 from aduib_rpc.client import ClientContext, ClientRequestInterceptor, ClientJSONRPCError
 from aduib_rpc.client.transports.base import ClientTransport
@@ -20,7 +20,6 @@ from aduib_rpc.types import (
     JsonRpcStreamingMessageResponse,
 )
 from aduib_rpc.utils.constant import DEFAULT_RPC_PATH
-from aduib_rpc.client.retry import retry_async
 from aduib_rpc.protocol.v2.health import HealthCheckRequest, HealthCheckResponse
 from aduib_rpc.server.tasks import (
     TaskCancelRequest,
@@ -142,20 +141,16 @@ class JsonRpcTransport(ClientTransport):
             context,
         )
 
-        opts = resolve_call_options(
+        timeout_s = resolve_timeout_s(
             config_timeout_s=getattr(context, 'config', None).http_timeout if hasattr(context, 'config') else None,
             meta=request_meta,
             context_http_kwargs=modified_kwargs,
-            retry_defaults=RetryOptions(
-                enabled=False,
-                max_attempts=1,
-            ),
         )
 
-        if opts.timeout_s is not None:
-            modified_kwargs["timeout"] = opts.timeout_s
+        if timeout_s is not None:
+            modified_kwargs["timeout"] = timeout_s
 
-        response_data = await self._send_request(payload, modified_kwargs, request_meta=request_meta, opts=opts)
+        response_data = await self._send_request(payload, modified_kwargs, request_meta=request_meta)
         return JsonRpcMessageResponse.model_validate(response_data)
 
     async def _stream_requests(
@@ -192,17 +187,13 @@ class JsonRpcTransport(ClientTransport):
             context,
         )
 
-        opts = resolve_call_options(
+        timeout_s = resolve_timeout_s(
             config_timeout_s=getattr(context, 'config', None).http_timeout if hasattr(context, 'config') else None,
             meta=request_meta,
             context_http_kwargs=modified_kwargs,
-            retry_defaults=RetryOptions(
-                enabled=False,
-                max_attempts=1,
-            ),
         )
-        if opts.timeout_s is not None:
-            modified_kwargs["timeout"] = opts.timeout_s
+        if timeout_s is not None:
+            modified_kwargs["timeout"] = timeout_s
 
         async with aconnect_sse(
                 self.httpx_client,
@@ -382,34 +373,14 @@ class JsonRpcTransport(ClientTransport):
             http_kwargs: dict[str, Any] | None = None,
             *,
             request_meta: dict[str, Any] | None = None,
-            opts=None,
     ) -> dict[str, Any]:
         http_kwargs = http_kwargs or {}
-        retry_enabled = False
-        max_attempts = 1
-        if request_meta:
-            retry_enabled = bool(request_meta.get("retry_enabled"))
-            max_attempts = int(request_meta.get("retry_max_attempts", 1))
-        idempotent = bool(request_meta.get("idempotent")) if request_meta else False
-
-        retry_opts = RetryOptions(
-            enabled=retry_enabled,
-            max_attempts=max_attempts,
-            backoff_ms=int(request_meta.get("retry_backoff_ms", 200)) if request_meta else 200,
-            max_backoff_ms=int(request_meta.get("retry_max_backoff_ms", 2000)) if request_meta else 2000,
-            jitter=float(request_meta.get("retry_jitter", 0.1)) if request_meta else 0.1,
-            idempotent_required=True,
-        )
-
-        async def _op():
+        try:
             response = await self.httpx_client.post(
                 self.url, json=rpc_request_payload, **http_kwargs
             )
             response.raise_for_status()
             return response.json()
-
-        try:
-            return await retry_async(_op, retry=retry_opts, idempotent=idempotent)
         except httpx.ReadTimeout as e:
             raise ClientHTTPError(408, 'Client request timed out') from e
         except httpx.HTTPStatusError as e:

@@ -6,9 +6,8 @@ from httpx_sse import aconnect_sse, SSEError
 from pydantic import ValidationError
 
 from aduib_rpc.client import ClientContext, ClientRequestInterceptor
-from aduib_rpc.client.call_options import RetryOptions, resolve_timeout_s
+from aduib_rpc.client.call_options import resolve_timeout_s
 from aduib_rpc.client.errors import ClientJSONError, ClientHTTPError
-from aduib_rpc.client.retry import retry_async
 from aduib_rpc.client.transports.base import ClientTransport
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse
 from aduib_rpc.protocol.v2.health import HealthCheckRequest, HealthCheckResponse
@@ -270,24 +269,10 @@ class RestTransport(ClientTransport):
                 yield TaskEvent.model_validate(data or {})
 
     async def _send_request(self, request: httpx.Request, *, request_meta: dict[str, Any] | None = None) -> dict[str, Any]:
-        request_meta = request_meta or {}
-        idempotent = bool(request_meta.get('idempotent'))
-        retry_opts = RetryOptions(
-            enabled=bool(request_meta.get('retry_enabled', False)),
-            max_attempts=int(request_meta.get('retry_max_attempts', 1)),
-            backoff_ms=int(request_meta.get('retry_backoff_ms', 200)),
-            max_backoff_ms=int(request_meta.get('retry_max_backoff_ms', 2000)),
-            jitter=float(request_meta.get('retry_jitter', 0.1)),
-            idempotent_required=True,
-        )
-
-        async def _op() -> dict[str, Any]:
+        try:
             response = await self.httpx_client.send(request)
             response.raise_for_status()
             return response.json()
-
-        try:
-            return await retry_async(_op, retry=retry_opts, idempotent=idempotent)
         except httpx.ReadTimeout as e:
             raise ClientHTTPError(408, 'Client request timed out') from e
         except httpx.HTTPStatusError as e:

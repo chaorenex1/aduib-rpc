@@ -46,11 +46,6 @@ class AduibRpcClientFactory:
             pooling_enabled=client_cfg.pooling_enabled,
             http_timeout=client_cfg.http_timeout,
             grpc_timeout=client_cfg.grpc_timeout,
-            retry_enabled=client_cfg.retry_enabled,
-            retry_max_attempts=client_cfg.retry_max_attempts,
-            retry_backoff_ms=client_cfg.retry_backoff_ms,
-            retry_max_backoff_ms=client_cfg.retry_max_backoff_ms,
-            retry_jitter=client_cfg.retry_jitter,
         )
         return AduibRpcClientFactory(config=base_config)
 

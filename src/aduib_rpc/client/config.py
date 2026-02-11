@@ -1,6 +1,7 @@
 import dataclasses
 from collections.abc import Callable
 
+
 try:
     import httpx
     from grpc.aio import Channel
@@ -33,10 +34,3 @@ class ClientConfig:
     grpc_timeout: float | None = 60.0
     """Default request timeout for gRPC unary calls (seconds)."""
 
-    retry_enabled: bool = True
-    """Global retry switch (default off). Can be overridden via request.meta."""
-
-    retry_max_attempts: int = 1
-    retry_backoff_ms: int = 200
-    retry_max_backoff_ms: int = 2000
-    retry_jitter: float = 0.1
