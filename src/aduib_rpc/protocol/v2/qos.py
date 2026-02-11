@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from enum import IntEnum
 from typing import Any
 
@@ -100,7 +101,9 @@ class Priority(IntEnum):
             return 3
         return 4
 
-class QosConfig(BaseModel):
+from dataclasses import dataclass
+@dataclass
+class QosConfig:
     """Quality of service configuration for an RPC request.
 
     Attributes:
@@ -109,18 +112,10 @@ class QosConfig(BaseModel):
         retry: Optional retry configuration.
         idempotency_key: Optional idempotency key for deduplication.
     """
-
+    enabled: bool = False
     priority: Priority = Priority.NORMAL
-    timeout_ms: int | None = None
+    timeout_ms: int = 60000
+    idempotency_ttl_s: int = 300
     retry: RetryPolicy | None = None
     idempotency_key: str | None = None
-
-    @field_validator("timeout_ms")
-    @classmethod
-    def validate_timeout_ms(cls, value: int | None) -> int | None:
-        """Ensure timeout is positive when provided."""
-
-        if value is not None and value <= 0:
-            raise ValueError("timeout_ms must be > 0 when provided")
-        return value
 
