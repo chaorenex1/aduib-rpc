@@ -1,20 +1,26 @@
 # Aduib RPC configuration template.
 # Note: The config loader expects top-level sections under `aduib_rpc` that
 # match `src/aduib_rpc/config/models.py`:
+# - protocol
 # - client
-# - server
-# - resilience (client-side resilience settings)
-# - security (server-side security settings)
-# - observability
-# - health_check (discovery health checks)
+# - resilience
+# - security
+# - telemetry
+# - health_check
+# - qos
 #
 # Environment variable expansion supports the syntax ${VAR:-default}.
 
 aduib_rpc:
-  client:
-    # Enable or disable streaming mode for client requests.
-    streaming: ${ADUIB_RPC_CLIENT_STREAMING:-true}
+  # Protocol version configuration.
+  protocol:
+    # Supported protocol versions.
+    protocol_versions: ${ADUIB_RPC_PROTOCOL_VERSIONS:-[1.0,2.0]}
+    # Default protocol version to use.
+    default_version: ${ADUIB_RPC_PROTOCOL_DEFAULT_VERSION:-2.0}
 
+  # Client configuration.
+  client:
     # Optional: injected httpx.AsyncClient (set in code, not via YAML).
     httpx_client: null
 
@@ -33,31 +39,7 @@ aduib_rpc:
     # Default gRPC timeout (seconds); set to null to disable.
     grpc_timeout: ${ADUIB_RPC_CLIENT_GRPC_TIMEOUT:-60.0}
 
-    # Global retry switch (default off).
-    retry_enabled: ${ADUIB_RPC_CLIENT_RETRY_ENABLED:-false}
-
-    # Max retry attempts (must be >= 1).
-    retry_max_attempts: ${ADUIB_RPC_CLIENT_RETRY_MAX_ATTEMPTS:-1}
-
-    # Base backoff in milliseconds.
-    retry_backoff_ms: ${ADUIB_RPC_CLIENT_RETRY_BACKOFF_MS:-200}
-
-    # Max backoff in milliseconds (must be >= retry_backoff_ms).
-    retry_max_backoff_ms: ${ADUIB_RPC_CLIENT_RETRY_MAX_BACKOFF_MS:-2000}
-
-    # Jitter ratio between 0.0 and 1.0.
-    retry_jitter: ${ADUIB_RPC_CLIENT_RETRY_JITTER:-0.1}
-
-  server:
-    # Bind host for the server.
-    host: ${ADUIB_RPC_SERVER_HOST:-0.0.0.0}
-
-    # Listening port (0-65535).
-    port: ${ADUIB_RPC_SERVER_PORT:-50051}
-
-    # Transport scheme (grpc | http | jsonrpc | thrift).
-    scheme: ${ADUIB_RPC_SERVER_SCHEME:-grpc}
-
+  # Resilience configuration (client-side resilience patterns).
   resilience:
     # Enable or disable the resilience middleware globally.
     enabled: ${ADUIB_RPC_RESILIENCE_ENABLED:-true}
@@ -121,6 +103,7 @@ aduib_rpc:
     # Optional per-service overrides (application must apply these explicitly).
     service_overrides: {}
 
+  # Security configuration (server-side).
   security:
     # Enable RBAC authorization checks.
     rbac_enabled: ${ADUIB_RPC_SECURITY_RBAC_ENABLED:-true}
@@ -171,19 +154,41 @@ aduib_rpc:
       # Allowed issuer common names.
       allowed_issuer_common_names: ${ADUIB_RPC_MTLS_ALLOWED_ISSUER_CNS:-[]}
 
-  observability:
-    logging:
-      # Enable structured logging.
-      enabled: ${ADUIB_RPC_LOGGING_ENABLED:-true}
-      # Log level (DEBUG | INFO | WARNING | ERROR | CRITICAL).
-      level: ${ADUIB_RPC_LOGGING_LEVEL:-INFO}
-      # Format: json or console.
-      format: ${ADUIB_RPC_LOGGING_FORMAT:-json}
+  # Telemetry configuration (OpenTelemetry-based observability).
+  telemetry:
+    # Enable or disable telemetry globally.
+    enabled: ${ADUIB_RPC_TELEMETRY_ENABLED:-true}
 
-    metrics:
-      # Enable metrics export/collection.
-      enabled: ${ADUIB_RPC_METRICS_ENABLED:-true}
+    # Service name for traces/metrics.
+    service_name: ${OTEL_SERVICE_NAME:-aduib-rpc}
 
+    # OTLP endpoint (e.g., "http://localhost:4317" for gRPC, "http://localhost:4318" for HTTP).
+    otlp_endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4317}
+
+    # OTLP protocol (grpc | http/protobuf).
+    otlp_protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:-grpc}
+
+    # Tracing configuration.
+    tracing_enabled: ${ADUIB_RPC_TRACING_ENABLED:-true}
+    instrument_fastapi: ${ADUIB_RPC_INSTRUMENT_FASTAPI:-true}
+    instrument_httpx: ${ADUIB_RPC_INSTRUMENT_HTTPX:-true}
+    instrument_grpc: ${ADUIB_RPC_INSTRUMENT_GRPC:-true}
+
+    # Metrics configuration.
+    metrics_enabled: ${ADUIB_RPC_METRICS_ENABLED:-true}
+    metrics_export_interval_ms: ${ADUIB_RPC_METRICS_EXPORT_INTERVAL_MS:-30000}
+
+    # Logging configuration.
+    logging_enabled: ${ADUIB_RPC_LOGGING_ENABLED:-true}
+    log_level: ${ADUIB_RPC_LOG_LEVEL:-INFO}
+    log_format: ${ADUIB_RPC_LOG_FORMAT:-json}
+
+    # Audit configuration.
+    audit_enabled: ${ADUIB_RPC_AUDIT_ENABLED:-true}
+    audit_include_params: ${ADUIB_RPC_AUDIT_INCLUDE_PARAMS:-false}
+    audit_include_response: ${ADUIB_RPC_AUDIT_INCLUDE_RESPONSE:-false}
+
+  # Health check configuration (service discovery).
   health_check:
     # Interval between health checks (seconds).
     interval_seconds: ${ADUIB_RPC_HEALTH_INTERVAL_SECONDS:-10.0}
@@ -195,3 +200,28 @@ aduib_rpc:
     unhealthy_threshold: ${ADUIB_RPC_HEALTH_UNHEALTHY_THRESHOLD:-3}
     # Health endpoint path for HTTP checks.
     path: ${ADUIB_RPC_HEALTH_PATH:-/health}
+
+  # QoS (Quality of Service) configuration.
+  qos:
+    # Enable or disable QoS enforcement.
+    enabled: ${ADUIB_RPC_QOS_ENABLED:-false}
+
+    # Default priority (0=LOW, 1=NORMAL, 2=HIGH, 3=CRITICAL).
+    priority: ${ADUIB_RPC_QOS_PRIORITY:-1}
+
+    # Default timeout in milliseconds.
+    timeout_ms: ${ADUIB_RPC_QOS_TIMEOUT_MS:-60000}
+
+    # Default idempotency key (empty means auto-generate per request).
+    idempotency_key: ${ADUIB_RPC_QOS_IDEMPOTENCY_KEY:-}
+
+    # Idempotency cache TTL in seconds.
+    idempotency_ttl_s: ${ADUIB_RPC_QOS_IDEMPOTENCY_TTL_S:-300}
+
+    # Optional retry policy for QoS-managed requests.
+    retry: null
+    # retry:
+    #   max_attempts: 3
+    #   strategy: exponential
+    #   initial_delay_ms: 100
+    #   max_delay_ms: 10000
