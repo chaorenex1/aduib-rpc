@@ -243,7 +243,7 @@
 - 任务：timeout_ms 硬超时；idempotency_key 去重缓存；priority；（retry 是否 server-side）
 - 代码落点：
   - `protocol/v2/qos.py::QosConfig`
-  - `server/qos/handler.py::QosHandler/IdempotencyCache`
+  - `server/qos/handler.py::QosHandler/InMemoryIdempotencyCache`
 - 默认 wiring：❌（DefaultRequestHandler 未调用 QosHandler；所有 transport 都不会自动生效）
 - 测试证据：`tests/test_qos_handler.py` 是 module test，不是 server 主链路接入证明。
 

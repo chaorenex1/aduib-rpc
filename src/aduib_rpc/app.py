@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 from enum import StrEnum
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from aduib_rpc.client.client_factory import AduibRpcClientFactory
 from aduib_rpc.client.service_resolver import RegistryServiceResolver, ResolvedService
@@ -31,6 +31,7 @@ from aduib_rpc.discover.entities.service_instance import HealthStatus
 from aduib_rpc.discover.registry.registry_factory import ServiceRegistryFactory
 from aduib_rpc.discover.registry.service_registry import ServiceRegistry
 from aduib_rpc.discover.service.aduibrpc_service_factory import AduibServiceFactory
+from aduib_rpc.resilience import Cache
 from aduib_rpc.server import get_runtime, update_runtime
 from aduib_rpc.server.context import ServerInterceptor
 from aduib_rpc.server.tasks.provider import TaskManagerProvider
@@ -40,6 +41,9 @@ from aduib_rpc.utils.constant import LoadBalancePolicy, AIProtocols, TransportSc
 logger = logging.getLogger(__name__)
 
 _GLOBAL_RPC_APP: "RpcApp | None" = None
+
+if TYPE_CHECKING:
+    from aduib_rpc.security.permission_provider import PermissionProvider
 
 class ServeMode(StrEnum):
     DISCOVERY_ONLY = "discovery_only"
@@ -77,7 +81,6 @@ class RpcApp:
     registries: list[ServiceRegistry]
     resolver_policy: LoadBalancePolicy = LoadBalancePolicy.WeightedRoundRobin
 
-    # New: central place for v2-related defaults.
     config: AduibRpcConfig
     instance: ServiceInstance
     factory: AduibServiceFactory
@@ -90,6 +93,18 @@ class RpcApp:
         self._health_checker: "HealthChecker | None" = None
         self._base_registries: list[ServiceRegistry] | None = None
         self._service_factories: list[AduibServiceFactory] = []
+        self.permission_provider: "PermissionProvider | None" = None
+        self.cache: Cache | None = None
+
+    def set_permission_provider(self, provider) -> None:
+        from aduib_rpc.security.permission_provider import PermissionProvider
+
+        if not isinstance(provider, PermissionProvider):
+            raise TypeError("provider must be a PermissionProvider")
+        provider.apply(self)
+
+    def set_cache_provider(self, cache: Cache) -> None:
+        self.cache = cache
 
 
     def get_client_id(self) -> str:
@@ -145,6 +160,16 @@ class RpcApp:
                 logger.warning("Resilience interceptor not available: %s", e)
             except Exception:
                 logger.exception("Failed to build Resilience interceptor")
+        if cfg.qos.enabled:
+            try:
+                from aduib_rpc.server.qos import QosHandler
+                from aduib_rpc.server.interceptors import QosInterceptor
+                interceptors.append(QosInterceptor(qos_handler=QosHandler(self.cache,self.config.qos.timeout_ms,self.config.qos.idempotency_ttl_s)))
+                logger.info("QoS interceptor loaded")
+            except ImportError as e:
+                logger.warning("QoS interceptor not available: %s", e)
+            except Exception:
+                logger.exception("Failed to build QoS interceptor")
 
         audit_config = None
         audit_logger = None
@@ -169,8 +194,14 @@ class RpcApp:
             try:
                 from aduib_rpc.server.interceptors.security import SecurityInterceptor
 
+                provider = getattr(self, "permission_provider", None)
                 interceptors.append(
-                    SecurityInterceptor(config=cfg.security, audit_logger=audit_logger)
+                    SecurityInterceptor(
+                        config=cfg.security,
+                        audit_logger=audit_logger,
+                        token_validator=getattr(provider, "token_validator", None),
+                        permission_validator=getattr(provider, "permission_validator", None),
+                    )
                 )
                 logger.info("Security interceptor loaded")
             except ImportError as e:
@@ -360,11 +391,6 @@ class RpcApp:
             pooling_enabled=self.config.client.pooling_enabled,
             http_timeout=self.config.client.http_timeout,
             grpc_timeout=self.config.client.grpc_timeout,
-            retry_enabled=self.config.client.retry_enabled,
-            retry_max_attempts=self.config.client.retry_max_attempts,
-            retry_backoff_ms=self.config.client.retry_backoff_ms,
-            retry_max_backoff_ms=self.config.client.retry_max_backoff_ms,
-            retry_jitter=self.config.client.retry_jitter,
         )
 
         client_factory = AduibRpcClientFactory(config=client_config)
@@ -437,7 +463,7 @@ async def run_serve(
     service_metadata: dict[str, str]=None,
     registry_type: str = "in_memory",
     registry_config: dict[str, Any] | None = None,
-    config: str | None = None,
+    config: str | AduibRpcConfig | None = None,
     config_source_type: str | None = None,
     config_source_config: dict[str, Any] | None = None,
     task_manager_enable: bool = True,
@@ -445,6 +471,8 @@ async def run_serve(
     task_manager_config: TaskManagerConfig | None = None,
     server_kwargs: dict[str, Any] | None = None,
     resolver_policy: LoadBalancePolicy=LoadBalancePolicy.WeightedRoundRobin,
+    permission_provider: "PermissionProvider | None" = None,
+    cache_provider: Cache | None = None,
 ) -> RpcApp:
     """One-shot full workflow helper.
 
@@ -473,11 +501,14 @@ async def run_serve(
 
     # Load config if provided, then optionally overlay via config source.
     config_obj: AduibRpcConfig | None = None
-    if config is not None:
-        try:
-            config_obj = load_config(config)
-        except Exception as e:
-            logger.warning(f"Failed to load AduibRpcConfig from {config}: {e}, proceeding with defaults.")
+    if isinstance(config, AduibRpcConfig):
+        config_obj = config
+    else:
+        if config is not None:
+            try:
+                config_obj = load_config(config)
+            except Exception as e:
+                logger.warning(f"Failed to load AduibRpcConfig from {config}: {e}, proceeding with defaults.")
 
     if config_obj is None:
         config_obj = AduibRpcConfig()
@@ -529,6 +560,10 @@ async def run_serve(
 
     app = RpcApp.from_registry_type(registry_type, **(registry_config or {}))
     app.resolver_policy=resolver_policy
+    if permission_provider is not None:
+        app.set_permission_provider(permission_provider)
+    if cache_provider is not None:
+        app.set_cache_provider(cache_provider)
     await app.enable_health_checks()
     if serve_mode in {
         ServeMode.REGISTRATION_ONLY,

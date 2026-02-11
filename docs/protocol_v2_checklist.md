@@ -180,7 +180,7 @@
 
 ### 5.3 idempotency_key
 - [x] 请求去重缓存（内存实现 + 可插拔后端接口）
-  - 证据: `src/aduib_rpc/server/qos/handler.py::IdempotencyCache`
+  - 证据: `src/aduib_rpc/server/qos/handler.py::InMemoryIdempotencyCache`
 - [x] TTL + 并发一致性
   - 证据: `test_idempotency_cache_expiration`, `test_qos_handler_returns_cached_response`
 

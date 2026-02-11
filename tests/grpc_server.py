@@ -19,7 +19,7 @@ async def main():
         "APP_NAME": "test_app"
     }
     app = await run_serve(
-        registry_type="nacos",
+        registry_type="in-memory",
         service_modules=["tests.fixtures_service_module"],
         service_name="test_app",
         registry_config=registry_config,
