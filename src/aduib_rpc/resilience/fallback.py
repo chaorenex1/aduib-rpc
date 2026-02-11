@@ -258,9 +258,7 @@ class FallbackExecutor:
         for handler in self._iter_cached_handlers(self._handlers):
             handler._update_cache(value)
 
-    def _iter_cached_handlers(
-        self, handlers: tuple[FallbackHandler, ...]
-    ) -> Iterable[CachedValueFallback]:
+    def _iter_cached_handlers(self, handlers: tuple[FallbackHandler, ...]) -> Iterable[CachedValueFallback]:
         for handler in handlers:
             if isinstance(handler, CachedValueFallback):
                 yield handler

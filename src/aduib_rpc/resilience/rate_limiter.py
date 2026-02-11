@@ -34,6 +34,7 @@ from abc import ABC, abstractmethod
 
 from aduib_rpc.exceptions import RateLimitedError
 
+
 class RateLimitAlgorithm(str, enum.Enum):
     """Supported rate limiting algorithms."""
 

@@ -12,6 +12,7 @@ Example:
     )
     middleware = ResilienceMiddleware(config)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -45,4 +46,3 @@ class ResilienceConfig:
     retry: RetryPolicy | None = None
     fallback: FallbackPolicy | None = None
     enabled: bool = True
-

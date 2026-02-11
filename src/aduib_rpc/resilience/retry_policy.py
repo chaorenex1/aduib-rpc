@@ -60,7 +60,9 @@ class RetryExecutor:
         self._jitter = max(0.0, min(1.0, float(policy.jitter)))
         self._retryable_codes = set(policy.retryable_codes) if policy.retryable_codes is not None else None
         self._respect_circuit_breaker = bool(policy.respect_circuit_breaker)
-        self._retry_condition = RetryCondition.ON_SPECIFIC_CODES if self._retryable_codes is not None else RetryCondition.ON_ERROR
+        self._retry_condition = (
+            RetryCondition.ON_SPECIFIC_CODES if self._retryable_codes is not None else RetryCondition.ON_ERROR
+        )
 
     async def execute(
         self,
