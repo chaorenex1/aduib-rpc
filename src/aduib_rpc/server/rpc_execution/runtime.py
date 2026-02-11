@@ -37,6 +37,8 @@ class ScopedRuntime:
         client_instances: dict[str, Any] | None = None,
         service_info: ServiceInstance | None = None,
         credentials_provider: CredentialsProvider | None = None,
+        auth_scheme: Any | None = None,
+        security_scheme: Any | None = None,
         config: AduibRpcConfig | None = None,
     ) -> None:
         self.tenant_id = tenant_id
@@ -48,6 +50,8 @@ class ScopedRuntime:
         self.client_instances = client_instances or {}
         self.service_info = service_info
         self.credentials_provider = credentials_provider
+        self.auth_scheme = auth_scheme
+        self.security_scheme = security_scheme
         self.config = config
 
     def child(self, tenant_id: str | None = None) -> ScopedRuntime:
@@ -66,6 +70,8 @@ class ScopedRuntime:
             client_instances=dict(self.client_instances),
             service_info=self.service_info,
             credentials_provider=self.credentials_provider,
+            auth_scheme=self.auth_scheme,
+            security_scheme=self.security_scheme,
         )
 
     def register_service(self, name: str, func: Any) -> None:
@@ -229,6 +235,8 @@ class ScopedRuntime:
         self.client_funcs.clear()
         self.interceptors.clear()
         self.credentials_provider = None
+        self.auth_scheme = None
+        self.security_scheme = None
         # Restore service_info if it was explicitly set (not from default)
         if saved_service_info is not None:
             self.service_info = saved_service_info
@@ -243,6 +251,10 @@ class ScopedRuntime:
         has_auth = any(isinstance(i, AuthInterceptor) for i in self.interceptors)
         if not has_auth:
             self.interceptors.append(AuthInterceptor(self.credentials_provider))
+
+    def set_credentials_provider(self, provider: CredentialsProvider | None) -> None:
+        """Set credentials provider used for outbound calls."""
+        self.credentials_provider = provider
 
 
 def create_runtime() -> ScopedRuntime:

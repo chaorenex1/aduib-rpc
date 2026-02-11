@@ -12,137 +12,19 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
-from collections import OrderedDict
 from functools import wraps
 from typing import Any, Awaitable, Callable
 
 from aduib_rpc.protocol.v2.errors import ErrorCode
 from aduib_rpc.protocol.v2.qos import QosConfig
 from aduib_rpc.protocol.v2.types import AduibRpcRequest, AduibRpcResponse, RpcError
+from aduib_rpc.resilience.cache import Cache, InMemoryIdempotencyCache
 from aduib_rpc.resilience.retry_policy import RetryExecutor, RetryPolicy
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_MS = 30000  # 30 seconds
 MAX_TIMEOUT_MS = 300000     # 5 minutes
-
-
-class IdempotencyCache:
-    """In-memory LRU cache for idempotent request responses.
-
-    For production, consider using Redis for distributed caching.
-    """
-
-    def __init__(self, max_size: int = 1000, ttl_seconds: int = 3600):
-        """Initialize the cache.
-
-        Args:
-            max_size: Maximum number of cached responses.
-            ttl_seconds: Time-to-live for cache entries in seconds.
-        """
-        self._cache: OrderedDict[str, _CacheEntry] = OrderedDict()
-        self._max_size = max_size
-        self._ttl_seconds = ttl_seconds
-        # Singleflight: ensure at most one coroutine computes a given key at once.
-        self._inflight_locks: dict[str, asyncio.Lock] = {}
-        self._inflight_lock: asyncio.Lock = asyncio.Lock()
-
-    def get(self, key: str) -> AduibRpcResponse | None:
-        """Get cached response if exists and not expired.
-
-        Args:
-            key: The idempotency key.
-
-        Returns:
-            Cached response or None if not found/expired.
-        """
-        entry = self._cache.get(key)
-        if entry is None:
-            return None
-
-        if time.time() - entry.timestamp > self._ttl_seconds:
-            # Expired
-            del self._cache[key]
-            return None
-
-        # Move to end (most recently used)
-        self._cache.move_to_end(key)
-        return entry.response
-
-    def set(self, key: str, response: AduibRpcResponse) -> None:
-        """Cache a response.
-
-        Args:
-            key: The idempotency key.
-            response: The response to cache.
-        """
-        # Evict oldest if at capacity
-        if len(self._cache) >= self._max_size and key not in self._cache:
-            self._cache.popitem(last=False)
-
-        self._cache[key] = _CacheEntry(response=response, timestamp=time.time())
-
-    async def get_or_compute(
-        self,
-        key: str,
-        factory: Callable[[], Awaitable[AduibRpcResponse]],
-    ) -> AduibRpcResponse:
-        # 1. 先检查缓存
-        cached = self.get(key)
-        if cached is not None:
-            return cached
-
-        # 2. 获取 per-key 锁
-        async with self._inflight_lock:
-            if key not in self._inflight_locks:
-                self._inflight_locks[key] = asyncio.Lock()
-            key_lock = self._inflight_locks[key]
-
-        # 3. 在锁内执行
-        async with key_lock:
-            # Double-check
-            cached = self.get(key)
-            if cached is not None:
-                return cached
-
-            result = await factory()
-            # Keep the previous caching behavior: only cache non-None responses.
-            if result is not None:
-                self.set(key, result)
-            return result
-
-    def has(self, key: str) -> bool:
-        """Check if key exists (including expired entries).
-
-        Args:
-            key: The idempotency key.
-
-        Returns:
-            True if key exists in cache.
-        """
-        return key in self._cache
-
-    def clear(self) -> None:
-        """Clear all cached entries."""
-        self._cache.clear()
-
-
-class _CacheEntry:
-    """A cache entry with timestamp."""
-
-    def __init__(self, response: AduibRpcResponse, timestamp: float):
-        self.response = response
-        self.timestamp = timestamp
-
-
-# Global default cache instance
-_default_cache = IdempotencyCache()
-
-
-def get_default_cache() -> IdempotencyCache:
-    """Get the global default idempotency cache."""
-    return _default_cache
 
 
 class QosHandler:
@@ -156,8 +38,9 @@ class QosHandler:
 
     def __init__(
         self,
-        cache: IdempotencyCache | None = None,
+        cache: Cache | None = None,
         default_timeout_ms: int | None = None,
+        idempotency_ttl_s: int | None = None,
     ):
         """Initialize the QoS handler.
 
@@ -165,11 +48,14 @@ class QosHandler:
             cache: Idempotency cache instance. Uses default if None.
             default_timeout_ms: Default timeout if not specified in request.
         """
-        self._cache = cache or _default_cache
+        self._cache = cache if cache is not None else InMemoryIdempotencyCache()
         # Ensure there is a default timeout value.
         self._default_timeout_ms = (
             default_timeout_ms if default_timeout_ms is not None else DEFAULT_TIMEOUT_MS
         )
+        self._idempotency_ttl_s = idempotency_ttl_s if idempotency_ttl_s is not None else 3600
+        self._idempotency_locks: dict[str, asyncio.Lock] = {}
+        self._idempotency_lock: asyncio.Lock = asyncio.Lock()
 
     async def handle_request(
         self,
@@ -214,7 +100,7 @@ class QosHandler:
             async def _factory() -> AduibRpcResponse:
                 return await self._execute_with_retry(_execute_once, qos)
 
-            cached_or_fresh = await self._cache.get_or_compute(idempotency_key, _factory)
+            cached_or_fresh = await self._get_or_compute(idempotency_key, _factory)
             logger.debug("Idempotency singleflight served key: %s", idempotency_key)
             return cached_or_fresh
 
@@ -334,13 +220,37 @@ class QosHandler:
             return min(int(qos.timeout_ms), MAX_TIMEOUT_MS)
         return None
 
+    async def _get_or_compute(
+        self,
+        key: str,
+        factory: Callable[[], Awaitable[AduibRpcResponse]],
+    ) -> AduibRpcResponse:
+        cached = await self._cache.get(key, default=None)
+        if cached is not None:
+            return cached
+
+        async with self._idempotency_lock:
+            if key not in self._idempotency_locks:
+                self._idempotency_locks[key] = asyncio.Lock()
+            key_lock = self._idempotency_locks[key]
+
+        async with key_lock:
+            cached = await self._cache.get(key, default=None)
+            if cached is not None:
+                return cached
+            result = await factory()
+            if result is not None:
+                await self._cache.set(key, result, ttl_s=self._idempotency_ttl_s)
+            return result
+
 
 async def with_qos(
     request: AduibRpcRequest,
     handler: Callable[..., Any],
     *args: Any,
-    cache: IdempotencyCache | None = None,
+    cache: Cache | None = None,
     default_timeout_ms: int | None = None,
+    idempotency_ttl_s: int | None = None,
     **kwargs: Any,
 ) -> AduibRpcResponse:
     """Convenience function to handle a request with QoS enforcement.
@@ -356,7 +266,11 @@ async def with_qos(
     Returns:
         The response from handler or cache.
     """
-    qos_handler = QosHandler(cache=cache, default_timeout_ms=default_timeout_ms)
+    qos_handler = QosHandler(
+        cache=cache,
+        default_timeout_ms=default_timeout_ms,
+        idempotency_ttl_s=idempotency_ttl_s,
+    )
     return await qos_handler.handle_request(request, handler, *args, **kwargs)
 
 

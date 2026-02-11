@@ -8,22 +8,28 @@ This module provides security-related interceptors including:
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import inspect
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
 from aduib_rpc.protocol.v2 import RpcError
+from aduib_rpc.exceptions import InvalidTokenError, TokenExpiredError, UnauthenticatedError
 from aduib_rpc.telemetry.audit import AuditLogger
 from aduib_rpc.security.rbac import (
-    InMemoryPermissionChecker,
     Permission,
-    PermissionDeniedError,
-    PermissionChecker,
     Principal,
     RbacPolicy,
 )
+from aduib_rpc.security.validators import (
+    TokenValidator,
+    PermissionValidator,
+    MetadataTokenValidator,
+    RbacPermissionValidator,
+)
 from aduib_rpc.protocol.v2.errors import ERROR_CODE_NAMES, ErrorCode
 from aduib_rpc.server.context import InterceptContext, ServerContext, ServerInterceptor
+from aduib_rpc.server.rpc_execution import MethodName, get_runtime
 from aduib_rpc.types import AduibRpcRequest
 
 
@@ -82,7 +88,8 @@ class SecurityInterceptor(ServerInterceptor):
         config: SecurityConfig | None = None,
         rbac_policy: RbacPolicy | None = None,
         audit_logger: AuditLogger | None = None,
-        permission_checker: PermissionChecker | None = None,
+        token_validator: TokenValidator | None = None,
+        permission_validator: PermissionValidator | None = None,
     ):
         """Initialize the security interceptor.
 
@@ -90,7 +97,8 @@ class SecurityInterceptor(ServerInterceptor):
             config: Security configuration.
             rbac_policy: RBAC policy for authorization.
             audit_logger: Audit logger for security events.
-            permission_checker: Permission checker (uses rbac_policy's if None).
+            token_validator: Token validator implementation.
+            permission_validator: Permission validator implementation.
         """
         self.config = config or SecurityConfig()
         # Initialize RBAC
@@ -116,9 +124,9 @@ class SecurityInterceptor(ServerInterceptor):
         if self.config.superadmin_role:
             self._rbac_policy.set_superadmin_role(self.config.superadmin_role)
 
-        # Initialize permission checker
-        self._permission_checker = permission_checker or InMemoryPermissionChecker(
-            list(self._rbac_policy._roles.values())
+        self._token_validator = token_validator or MetadataTokenValidator()
+        self._permission_validator = permission_validator or RbacPermissionValidator(
+            self._rbac_policy
         )
 
         # Initialize audit logger
@@ -133,7 +141,57 @@ class SecurityInterceptor(ServerInterceptor):
             yield
             return
 
-        principal = self._extract_principal(ctx.request, ctx.server_context)
+        permission = self._get_permission_for_method(method)
+        token = self._extract_token(ctx.request, ctx.server_context)
+
+        if token is None:
+            if self.config.require_auth or self.config.rbac_enabled:
+                self._abort_with_error(
+                    ctx,
+                    ErrorCode.UNAUTHENTICATED,
+                    "Unauthenticated",
+                )
+                yield
+                return
+            principal = self._extract_principal(ctx.request, ctx.server_context)
+        else:
+            try:
+                principal = await self._validate_token(token, ctx, method)
+            except TokenExpiredError:
+                self._abort_with_error(
+                    ctx,
+                    ErrorCode.TOKEN_EXPIRED,
+                    "Token expired",
+                )
+                yield
+                return
+            except InvalidTokenError:
+                self._abort_with_error(
+                    ctx,
+                    ErrorCode.INVALID_TOKEN,
+                    "Invalid token",
+                )
+                yield
+                return
+            except UnauthenticatedError:
+                self._abort_with_error(
+                    ctx,
+                    ErrorCode.UNAUTHENTICATED,
+                    "Unauthenticated",
+                )
+                yield
+                return
+            except Exception:
+                self._abort_with_error(
+                    ctx,
+                    ErrorCode.INVALID_TOKEN,
+                    "Invalid token",
+                )
+                yield
+                return
+
+        if principal is None:
+            principal = self._extract_principal(ctx.request, ctx.server_context)
         ctx.server_context.state["principal"] = principal
         if hasattr(ctx.server_context, "metadata"):
             ctx.server_context.metadata["principal_id"] = principal.id
@@ -152,39 +210,13 @@ class SecurityInterceptor(ServerInterceptor):
             )
 
         if self.config.rbac_enabled:
-            if not self._is_authorized(principal, method, ctx.request):
-                if self.config.audit_enabled:
-                    self._log_security_event(
-                        ctx,
-                        principal=principal,
-                        event_type="access_denied",
-                        details={
-                            "request_id": ctx.request.id,
-                            "method": method,
-                            "roles": list(principal.roles),
-                            "reason": "insufficient_permissions",
-                        },
-                    )
-
-                code = int(ErrorCode.PERMISSION_DENIED)
-                ctx.abort(
-                    RpcError(
-                        code=code,
-                        name=ERROR_CODE_NAMES.get(code, "UNKNOWN"),
-                        message=f"Access denied to method: {method}",
-                        details=[
-                            {
-                                "type": "aduib.rpc/permission_denied",
-                                "field": "method",
-                                "reason": "insufficient_permissions",
-                                "metadata": {
-                                    "principal_id": principal.id,
-                                    "required_roles": list(self._get_required_roles(method)),
-                                },
-                            }
-                        ],
-                    )
-                )
+            if permission is None:
+                self._deny_permission(ctx, principal, method, permission, reason="permission_not_defined")
+                yield
+                return
+            allowed = await self._check_permission(principal, permission, ctx, method)
+            if not allowed:
+                self._deny_permission(ctx, principal, method, permission, reason="insufficient_permissions")
                 yield
                 return
 
@@ -267,12 +299,12 @@ class SecurityInterceptor(ServerInterceptor):
         if auth:
             principal_id = auth.principal
             principal_type = auth.principal_type or "user"
-            principal_roles = auth.roles or set()
+            principal_roles = auth.roles or []
 
             return Principal(
                 id=principal_id,
                 type=principal_type,
-                roles=frozenset(principal_roles) if isinstance(principal_roles, set) else frozenset(),
+                roles=frozenset(principal_roles) if isinstance(principal_roles, (list, set, tuple)) else frozenset(),
             )
         if hasattr(context, "metadata"):
             principal_id = context.metadata.get("principal_id")
@@ -293,40 +325,136 @@ class SecurityInterceptor(ServerInterceptor):
             roles=frozenset([self.config.default_role]) if self.config.default_role else frozenset(),
         )
 
-    def _is_authorized(
-        self, principal: Principal, method: str, request: AduibRpcRequest
+    def _extract_token(self, request: AduibRpcRequest, context: ServerContext) -> str | None:
+        auth = request.metadata.auth if request.metadata else None
+        if auth and auth.credentials:
+            return str(auth.credentials)
+        state_auth = context.state.get("auth") if hasattr(context, "state") else None
+        if isinstance(state_auth, dict):
+            token = state_auth.get("token") or state_auth.get("api_key")
+            if token:
+                return str(token)
+        return None
+
+    def _get_permission_for_method(self, method: str) -> Permission | None:
+        try:
+            parsed = MethodName.parse_compat(method)
+        except Exception:
+            return None
+        runtime = get_runtime()
+        service_func = runtime.service_funcs.get(parsed.handler)
+        if service_func is None:
+            legacy_key = f"{parsed.service}.{parsed.handler}"
+            service_func = runtime.service_funcs.get(legacy_key)
+        if service_func is None:
+            return None
+        metadata = getattr(service_func, "metadata", {}) or {}
+        return self._normalize_permission_data(metadata.get("permission"))
+
+    def _normalize_permission_data(self, value: Any) -> Permission | None:
+        if value is None:
+            return None
+        if isinstance(value, Permission):
+            return value
+        if isinstance(value, dict):
+            resource = value.get("resource")
+            action = value.get("action")
+            if resource is None or action is None:
+                return None
+            return Permission(resource=str(resource), action=str(action))
+        if isinstance(value, tuple | list) and len(value) == 2:
+            return Permission(resource=str(value[0]), action=str(value[1]))
+        return None
+
+    async def _validate_token(self, token: str, ctx: InterceptContext, method: str) -> Principal:
+        validator = self._token_validator
+        result = validator.validate(
+            token,
+            method=method,
+            request=ctx.request,
+            context=ctx.server_context,
+        )
+        if inspect.isawaitable(result):
+            result = await result
+        return result
+
+    async def _check_permission(
+        self,
+        principal: Principal,
+        permission: Permission,
+        ctx: InterceptContext,
+        method: str,
     ) -> bool:
-        """Check if principal is authorized to call the method.
+        validator = self._permission_validator
+        result = validator.check(
+            principal,
+            permission=permission,
+            method=method,
+            request=ctx.request,
+            context=ctx.server_context,
+        )
+        if inspect.isawaitable(result):
+            result = await result
+        return bool(result)
 
-        Args:
-            principal: The principal to check.
-            method: The method being called.
-            request: The RPC request.
+    def _abort_with_error(
+        self,
+        ctx: InterceptContext,
+        code: ErrorCode,
+        message: str,
+    ) -> None:
+        code_int = int(code)
+        ctx.abort(
+            RpcError(
+                code=code_int,
+                name=ERROR_CODE_NAMES.get(code_int, "UNKNOWN"),
+                message=message,
+            )
+        )
 
-        Returns:
-            True if authorized, False otherwise.
-        """
-        # Check method-level authorization
-        if not self._permission_checker.can_invoke_method(principal, method):
-            return False
+    def _deny_permission(
+        self,
+        ctx: InterceptContext,
+        principal: Principal,
+        method: str,
+        permission: Permission | None,
+        *,
+        reason: str,
+    ) -> None:
+        if self.config.audit_enabled:
+            self._log_security_event(
+                ctx,
+                principal=principal,
+                event_type="access_denied",
+                details={
+                    "request_id": ctx.request.id,
+                    "method": method,
+                    "roles": list(principal.roles),
+                    "reason": reason,
+                },
+            )
 
-        # If request has specific resource/action, check resource-level permissions
-        if request.data and isinstance(request.data, dict):
-            resource = request.data.get("resource")
-            action = request.data.get("action", "call")
-
-            if resource:
-                permission = Permission(resource=resource, action=action)
-                if not self._permission_checker.has_permission(principal, permission):
-                    return False
-
-        return True
-
-    def _get_required_roles(self, method: str) -> set[str]:
-        """Get roles that are required for a method."""
-        # This is a simplified version - in practice, you might want to
-        # configure this per-method
-        return {"authenticated"}
+        code = int(ErrorCode.PERMISSION_DENIED)
+        details = []
+        if permission is not None:
+            details.append({
+                "type": "aduib.rpc/permission_denied",
+                "field": "permission",
+                "reason": reason,
+                "metadata": {
+                    "principal_id": principal.id,
+                    "resource": permission.resource,
+                    "action": permission.action,
+                },
+            })
+        ctx.abort(
+            RpcError(
+                code=code,
+                name=ERROR_CODE_NAMES.get(code, "UNKNOWN"),
+                message=f"Access denied to method: {method}",
+                details=details or None,
+            )
+        )
 
     def refresh_from_config(self) -> None:
         """Sync RBAC policy defaults with the current config."""

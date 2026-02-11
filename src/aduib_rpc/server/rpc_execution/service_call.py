@@ -9,7 +9,8 @@ from typing import Any, Callable, Mapping, TypeVar
 
 from aduib_rpc.client import ClientRequestInterceptor
 from aduib_rpc.client.auth import CredentialsProvider
-from aduib_rpc.protocol.v2 import TraceContext, QosConfig, RequestMetadata
+from aduib_rpc.client.midwares import ClientContext
+from aduib_rpc.protocol.v2 import TraceContext, QosConfig, RequestMetadata, AuthContext, AuthScheme
 from aduib_rpc.protocol.v2 import get_current_trace_context, set_current_trace_context
 from aduib_rpc.server.rpc_execution import MethodName, RpcRuntime, get_runtime
 from aduib_rpc.server.rpc_execution.service_func import ServiceFunc
@@ -17,6 +18,7 @@ from aduib_rpc.server.tasks import TaskMethod, TaskSubmitRequest, TaskSubscribeR
 from aduib_rpc.server.tasks.types import TaskEventType, TaskStatus
 from aduib_rpc.types import AduibRpcRequest
 from aduib_rpc.utils.anyio_compat import run as run_anyio
+from aduib_rpc.utils.constant import SecuritySchemes
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +92,7 @@ class FuncCallContext:
 
     @classmethod
     def set_credentials_provider(cls, provider: CredentialsProvider) -> None:
-        cls._rt().credentials_provider = provider
+        cls._rt().set_credentials_provider(provider)
 
     @classmethod
     def enable_auth(cls):
@@ -357,6 +359,66 @@ def service_function(  # noqa: PLR0915
 _METADATA_ATTR = "_rpc_metadata"
 
 
+def _normalize_permission(
+    value: "Permission | tuple[str, str] | dict[str, str] | None",
+) -> dict[str, str] | None:
+    if value is None:
+        return None
+    try:
+        from aduib_rpc.security.rbac import Permission
+    except Exception:
+        Permission = None  # type: ignore[assignment]
+    if Permission is not None and isinstance(value, Permission):
+        return {"resource": str(value.resource), "action": str(value.action)}
+    if isinstance(value, dict):
+        resource = value.get("resource")
+        action = value.get("action")
+        if resource is None or action is None:
+            raise ValueError("permission dict must include 'resource' and 'action'")
+        return {"resource": str(resource), "action": str(action)}
+    if isinstance(value, tuple | list) and len(value) == 2:
+        return {"resource": str(value[0]), "action": str(value[1])}
+    raise ValueError("permission must be Permission, (resource, action), dict, or None")
+
+
+def _normalize_auth_scheme(value: Any) -> AuthScheme:
+    if isinstance(value, AuthScheme):
+        return value
+    if value is None:
+        return AuthScheme.UNSPECIFIED
+    raw = str(value).strip().lower()
+    for item in AuthScheme:
+        if str(item.value).lower() == raw:
+            return item
+    return AuthScheme.UNSPECIFIED
+
+
+def _build_auth_context(token: Any, scheme: Any | None) -> AuthContext | None:
+    if token is None:
+        return None
+    if isinstance(token, AuthContext):
+        return token
+    auth_scheme = _normalize_auth_scheme(scheme) if scheme is not None else AuthScheme.BEARER
+    return AuthContext.create(scheme=auth_scheme, credentials=str(token))
+
+
+async def _get_credentials(
+    provider: CredentialsProvider,
+    *,
+    scheme: Any,
+    method: str,
+    payload: dict[str, Any],
+) -> Any:
+    context = ClientContext()
+    context.state["security_schema"] = scheme
+    context.state["method"] = method
+    context.state["payload"] = payload
+    result = provider.get_credentials(scheme, context)
+    if inspect.isawaitable(result):
+        result = await result
+    return result
+
+
 def function(
     *,
     idempotent_key:str |None=None,
@@ -365,6 +427,7 @@ def function(
     server_stream: bool = False,
     bidirectional_stream: bool = False,
     long_running: bool = False,
+    permission: "Permission | tuple[str, str] | dict[str, str] | None" = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to mark a service method with streaming capabilities.
 
@@ -396,6 +459,7 @@ def function(
         server_stream = True
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        normalized_permission = _normalize_permission(permission)
         setattr(func, _METADATA_ATTR, {
             "client_stream": client_stream,
             "server_stream": server_stream,
@@ -403,6 +467,7 @@ def function(
             "idempotent_key": idempotent_key,
             "timeout": timeout,
             "long_running": long_running,
+            "permission": normalized_permission,
         })
         return func
 
@@ -426,6 +491,7 @@ def get_func_metadata(func: Callable[..., Any]) -> dict[str, bool]:
         "idempotent_key": None,
         "timeout": None,
         "long_running": False,
+        "permission": None,
     })
 
 
@@ -539,7 +605,25 @@ def client_function(  # noqa: PLR0915
             set_current_trace_context(trace_context)
 
         qos_config=QosConfig(timeout_ms=client_func.timeout,idempotency_key=dict_data.get('idempotency_key', None) if client_func.idempotent_key else None,retry=app.config.resilience.retry)
-        request_meta = RequestMetadata.create(effective_runtime.tenant_id,client_id=app.get_client_id())
+        auth_ctx = None
+        provider = getattr(effective_runtime, "credentials_provider", None)
+        if provider is not None:
+            try:
+                scheme = getattr(effective_runtime, "security_scheme", None) or SecuritySchemes.OAuth2
+                token = await _get_credentials(
+                    provider,
+                    scheme=scheme,
+                    method=method_name,
+                    payload=dict_data,
+                )
+                auth_ctx = _build_auth_context(token, getattr(effective_runtime, "auth_scheme", None))
+            except Exception:
+                logger.exception("credentials_provider failed for method %s", method_name)
+        request_meta = RequestMetadata.create(
+            effective_runtime.tenant_id,
+            client_id=app.get_client_id(),
+            auth=auth_ctx,
+        )
 
         if client_func.long_running:
             request_meta.long_task=True

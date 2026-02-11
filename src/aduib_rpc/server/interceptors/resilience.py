@@ -12,32 +12,31 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
-from dataclasses import dataclass, field
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
-from aduib_rpc.resilience.circuit_breaker import (
-    CircuitBreaker,
-    CircuitBreakerConfig,
-    CircuitBreakerOpenError,
-)
-from aduib_rpc.resilience.rate_limiter import (
-    RateLimiter,
-    RateLimiterConfig,
-    RateLimitedError,
-)
+from aduib_rpc.protocol.v2 import RpcError
+from aduib_rpc.protocol.v2.errors import ErrorCode, ERROR_CODE_NAMES
 from aduib_rpc.resilience.bulkhead import (
     Bulkhead,
     BulkheadConfig,
     BulkheadError,
 )
+from aduib_rpc.resilience.circuit_breaker import (
+    CircuitBreaker,
+    CircuitBreakerConfig,
+)
 from aduib_rpc.resilience.fallback import (
     FallbackExecutor,
     FallbackPolicy,
 )
-from aduib_rpc.protocol.v2 import RpcError
-from aduib_rpc.protocol.v2.errors import ErrorCode, ERROR_CODE_NAMES
+from aduib_rpc.resilience.rate_limiter import (
+    RateLimiter,
+    RateLimiterBase,
+    RateLimiterConfig,
+)
 from aduib_rpc.server.context import InterceptContext, ServerContext, ServerInterceptor
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse
 
@@ -84,7 +83,7 @@ class ServerResilienceInterceptor(ServerInterceptor):
         self,
         config: ServerResilienceConfig | None = None,
         *,
-        rate_limiter: RateLimiter | None = None,
+        rate_limiter: RateLimiterBase | None = None,
         circuit_breaker: CircuitBreaker | None = None,
         bulkhead: Bulkhead | None = None,
         fallback_executor: FallbackExecutor | None = None,
@@ -105,7 +104,7 @@ class ServerResilienceInterceptor(ServerInterceptor):
         self._explicit_fallback_executor = fallback_executor is not None
 
         # Per-tenant rate limiters (if tenant_isolated)
-        self._rate_limiters: dict[str, RateLimiter] = {}
+        self._rate_limiters: dict[str, RateLimiterBase] = {}
         self._circuit_breaker = circuit_breaker
         self._bulkhead = bulkhead
         self._fallback_executor = fallback_executor
@@ -238,7 +237,7 @@ class ServerResilienceInterceptor(ServerInterceptor):
                 except Exception:
                     logger.debug("Failed to release bulkhead permit", exc_info=True)
 
-    async def _get_rate_limiter(self, tenant_id: str) -> RateLimiter | None:
+    async def _get_rate_limiter(self, tenant_id: str) -> RateLimiterBase | None:
         """Get or create rate limiter for a tenant."""
         if not self.config.rate_limiter:
             return None
@@ -251,16 +250,16 @@ class ServerResilienceInterceptor(ServerInterceptor):
         if tenant_id not in self._rate_limiters:
             async with self._lock:
                 if tenant_id not in self._rate_limiters:
-                    self._rate_limiters[tenant_id] = RateLimiter(self.config.rate_limiter)
+                    self._rate_limiters[tenant_id] = self._build_rate_limiter(self.config.rate_limiter)
 
         return self._rate_limiters.get(tenant_id)
 
-    def get_rate_limiter_stats(self, tenant_id: str = "default") -> dict[str, Any] | None:
+    async def get_rate_limiter_stats(self, tenant_id: str = "default") -> dict[str, Any] | None:
         """Get rate limiter statistics for a tenant."""
         rate_limiter = self._rate_limiters.get(tenant_id) or self._rate_limiters.get("default")
         if rate_limiter:
             return {
-                "available_tokens": rate_limiter.get_available_tokens()
+                "available_tokens": await rate_limiter.get_available_tokens()
             }
         return None
 
@@ -269,7 +268,7 @@ class ServerResilienceInterceptor(ServerInterceptor):
         if not self._explicit_rate_limiter:
             self._rate_limiters.clear()
             if self.config.rate_limiter:
-                self._rate_limiters["default"] = RateLimiter(self.config.rate_limiter)
+                self._rate_limiters["default"] = self._build_rate_limiter(self.config.rate_limiter)
 
         if not self._explicit_circuit_breaker:
             if self.config.circuit_breaker:
@@ -288,6 +287,9 @@ class ServerResilienceInterceptor(ServerInterceptor):
                 self._fallback_executor = FallbackExecutor(self.config.fallback)
             else:
                 self._fallback_executor = None
+
+    def _build_rate_limiter(self, config: RateLimiterConfig) -> RateLimiterBase:
+        return RateLimiter(config)
 
 
 class ResilienceHandler:

@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 from aduib_rpc.server.qos.handler import (
-    IdempotencyCache,
+    QosConfig,
     QosHandler,
-    get_default_cache,
     with_qos,
     with_timeout,
 )
 
 __all__ = [
-    "IdempotencyCache",
+    "QosConfig",
     "QosHandler",
-    "get_default_cache",
     "with_qos",
     "with_timeout",
 ]
