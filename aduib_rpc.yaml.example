@@ -10,16 +10,21 @@
 # - qos
 #
 # Environment variable expansion supports the syntax ${VAR:-default}.
+# Default values below are sourced from the project's dataclass definitions.
 
 aduib_rpc:
   # Protocol version configuration.
+  # See: src/aduib_rpc/config/models.py::ProtocolConfig
   protocol:
     # Supported protocol versions.
-    protocol_versions: ${ADUIB_RPC_PROTOCOL_VERSIONS:-[1.0,2.0]}
+    protocol_versions:
+      - "1.0"
+      - "2.0"
     # Default protocol version to use.
-    default_version: ${ADUIB_RPC_PROTOCOL_DEFAULT_VERSION:-2.0}
+    default_version: "2.0"
 
   # Client configuration.
+  # See: src/aduib_rpc/client/config.py::ClientConfig
   client:
     # Optional: injected httpx.AsyncClient (set in code, not via YAML).
     httpx_client: null
@@ -28,107 +33,109 @@ aduib_rpc:
     grpc_channel_factory: null
 
     # Allowed transports (grpc | http | jsonrpc | thrift).
-    supported_transports: ${ADUIB_RPC_CLIENT_SUPPORTED_TRANSPORTS:-[grpc,jsonrpc]}
+    # Empty list means all transports are allowed.
+    supported_transports: []
 
     # Reuse underlying httpx/grpc connections when possible.
-    pooling_enabled: ${ADUIB_RPC_CLIENT_POOLING_ENABLED:-true}
+    pooling_enabled: true
 
     # Default HTTP timeout (seconds); set to null to disable.
-    http_timeout: ${ADUIB_RPC_CLIENT_HTTP_TIMEOUT:-60.0}
+    http_timeout: 60.0
 
     # Default gRPC timeout (seconds); set to null to disable.
-    grpc_timeout: ${ADUIB_RPC_CLIENT_GRPC_TIMEOUT:-60.0}
+    grpc_timeout: 60.0
 
   # Resilience configuration (client-side resilience patterns).
+  # See: src/aduib_rpc/resilience/*.py
   resilience:
     # Enable or disable the resilience middleware globally.
-    enabled: ${ADUIB_RPC_RESILIENCE_ENABLED:-true}
+    enabled: true
 
     # Circuit breaker configuration.
+    # See: src/aduib_rpc/resilience/circuit_breaker.py::CircuitBreakerConfig
     circuit_breaker:
       # Failures required to open the circuit.
-      failure_threshold: ${ADUIB_RPC_CB_FAILURE_THRESHOLD:-5}
+      failure_threshold: 5
       # Successes required to close the circuit from half-open.
-      success_threshold: ${ADUIB_RPC_CB_SUCCESS_THRESHOLD:-3}
+      success_threshold: 3
       # Time to stay open before probing (seconds).
-      timeout_seconds: ${ADUIB_RPC_CB_TIMEOUT_SECONDS:-30.0}
+      timeout_seconds: 30.0
       # Max in-flight calls allowed in half-open.
-      half_open_max_calls: ${ADUIB_RPC_CB_HALF_OPEN_MAX_CALLS:-3}
+      half_open_max_calls: 3
       # Exceptions that do not count as failures (configure in code if needed).
-      excluded_exceptions: ${ADUIB_RPC_CB_EXCLUDED_EXCEPTIONS:-[]}
+      excluded_exceptions: []
 
     # Rate limiter configuration.
+    # See: src/aduib_rpc/resilience/rate_limiter.py::RateLimiterConfig
     rate_limiter:
       # token_bucket | sliding_window | fixed_window.
-      algorithm: ${ADUIB_RPC_RL_ALGORITHM:-token_bucket}
+      algorithm: token_bucket
       # Tokens/requests per second.
-      rate: ${ADUIB_RPC_RL_RATE:-100.0}
+      rate: 100.0
       # Burst capacity for token bucket.
-      burst: ${ADUIB_RPC_RL_BURST:-150}
+      burst: 150
       # Max time to wait in acquire_or_wait (ms).
-      wait_timeout_ms: ${ADUIB_RPC_RL_WAIT_TIMEOUT_MS:-1000}
+      wait_timeout_ms: 1000
 
     # Retry policy configuration.
+    # See: src/aduib_rpc/resilience/retry_policy.py::RetryPolicy
     retry:
       # Maximum retry attempts (>= 1).
-      max_attempts: ${ADUIB_RPC_RETRY_MAX_ATTEMPTS:-3}
+      max_attempts: 3
       # fixed | exponential | linear.
-      strategy: ${ADUIB_RPC_RETRY_STRATEGY:-exponential}
+      strategy: exponential
       # Initial delay in milliseconds.
-      initial_delay_ms: ${ADUIB_RPC_RETRY_INITIAL_DELAY_MS:-100}
+      initial_delay_ms: 100
       # Max delay in milliseconds.
-      max_delay_ms: ${ADUIB_RPC_RETRY_MAX_DELAY_MS:-10000}
+      max_delay_ms: 10000
       # Multiplier for backoff growth.
-      backoff_multiplier: ${ADUIB_RPC_RETRY_BACKOFF_MULTIPLIER:-2.0}
+      backoff_multiplier: 2.0
       # Jitter ratio between 0.0 and 1.0.
-      jitter: ${ADUIB_RPC_RETRY_JITTER:-0.1}
-      # Retryable numeric error codes; empty list means retry on any error.
-      retryable_codes: ${ADUIB_RPC_RETRY_CODES:-[]}
+      jitter: 0.1
+      # Retryable numeric error codes; null means retry on any error.
+      retryable_codes: null
       # Respect circuit breaker state when retrying.
-      respect_circuit_breaker: ${ADUIB_RPC_RETRY_RESPECT_CB:-true}
+      respect_circuit_breaker: true
 
     # Fallback policy (optional). YAML cannot construct handler objects, so keep null
     # unless you inject FallbackPolicy in code.
     fallback: null
-    # fallback:
-    #   # List of FallbackHandler instances (configure in code).
-    #   handlers: []
-    #   # Exception types that trigger fallback (null means all).
-    #   fallback_on: null
-    #   # Re-raise original error if handlers fail.
-    #   propagate_original_error: true
-    #   # Include function context in handler calls.
-    #   include_context: true
 
     # Optional per-service overrides (application must apply these explicitly).
     service_overrides: {}
 
   # Security configuration (server-side).
+  # See: src/aduib_rpc/server/interceptors/security.py::SecurityConfig
   security:
     # Enable RBAC authorization checks.
-    rbac_enabled: ${ADUIB_RPC_SECURITY_RBAC_ENABLED:-true}
+    rbac_enabled: true
 
     # Enable security audit logging.
-    audit_enabled: ${ADUIB_RPC_SECURITY_AUDIT_ENABLED:-true}
+    audit_enabled: true
 
     # Default role assigned to unauthenticated principals.
-    default_role: ${ADUIB_RPC_SECURITY_DEFAULT_ROLE:-anonymous}
+    default_role: anonymous
 
     # Role name that bypasses checks; set to null to disable.
-    superadmin_role: ${ADUIB_RPC_SECURITY_SUPERADMIN_ROLE:-admin}
+    superadmin_role: admin
 
     # Require authentication for all methods unless whitelisted.
-    require_auth: ${ADUIB_RPC_SECURITY_REQUIRE_AUTH:-false}
+    require_auth: false
 
     # Methods allowed without authentication (suffix match).
-    anonymous_methods: ${ADUIB_RPC_SECURITY_ANON_METHODS:-[health,metrics,ping]}
+    anonymous_methods:
+      - health
+      - metrics
+      - ping
 
     # mTLS settings for server-side verification.
+    # See: src/aduib_rpc/config/models.py::MtlsConfig
     mtls:
       # Enable mutual TLS verification.
-      enabled: ${ADUIB_RPC_MTLS_ENABLED:-false}
+      enabled: false
 
       # TLS configuration used by server-side TLS/mTLS.
+      # See: src/aduib_rpc/config/models.py::ServerTlsSettings
       tls:
         # Server certificate path (required for TLS).
         server_cert_path: null
@@ -138,90 +145,92 @@ aduib_rpc:
         server_key_password: null
         # CA bundle path for client cert verification (mTLS).
         ca_cert_path: null
-        # Client cert verification mode (CERT_NONE | CERT_OPTIONAL | CERT_REQUIRED or numeric).
-        client_cert_verification: ${ADUIB_RPC_MTLS_VERIFY_MODE:-2}
+        # Client cert verification mode (CERT_NONE=0 | CERT_OPTIONAL=1 | CERT_REQUIRED=2).
+        client_cert_verification: null
         # Minimum TLS version (TLSv1.2 | TLSv1.3).
-        minimum_version: ${ADUIB_RPC_MTLS_MIN_VERSION:-TLSv1.2}
+        minimum_version: TLSv1.2
         # Maximum TLS version (null means no upper bound).
         maximum_version: null
         # OpenSSL cipher string (optional).
         ciphers: null
 
       # Allowed subject common names.
-      allowed_common_names: ${ADUIB_RPC_MTLS_ALLOWED_CNS:-[]}
+      allowed_common_names: []
       # Allowed subject alternative DNS names.
-      allowed_san_dns: ${ADUIB_RPC_MTLS_ALLOWED_SAN_DNS:-[]}
+      allowed_san_dns: []
       # Allowed issuer common names.
-      allowed_issuer_common_names: ${ADUIB_RPC_MTLS_ALLOWED_ISSUER_CNS:-[]}
+      allowed_issuer_common_names: []
 
   # Telemetry configuration (OpenTelemetry-based observability).
+  # See: src/aduib_rpc/telemetry/config.py::TelemetryConfig
   telemetry:
     # Enable or disable telemetry globally.
-    enabled: ${ADUIB_RPC_TELEMETRY_ENABLED:-true}
+    enabled: true
 
     # Service name for traces/metrics.
-    service_name: ${OTEL_SERVICE_NAME:-aduib-rpc}
+    service_name: aduib-rpc
 
     # OTLP endpoint (e.g., "http://localhost:4317" for gRPC, "http://localhost:4318" for HTTP).
-    otlp_endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4317}
+    otlp_endpoint: http://localhost:4317
 
     # OTLP protocol (grpc | http/protobuf).
-    otlp_protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:-grpc}
+    otlp_protocol: grpc
 
     # Tracing configuration.
-    tracing_enabled: ${ADUIB_RPC_TRACING_ENABLED:-true}
-    instrument_fastapi: ${ADUIB_RPC_INSTRUMENT_FASTAPI:-true}
-    instrument_httpx: ${ADUIB_RPC_INSTRUMENT_HTTPX:-true}
-    instrument_grpc: ${ADUIB_RPC_INSTRUMENT_GRPC:-true}
+    tracing_enabled: true
+    instrument_fastapi: true
+    instrument_httpx: true
+    instrument_grpc: true
 
     # Metrics configuration.
-    metrics_enabled: ${ADUIB_RPC_METRICS_ENABLED:-true}
-    metrics_export_interval_ms: ${ADUIB_RPC_METRICS_EXPORT_INTERVAL_MS:-30000}
+    metrics_enabled: true
+    metrics_export_interval_ms: 30000
 
     # Logging configuration.
-    logging_enabled: ${ADUIB_RPC_LOGGING_ENABLED:-true}
-    log_level: ${ADUIB_RPC_LOG_LEVEL:-INFO}
-    log_format: ${ADUIB_RPC_LOG_FORMAT:-json}
+    logging_enabled: true
+    log_level: INFO
+    log_format: json
 
     # Audit configuration.
-    audit_enabled: ${ADUIB_RPC_AUDIT_ENABLED:-true}
-    audit_include_params: ${ADUIB_RPC_AUDIT_INCLUDE_PARAMS:-false}
-    audit_include_response: ${ADUIB_RPC_AUDIT_INCLUDE_RESPONSE:-false}
+    audit_enabled: true
+    audit_include_params: false
+    audit_include_response: false
 
   # Health check configuration (service discovery).
+  # See: src/aduib_rpc/discover/health/health_status.py::HealthCheckConfig
   health_check:
     # Interval between health checks (seconds).
-    interval_seconds: ${ADUIB_RPC_HEALTH_INTERVAL_SECONDS:-10.0}
+    interval_seconds: 10.0
     # Per-check timeout (seconds).
-    timeout_seconds: ${ADUIB_RPC_HEALTH_TIMEOUT_SECONDS:-5.0}
+    timeout_seconds: 5.0
     # Consecutive successes to mark healthy.
-    healthy_threshold: ${ADUIB_RPC_HEALTH_HEALTHY_THRESHOLD:-2}
+    healthy_threshold: 2
     # Consecutive failures to mark unhealthy.
-    unhealthy_threshold: ${ADUIB_RPC_HEALTH_UNHEALTHY_THRESHOLD:-3}
+    unhealthy_threshold: 3
     # Health endpoint path for HTTP checks.
-    path: ${ADUIB_RPC_HEALTH_PATH:-/health}
+    path: /health
 
   # QoS (Quality of Service) configuration.
+  # See: src/aduib_rpc/protocol/v2/qos.py::QosConfig
   qos:
     # Enable or disable QoS enforcement.
-    enabled: ${ADUIB_RPC_QOS_ENABLED:-false}
+    enabled: false
 
     # Default priority (0=LOW, 1=NORMAL, 2=HIGH, 3=CRITICAL).
-    priority: ${ADUIB_RPC_QOS_PRIORITY:-1}
+    priority: 1
 
     # Default timeout in milliseconds.
-    timeout_ms: ${ADUIB_RPC_QOS_TIMEOUT_MS:-60000}
+    timeout_ms: 60000
 
-    # Default idempotency key (empty means auto-generate per request).
-    idempotency_key: ${ADUIB_RPC_QOS_IDEMPOTENCY_KEY:-}
+    # Default idempotency key (null means auto-generate per request).
+    idempotency_key: null
 
     # Idempotency cache TTL in seconds.
-    idempotency_ttl_s: ${ADUIB_RPC_QOS_IDEMPOTENCY_TTL_S:-300}
+    idempotency_ttl_s: 300
 
     # Optional retry policy for QoS-managed requests.
-    retry: null
-    # retry:
-    #   max_attempts: 3
-    #   strategy: exponential
-    #   initial_delay_ms: 100
-    #   max_delay_ms: 10000
+    retry:
+      max_attempts: 3
+      strategy: exponential
+      initial_delay_ms: 100
+      max_delay_ms: 10000
