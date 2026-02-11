@@ -1,7 +1,7 @@
 """Resilience middleware for client-side request processing.
 
 This module provides integration between the client request flow and the
-resilience patterns (circuit breaker, rate limiting, retry, fallback).
+resilience patterns (circuit breaker, rate limiting, fallback).
 
 Example:
     from aduib_rpc.client.interceptors.resilience import ResilienceMiddleware, ResilienceConfig
@@ -9,7 +9,6 @@ Example:
     config = ResilienceConfig(
         circuit_breaker=CircuitBreakerConfig(failure_threshold=5),
         rate_limiter=RateLimiterConfig(rate=1000),
-        retry=RetryConfig(max_attempts=3),
     )
     middleware = ResilienceMiddleware(config)
 """
@@ -17,7 +16,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from aduib_rpc.client.midwares import (
     ClientContext,
@@ -34,13 +33,12 @@ from aduib_rpc.resilience.fallback import (
 )
 from aduib_rpc.resilience.rate_limiter import (
     RateLimiter,
+    RateLimiterBase,
     RateLimiterConfig,
     RateLimitedError,
 )
-from aduib_rpc.resilience.retry_policy import (
-    RetryExecutor,
-    RetryPolicy,
-)
+from aduib_rpc.resilience.cache import Cache, InMemoryCache
+from aduib_rpc.resilience.retry_policy import RetryPolicy
 from aduib_rpc.utils.constant import SecuritySchemes
 
 
@@ -51,7 +49,7 @@ class ResilienceConfig:
     Attributes:
         circuit_breaker: Circuit breaker configuration.
         rate_limiter: Rate limiter configuration.
-        retry: Retry policy configuration.
+        retry: Retry policy configuration (forwarded to server QoS; not executed here).
         fallback: Fallback policy for when circuit is open.
         enabled: Whether resilience features are enabled.
     """
@@ -76,23 +74,21 @@ class ResilienceMiddleware(ClientRequestInterceptor):
     This middleware implements:
     1. Rate limiting - using token bucket algorithm
     2. Circuit breaking - prevents cascading failures
-    3. Retry with exponential backoff
-    4. Fallback - provides alternative responses when degraded
+    3. Fallback - provides alternative responses when degraded
 
     The middleware processes requests in the following order:
     - Check rate limit
     - Check circuit breaker state
-    - Execute request with retry
-    - Apply fallback if all retries fail
+    - Mark context for fallback handling
     """
 
     def __init__(
         self,
         config: ResilienceConfig | None = None,
         circuit_breaker: CircuitBreaker | None = None,
-        rate_limiter: RateLimiter | None = None,
-        retry_executor: RetryExecutor | None = None,
+        rate_limiter: RateLimiterBase | None = None,
         fallback_executor: FallbackExecutor | None = None,
+        cache: Cache | None = None,
     ):
         """Initialize the resilience middleware.
 
@@ -100,25 +96,23 @@ class ResilienceMiddleware(ClientRequestInterceptor):
             config: Overall resilience configuration.
             circuit_breaker: Pre-configured circuit breaker instance.
             rate_limiter: Pre-configured rate limiter instance.
-            retry_executor: Pre-configured retry executor instance.
             fallback_executor: Pre-configured fallback executor instance.
+            cache: Cache instance for resilience features.
         """
         self.config = config or ResilienceConfig()
 
         # Initialize components
         self._circuit_breakers: dict[str, CircuitBreaker] = {}
-        self._rate_limiters: dict[str, "RateLimiter"] = {}
-        self._retry_executors: dict[str, RetryExecutor] = {}
+        self._rate_limiters: dict[str, RateLimiterBase] = {}
         self._fallback_executors: dict[str, FallbackExecutor] = {}
         self._lock = asyncio.Lock()
+        self._cache = cache or InMemoryCache()
 
         # Use provided instances or create from config
         if circuit_breaker:
             self._circuit_breakers["default"] = circuit_breaker
         if rate_limiter:
             self._rate_limiters["default"] = rate_limiter
-        if retry_executor:
-            self._retry_executors["default"] = retry_executor
         if fallback_executor:
             self._fallback_executors["default"] = fallback_executor
 
@@ -128,10 +122,7 @@ class ResilienceMiddleware(ClientRequestInterceptor):
                 "default", self.config.circuit_breaker
             )
         if self.config.rate_limiter and "default" not in self._rate_limiters:
-            from aduib_rpc.resilience.rate_limiter import RateLimiter
-            self._rate_limiters["default"] = RateLimiter(self.config.rate_limiter)
-        if self.config.retry and "default" not in self._retry_executors:
-            self._retry_executors["default"] = RetryExecutor(self.config.retry)
+            self._rate_limiters["default"] = self._build_rate_limiter(self.config.rate_limiter)
         if self.config.fallback and "default" not in self._fallback_executors:
             self._fallback_executors["default"] = FallbackExecutor(self.config.fallback)
 
@@ -149,8 +140,8 @@ class ResilienceMiddleware(ClientRequestInterceptor):
         1. Rate limiting - may raise RateLimitedError
         2. Circuit breaking - may raise CircuitBreakerOpenError
 
-        Note: This method only validates pre-conditions. The actual retry
-        and fallback logic happens at the transport layer via context markers.
+        Note: This method only validates pre-conditions. Fallback decisions
+        happen at the transport layer via context markers.
 
         Args:
             method: The HTTP method.
@@ -175,6 +166,7 @@ class ResilienceMiddleware(ClientRequestInterceptor):
         # Mark context for resilience processing at transport layer
         context.state["resilience_enabled"] = True
         context.state["resilience_service"] = service_name
+        context.state["resilience_cache"] = self._cache
 
         # Check rate limit
         rate_limiter = self._get_rate_limiter(service_name)
@@ -226,15 +218,9 @@ class ResilienceMiddleware(ClientRequestInterceptor):
         """Get circuit breaker for a service (alias for test compatibility)."""
         return self._CircuitBreaker(service_name)
 
-    def _get_rate_limiter(self, service_name: str) -> RateLimiter | None:
+    def _get_rate_limiter(self, service_name: str) -> RateLimiterBase | None:
         """Get rate limiter for a service."""
         return self._rate_limiters.get(service_name) or self._rate_limiters.get(
-            "default"
-        )
-
-    def _get_retry_executor(self, service_name: str) -> RetryExecutor | None:
-        """Get retry executor for a service."""
-        return self._retry_executors.get(service_name) or self._retry_executors.get(
             "default"
         )
 
@@ -249,7 +235,7 @@ class ResilienceMiddleware(ClientRequestInterceptor):
 
         Args:
             service_name: Name of the service.
-            **kwargs: Configuration overrides (circuit_breaker, rate_limiter, retry, fallback).
+            **kwargs: Configuration overrides (circuit_breaker, rate_limiter, fallback).
         """
         if "circuit_breaker" in kwargs:
             cb_config = kwargs["circuit_breaker"]
@@ -263,16 +249,10 @@ class ResilienceMiddleware(ClientRequestInterceptor):
         if "rate_limiter" in kwargs:
             rl_config = kwargs["rate_limiter"]
             if isinstance(rl_config, RateLimiterConfig):
-                from aduib_rpc.resilience.rate_limiter import RateLimiter
-                self._rate_limiters[service_name] = RateLimiter(rl_config)
+                self._rate_limiters[service_name] = self._build_rate_limiter(rl_config)
             else:
                 # For simplicity we only accept config objects here.
                 pass
-
-        if "retry" in kwargs:
-            retry_config = kwargs["retry"]
-            if isinstance(retry_config, RetryPolicy):
-                self._retry_executors[service_name] = RetryExecutor(retry_config)
 
         if "fallback" in kwargs:
             fallback_config = kwargs["fallback"]
@@ -307,6 +287,9 @@ class ResilienceMiddleware(ClientRequestInterceptor):
                 self._circuit_breakers[service_name] = CircuitBreaker(
                     service_name, cb.config
                 )
+
+    def _build_rate_limiter(self, config: RateLimiterConfig) -> RateLimiterBase:
+        return RateLimiter(config)
 
 
 class ResilienceAwareClientContext:

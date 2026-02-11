@@ -11,7 +11,6 @@ from .models import (
     TelemetryConfig,
     ResilienceConfig,
     SecurityConfig,
-    ServerConfig,
 )
 from .loader import (
     ConfigError,
@@ -45,7 +44,6 @@ __all__ = [
     "TelemetryConfig",
     "ResilienceConfig",
     "SecurityConfig",
-    "ServerConfig",
     "get_default_config_path",
     "load_default_config",
     "load_config",
