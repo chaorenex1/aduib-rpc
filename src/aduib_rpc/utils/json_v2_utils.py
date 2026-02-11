@@ -35,7 +35,12 @@ class FromJson:
 
     @classmethod
     def task_subscribe_request(cls, value: Any) -> TaskSubscribeRequest:
-        return TaskSubscribeRequest.model_validate(cls._payload(value))
+        payload = cls._payload(value)
+        if isinstance(payload, TaskSubscribeRequest):
+            return payload
+        if isinstance(payload, TaskQueryRequest):
+            return TaskSubscribeRequest(task_id=payload.task_id)
+        return TaskSubscribeRequest.model_validate(payload)
 
     @classmethod
     def health_request(cls, value: Any) -> HealthCheckRequest:

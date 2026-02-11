@@ -9,10 +9,6 @@ from aduib_rpc.protocol.v2.health import HealthCheckRequest, HealthCheckResponse
 from aduib_rpc.protocol.v2.metadata import (
     AuthContext,
     AuthScheme,
-    ContentType,
-    Compression,
-    Pagination,
-    RateLimitInfo,
     RequestMetadata,
     ResponseMetadata,
 )
@@ -109,8 +105,6 @@ class FromThrift:
     def request_metadata(cls, value) -> RequestMetadata:
         payload: dict[str, Any] = {
             "timestamp_ms": int(getattr(value, "timestamp_ms", 0) or 0),
-            "content_type": ContentType.from_thrift(getattr(value, "content_type", None)),
-            "accept": [ContentType.from_thrift(item) for item in getattr(value, "accept", None) or []] or None,
             "long_task": bool(getattr(value, "long_task", False)),
         }
         if getattr(value, "client_id", None) is not None:
@@ -122,9 +116,6 @@ class FromThrift:
             payload["auth"] = cls.auth_context(auth_value)
         if getattr(value, "tenant_id", None) is not None:
             payload["tenant_id"] = str(value.tenant_id)
-        compression = Compression.from_thrift(getattr(value, "compression", None))
-        if compression is not None:
-            payload["compression"] = compression
         headers = dict(getattr(value, "headers", None) or {})
         if headers:
             payload["headers"] = {str(k): str(v) for k, v in headers.items()}
@@ -135,42 +126,16 @@ class FromThrift:
         return RequestMetadata(**payload)
 
     @classmethod
-    def pagination(cls, value) -> Pagination:
-        payload: dict[str, Any] = {
-            "total": int(getattr(value, "total", 0) or 0),
-            "page": int(getattr(value, "page", 0) or 0),
-            "page_size": int(getattr(value, "page_size", 0) or 0),
-            "has_next": bool(getattr(value, "has_next", False)),
-        }
-        if getattr(value, "cursor", None) is not None:
-            payload["cursor"] = str(value.cursor)
-        return Pagination(**payload)
-
-    @classmethod
-    def rate_limit_info(cls, value) -> RateLimitInfo:
-        return RateLimitInfo(
-            limit=int(getattr(value, "limit", 0) or 0),
-            remaining=int(getattr(value, "remaining", 0) or 0),
-            reset_at_ms=int(getattr(value, "reset_at_ms", 0) or 0),
-        )
-
     @classmethod
     def response_metadata(cls, value) -> ResponseMetadata:
-        pagination_value = getattr(value, "pagination", None)
-        rate_limit_value = getattr(value, "rate_limit", None)
         payload: dict[str, Any] = {
             "timestamp_ms": int(getattr(value, "timestamp_ms", 0) or 0),
             "duration_ms": int(getattr(value, "duration_ms", 0) or 0),
-            "pagination": cls.pagination(pagination_value) if pagination_value is not None else None,
-            "rate_limit": cls.rate_limit_info(rate_limit_value) if rate_limit_value is not None else None,
         }
         if getattr(value, "server_id", None) is not None:
             payload["server_id"] = str(value.server_id)
         if getattr(value, "server_version", None) is not None:
             payload["server_version"] = str(value.server_version)
-        headers = dict(getattr(value, "headers", None) or {})
-        if headers:
-            payload["headers"] = {str(k): str(v) for k, v in headers.items()}
         return ResponseMetadata(**payload)
 
     @classmethod
@@ -191,7 +156,9 @@ class FromThrift:
 
     @classmethod
     def qos_config(cls, value) -> QosConfig:
-        retry_value = getattr(value, "retry", None)
+        retry_value = getattr(value, "retry_config", None)
+        if retry_value is None:
+            retry_value = getattr(value, "retry", None)
         retry = cls.retry_policy(retry_value) if retry_value is not None else None
         timeout_ms = int(value.timeout_ms) if getattr(value, "timeout_ms", None) is not None else None
         idempotency_key = str(value.idempotency_key) if getattr(value, "idempotency_key", None) is not None else None
@@ -321,7 +288,9 @@ class FromThrift:
 
     @classmethod
     def health_request(cls, value) -> HealthCheckRequest:
-        service = getattr(value, "service", None)
+        service = getattr(value, "service_name", None)
+        if service is None:
+            service = getattr(value, "service", None)
         if service:
             return HealthCheckRequest(service=str(service))
         return HealthCheckRequest()
@@ -376,6 +345,16 @@ class ToThrift:
     """Utility class for converting native Python types to thrift messages."""
 
     @staticmethod
+    def _resolve_type(ttypes, name: str):
+        if ttypes is None:
+            from aduib_rpc.thrift_v2 import ttypes as default_ttypes
+
+            ttypes = default_ttypes
+        if hasattr(ttypes, "ttypes"):
+            ttypes = ttypes.ttypes
+        return getattr(ttypes, name)
+
+    @staticmethod
     def _coerce_str_map(value: dict[str, Any]) -> dict[str, str]:
         return {str(k): str(v) for k, v in value.items()}
 
@@ -393,9 +372,9 @@ class ToThrift:
             return json.dumps({"_unserializable": True})
 
     @classmethod
-    def trace_context(cls, value: TraceContext):
+    def trace_context(cls, value: TraceContext, *, ttypes=None):
         payload = value.model_dump(exclude_none=True)
-        from aduib_rpc.thrift_v2.ttypes import TraceContext as ThriftTraceContext
+        ThriftTraceContext = cls._resolve_type(ttypes, "TraceContext")
 
         msg = ThriftTraceContext(
             trace_id=str(payload.get("trace_id") or ""),
@@ -410,9 +389,9 @@ class ToThrift:
         return msg
 
     @classmethod
-    def auth_context(cls, value: AuthContext):
+    def auth_context(cls, value: AuthContext, *, ttypes=None):
         payload = value.model_dump(exclude_none=True)
-        from aduib_rpc.thrift_v2.ttypes import AuthContext as ThriftAuthContext
+        ThriftAuthContext = cls._resolve_type(ttypes, "AuthContext")
 
         msg = ThriftAuthContext(
             scheme=AuthScheme.to_thrift(payload.get("scheme")),
@@ -427,13 +406,12 @@ class ToThrift:
         return msg
 
     @classmethod
-    def request_metadata(cls, value: RequestMetadata):
+    def request_metadata(cls, value: RequestMetadata, *, ttypes=None):
         payload = value.model_dump(exclude_none=True)
-        from aduib_rpc.thrift_v2.ttypes import RequestMetadata as ThriftRequestMetadata
+        ThriftRequestMetadata = cls._resolve_type(ttypes, "RequestMetadata")
 
         msg = ThriftRequestMetadata(
             timestamp_ms=int(payload.get("timestamp_ms") or 0),
-            content_type=ContentType.to_thrift(payload.get("content_type")),
         )
         if payload.get("client_id") is not None:
             msg.client_id = str(payload.get("client_id"))
@@ -441,14 +419,9 @@ class ToThrift:
             msg.client_version = str(payload.get("client_version"))
         auth_value = value.auth
         if auth_value is not None:
-            msg.auth = cls.auth_context(auth_value)
+            msg.auth = cls.auth_context(auth_value, ttypes=ttypes)
         if value.tenant_id is not None:
             msg.tenant_id = str(value.tenant_id)
-        accept = value.accept or []
-        if accept:
-            msg.accept = [ContentType.to_thrift(item) for item in accept]
-        if value.compression is not None:
-            msg.compression = Compression.to_thrift(value.compression)
         headers_value = value.headers
         if headers_value:
             msg.headers = cls._coerce_str_map(headers_value)
@@ -461,35 +434,10 @@ class ToThrift:
         return msg
 
     @classmethod
-    def pagination(cls, value: Pagination):
-        payload = value.model_dump(exclude_none=True)
-        from aduib_rpc.thrift_v2.ttypes import Pagination as ThriftPagination
-
-        msg = ThriftPagination(
-            total=int(payload.get("total") or 0),
-            page=int(payload.get("page") or 0),
-            page_size=int(payload.get("page_size") or 0),
-            has_next=bool(payload.get("has_next", False)),
-        )
-        if payload.get("cursor") is not None:
-            msg.cursor = str(payload.get("cursor"))
-        return msg
-
     @classmethod
-    def rate_limit_info(cls, value: RateLimitInfo):
+    def response_metadata(cls, value: ResponseMetadata, *, ttypes=None):
         payload = value.model_dump(exclude_none=True)
-        from aduib_rpc.thrift_v2.ttypes import RateLimitInfo as ThriftRateLimitInfo
-
-        return ThriftRateLimitInfo(
-            limit=int(payload.get("limit") or 0),
-            remaining=int(payload.get("remaining") or 0),
-            reset_at_ms=int(payload.get("reset_at_ms") or 0),
-        )
-
-    @classmethod
-    def response_metadata(cls, value: ResponseMetadata):
-        payload = value.model_dump(exclude_none=True)
-        from aduib_rpc.thrift_v2.ttypes import ResponseMetadata as ThriftResponseMetadata
+        ThriftResponseMetadata = cls._resolve_type(ttypes, "ResponseMetadata")
 
         msg = ThriftResponseMetadata(
             timestamp_ms=int(payload.get("timestamp_ms") or 0),
@@ -499,19 +447,10 @@ class ToThrift:
             msg.server_id = str(value.server_id)
         if value.server_version is not None:
             msg.server_version = str(value.server_version)
-        pagination_value = value.pagination
-        if pagination_value is not None:
-            msg.pagination = cls.pagination(pagination_value)
-        rate_limit_value = value.rate_limit
-        if rate_limit_value is not None:
-            msg.rate_limit = cls.rate_limit_info(rate_limit_value)
-        headers_value = value.headers
-        if headers_value:
-            msg.headers = cls._coerce_str_map(headers_value)
         return msg
 
     @classmethod
-    def retry_config(cls, value: RetryPolicy):
+    def retry_config(cls, value: RetryPolicy, *, ttypes=None):
         payload = {
             "max_attempts": value.max_attempts,
             "initial_delay_ms": value.initial_delay_ms,
@@ -519,7 +458,7 @@ class ToThrift:
             "backoff_multiplier": value.backoff_multiplier,
             "retryable_codes": list(value.retryable_codes) if value.retryable_codes else [],
         }
-        from aduib_rpc.thrift_v2.ttypes import RetryConfig as ThriftRetryConfig
+        ThriftRetryConfig = cls._resolve_type(ttypes, "RetryConfig")
 
         msg = ThriftRetryConfig(
             max_attempts=int(payload.get("max_attempts") or 0),
@@ -533,25 +472,23 @@ class ToThrift:
         return msg
 
     @classmethod
-    def qos_config(cls, value: QosConfig):
-        payload = value.model_dump(exclude_none=True)
-        from aduib_rpc.thrift_v2.ttypes import QosConfig as ThriftQosConfig
+    def qos_config(cls, value: QosConfig, *, ttypes=None):
+        ThriftQosConfig = cls._resolve_type(ttypes, "QosConfig")
 
         msg = ThriftQosConfig(priority=Priority.to_thrift(value.priority))
         if value.timeout_ms is not None:
             msg.timeout_ms = int(value.timeout_ms)
         if value.retry is not None:
-            msg.retry = cls.retry_config(value.retry)
+            msg.retry_config = cls.retry_config(value.retry, ttypes=ttypes)
         if value.idempotency_key is not None:
             msg.idempotency_key = str(value.idempotency_key)
         return msg
 
     @classmethod
-    def request(cls, request: V2Request):
+    def request(cls, request: V2Request, *, ttypes=None):
         payload = request.model_dump(exclude_none=True)
 
-        from aduib_rpc.thrift_v2.ttypes import Request as ThriftRequest
-
+        ThriftRequest = cls._resolve_type(ttypes, "Request")
         data_json = cls.json_dumps_safe(payload.get("data") or {})
         msg = ThriftRequest(
             aduib_rpc=str(payload.get("aduib_rpc") or "2.0"),
@@ -563,13 +500,13 @@ class ToThrift:
 
         trace_context_value = getattr(request, "trace_context", None)
         if trace_context_value is not None:
-            msg.trace_context = cls.trace_context(trace_context_value)
+            msg.trace_context = cls.trace_context(trace_context_value, ttypes=ttypes)
         metadata_value = getattr(request, "metadata", None)
         if metadata_value is not None:
-            msg.metadata = cls.request_metadata(metadata_value)
+            msg.metadata = cls.request_metadata(metadata_value, ttypes=ttypes)
         qos_value = getattr(request, "qos", None)
         if qos_value is not None:
-            msg.qos = cls.qos_config(qos_value)
+            msg.qos = cls.qos_config(qos_value, ttypes=ttypes)
         return msg
 
     @classmethod

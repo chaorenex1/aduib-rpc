@@ -9,10 +9,6 @@ from aduib_rpc.protocol.v2.health import HealthCheckRequest, HealthCheckResponse
 from aduib_rpc.protocol.v2.metadata import (
     AuthContext,
     AuthScheme,
-    ContentType,
-    Compression,
-    Pagination,
-    RateLimitInfo,
     RequestMetadata,
     ResponseMetadata,
 )
@@ -115,8 +111,6 @@ class FromProto:
     def request_metadata(cls, value: aduib_rpc_v2_pb2.RequestMetadata) -> RequestMetadata:
         payload: dict[str, Any] = {
             "timestamp_ms": int(getattr(value, "timestamp_ms", 0) or 0),
-            "content_type": ContentType.from_proto(getattr(value, "content_type", None)),
-            "accept": [ContentType.from_proto(item) for item in value.accept] if value.accept else None,
             "long_task": bool(value.long_task) if value.HasField("long_task") else False,
         }
         if value.HasField("client_id"):
@@ -127,8 +121,6 @@ class FromProto:
             payload["auth"] = cls.auth_context(value.auth)
         if value.HasField("tenant_id"):
             payload["tenant_id"] = str(value.tenant_id)
-        if value.HasField("compression"):
-            payload["compression"] = Compression.from_proto(value.compression)
         headers = dict(value.headers) if value.headers else None
         if headers:
             payload["headers"] = {str(k): str(v) for k, v in headers.items()}
@@ -139,40 +131,16 @@ class FromProto:
         return RequestMetadata(**payload)
 
     @classmethod
-    def pagination(cls, value: aduib_rpc_v2_pb2.Pagination) -> Pagination:
-        payload: dict[str, Any] = {
-            "total": int(getattr(value, "total", 0) or 0),
-            "page": int(getattr(value, "page", 0) or 0),
-            "page_size": int(getattr(value, "page_size", 0) or 0),
-            "has_next": bool(getattr(value, "has_next", False)),
-        }
-        if value.HasField("cursor"):
-            payload["cursor"] = str(value.cursor)
-        return Pagination(**payload)
-
-    @classmethod
-    def rate_limit_info(cls, value: aduib_rpc_v2_pb2.RateLimitInfo) -> RateLimitInfo:
-        return RateLimitInfo(
-            limit=int(getattr(value, "limit", 0) or 0),
-            remaining=int(getattr(value, "remaining", 0) or 0),
-            reset_at_ms=int(getattr(value, "reset_at_ms", 0) or 0),
-        )
-
     @classmethod
     def response_metadata(cls, value: aduib_rpc_v2_pb2.ResponseMetadata) -> ResponseMetadata:
         payload: dict[str, Any] = {
             "timestamp_ms": int(getattr(value, "timestamp_ms", 0) or 0),
             "duration_ms": int(getattr(value, "duration_ms", 0) or 0),
-            "pagination": cls.pagination(value.pagination) if value.HasField("pagination") else None,
-            "rate_limit": cls.rate_limit_info(value.rate_limit) if value.HasField("rate_limit") else None,
         }
         if value.HasField("server_id"):
             payload["server_id"] = str(value.server_id)
         if value.HasField("server_version"):
             payload["server_version"] = str(value.server_version)
-        headers = dict(value.headers) if value.headers else None
-        if headers:
-            payload["headers"] = {str(k): str(v) for k, v in headers.items()}
         return ResponseMetadata(**payload)
 
     @classmethod
@@ -405,7 +373,6 @@ class ToProto:
         payload = value.model_dump(exclude_none=True)
         msg = aduib_rpc_v2_pb2.RequestMetadata(
             timestamp_ms=int(value.timestamp_ms or 0),
-            content_type=ContentType.to_proto(value.content_type),
         )
         if value.client_id is not None:
             msg.client_id = str(value.client_id)
@@ -416,11 +383,6 @@ class ToProto:
             msg.auth.CopyFrom(cls.auth_context(auth_value))
         if value.tenant_id is not None:
             msg.tenant_id = str(value.tenant_id)
-        accept = value.accept or []
-        if accept:
-            msg.accept.extend([ContentType.to_proto(item) for item in accept])
-        if value.compression is not None:
-            msg.compression = Compression.to_proto(value.compression)
         headers = value.headers or {}
         if isinstance(headers, dict):
             msg.headers.update({str(k): str(v) for k, v in headers.items()})
@@ -433,27 +395,6 @@ class ToProto:
         return msg
 
     @classmethod
-    def pagination(cls, value: Pagination) -> aduib_rpc_v2_pb2.Pagination:
-        payload = value.model_dump(exclude_none=True)
-        msg = aduib_rpc_v2_pb2.Pagination(
-            total=int(payload.get("total") or 0),
-            page=int(payload.get("page") or 0),
-            page_size=int(payload.get("page_size") or 0),
-            has_next=bool(payload.get("has_next", False)),
-        )
-        if payload.get("cursor") is not None:
-            msg.cursor = str(payload.get("cursor"))
-        return msg
-
-    @classmethod
-    def rate_limit_info(cls, value: RateLimitInfo) -> aduib_rpc_v2_pb2.RateLimitInfo:
-        payload = value.model_dump(exclude_none=True)
-        return aduib_rpc_v2_pb2.RateLimitInfo(
-            limit=int(payload.get("limit") or 0),
-            remaining=int(payload.get("remaining") or 0),
-            reset_at_ms=int(payload.get("reset_at_ms") or 0),
-        )
-
     @classmethod
     def response_metadata(cls, value: ResponseMetadata) -> aduib_rpc_v2_pb2.ResponseMetadata:
         payload = value.model_dump(exclude_none=True)
@@ -465,15 +406,6 @@ class ToProto:
             msg.server_id = str(value.server_id)
         if value.server_version is not None:
             msg.server_version = str(value.server_version)
-        pagination_value = value.pagination
-        if pagination_value is not None:
-            msg.pagination.CopyFrom(cls.pagination(pagination_value))
-        rate_limit_value = value.rate_limit
-        if rate_limit_value is not None:
-            msg.rate_limit.CopyFrom(cls.rate_limit_info(rate_limit_value))
-        headers = value.headers or {}
-        if isinstance(headers, dict):
-            msg.headers.update({str(k): str(v) for k, v in headers.items()})
         return msg
 
     @classmethod
@@ -512,6 +444,71 @@ class ToProto:
         return json_format.ParseDict(obj, struct_pb2.Value())
 
     @classmethod
+    def _dict_to_struct(cls, payload: Any) -> struct_pb2.Struct:
+        struct_value = struct_pb2.Struct()
+        if payload is None:
+            return struct_value
+        if not isinstance(payload, dict):
+            try:
+                json_format.ParseDict(payload, struct_value)
+                return struct_value
+            except Exception:
+                payload = {"value": payload}
+        try:
+            json_format.ParseDict(payload, struct_value)
+            return struct_value
+        except Exception:
+            pass
+        try:
+            if hasattr(struct_value, "update"):
+                struct_value.update(payload)
+                return struct_value
+        except Exception:
+            pass
+        try:
+            if hasattr(struct_value, "__setitem__"):
+                for key, value in payload.items():
+                    struct_value[str(key)] = value
+                return struct_value
+        except Exception:
+            pass
+        try:
+            if hasattr(struct_value, "fields"):
+                for key, value in payload.items():
+                    struct_value.fields[str(key)].CopyFrom(cls.value(value))
+        except Exception:
+            pass
+        return struct_value
+
+    @classmethod
+    def _fill_struct(cls, target: struct_pb2.Struct, payload: Any) -> None:
+        if payload is None:
+            return
+        if not isinstance(payload, dict):
+            try:
+                json_format.ParseDict(payload, target)
+                return
+            except Exception:
+                payload = {"value": payload}
+        try:
+            json_format.ParseDict(payload, target)
+            return
+        except Exception:
+            pass
+        try:
+            if hasattr(target, "update"):
+                target.update(payload)
+                return
+        except Exception:
+            pass
+        try:
+            if hasattr(target, "__setitem__"):
+                for key, value in payload.items():
+                    target[str(key)] = value
+        except Exception:
+            pass
+
+    @classmethod
     def request(cls, request: V2Request) -> aduib_rpc_v2_pb2.Request:
         msg = aduib_rpc_v2_pb2.Request(
             aduib_rpc=str(request.aduib_rpc or "2.0"),
@@ -521,7 +518,7 @@ class ToProto:
         if request.name is not None:
             msg.name = str(request.name)
         if request.data is not None:
-            msg.data.CopyFrom(cls.value(request.data))
+            cls._fill_struct(msg.data, request.data)
         if request.trace_context is not None:
             msg.trace_context.CopyFrom(cls.trace_context(request.trace_context))
         if request.metadata is not None:
@@ -700,7 +697,7 @@ class ToProto:
         msg = aduib_rpc_v2_pb2.TaskSubmitRequest(
             target_method=str(submit.target_method),
             priority=Priority.from_proto(submit.priority),
-            params=json_format.ParseDict(submit.params, struct_pb2.Struct()),
         )
+        if submit.params is not None:
+            cls._fill_struct(msg.params, submit.params)
         return msg
-
