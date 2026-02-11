@@ -101,7 +101,10 @@ class Priority(IntEnum):
             return 3
         return 4
 
+
 from dataclasses import dataclass
+
+
 @dataclass
 class QosConfig:
     """Quality of service configuration for an RPC request.
@@ -112,6 +115,7 @@ class QosConfig:
         retry: Optional retry configuration.
         idempotency_key: Optional idempotency key for deduplication.
     """
+
     enabled: bool = False
     priority: Priority = Priority.NORMAL
     timeout_ms: int = 60000

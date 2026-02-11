@@ -121,9 +121,14 @@ class AuthContext(BaseModel):
     roles: list[str] | None = None
 
     @classmethod
-    def create(cls, scheme: AuthScheme, credentials: str,principal: str | None = None,
-               principal_type: str | None = None,
-               roles: list[str] | None = None) -> AuthContext:
+    def create(
+        cls,
+        scheme: AuthScheme,
+        credentials: str,
+        principal: str | None = None,
+        principal_type: str | None = None,
+        roles: list[str] | None = None,
+    ) -> AuthContext:
         """Helper to create AuthContext."""
         return cls(
             scheme=scheme,
@@ -156,31 +161,32 @@ class RequestMetadata(BaseModel):
     long_task_method: str | None = None
     long_task_timeout: int | None = None
 
-
     @classmethod
-    def create(cls, tenant_id: str,
-               client_id: str,
-                *,
-                auth: AuthContext | None = None,
-               headers: dict[str, str] | None = None,
-               long_task: bool=False,
-               long_task_method: str | None = None,
-                long_task_timeout: int | None = None
-               ) -> RequestMetadata:
-          """Helper to create basic RequestMetadata with current timestamp."""
-          import time
+    def create(
+        cls,
+        tenant_id: str,
+        client_id: str,
+        *,
+        auth: AuthContext | None = None,
+        headers: dict[str, str] | None = None,
+        long_task: bool = False,
+        long_task_method: str | None = None,
+        long_task_timeout: int | None = None,
+    ) -> RequestMetadata:
+        """Helper to create basic RequestMetadata with current timestamp."""
+        import time
 
-          return cls(
-                timestamp_ms=int(time.time() * 1000),
-                tenant_id=tenant_id,
-                client_id=client_id,
-                client_version="2.0.0",
-                auth=auth,
-                headers=headers,
-                long_task=long_task,
-                long_task_method=long_task_method,
-               long_task_timeout=long_task_timeout,
-          )
+        return cls(
+            timestamp_ms=int(time.time() * 1000),
+            tenant_id=tenant_id,
+            client_id=client_id,
+            client_version="2.0.0",
+            auth=auth,
+            headers=headers,
+            long_task=long_task,
+            long_task_method=long_task_method,
+            long_task_timeout=long_task_timeout,
+        )
 
 
 class ResponseMetadata(BaseModel):
@@ -199,16 +205,15 @@ class ResponseMetadata(BaseModel):
     server_version: str | None = None
 
     @classmethod
-    def create(cls,
-               duration_ms: int | None = None,
-               server_id: str | None = None,
-               server_version: str | None = None) -> ResponseMetadata:
-          """Helper to create basic ResponseMetadata with current timestamp."""
-          import time
+    def create(
+        cls, duration_ms: int | None = None, server_id: str | None = None, server_version: str | None = None
+    ) -> ResponseMetadata:
+        """Helper to create basic ResponseMetadata with current timestamp."""
+        import time
 
-          return cls(
-                timestamp_ms=int(time.time() * 1000),
-                duration_ms=duration_ms,
-                server_id=server_id,
-                server_version=server_version,
-          )
+        return cls(
+            timestamp_ms=int(time.time() * 1000),
+            duration_ms=duration_ms,
+            server_id=server_id,
+            server_version=server_version,
+        )

@@ -224,9 +224,7 @@ def error_code_to_grpc_status(code: int) -> str:
     return "UNKNOWN"
 
 
-def exception_from_code(
-    code: int, message: str | None = None, data: Any = None
-) -> RpcException:
+def exception_from_code(code: int, message: str | None = None, data: Any = None) -> RpcException:
     """Create a concrete RPC exception instance from a standardized code."""
 
     exc_cls = _EXCEPTION_BY_CODE.get(code)
@@ -379,4 +377,3 @@ def reset_debug_cache() -> None:
     """
     global _DEBUG_ENABLED
     _DEBUG_ENABLED = None
-

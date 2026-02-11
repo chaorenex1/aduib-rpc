@@ -25,10 +25,7 @@ from aduib_rpc.protocol.v2.metadata import (
     RequestMetadata,
     ResponseMetadata,
 )
-from aduib_rpc.protocol.v2.qos import (
-    Priority,
-    QosConfig
-)
+from aduib_rpc.protocol.v2.qos import Priority, QosConfig
 from aduib_rpc.protocol.v2.types import (
     AduibRpcRequest,
     AduibRpcResponse,
@@ -38,7 +35,7 @@ from aduib_rpc.protocol.v2.types import (
     RpcError,
     TraceContext,
     get_current_trace_context,
-    set_current_trace_context
+    set_current_trace_context,
 )
 
 __all__ = [

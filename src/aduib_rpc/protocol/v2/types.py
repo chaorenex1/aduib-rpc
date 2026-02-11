@@ -150,12 +150,14 @@ _trace_ctx: contextvars.ContextVar[TraceContext] = contextvars.ContextVar(
     "aduib_rpc_trace_ctx",
 )
 
+
 def get_current_trace_context() -> TraceContext | None:
     """Get the current TraceContext from context variables, if set."""
     try:
         return _trace_ctx.get()
     except LookupError:
         return None
+
 
 def set_current_trace_context(trace_context: TraceContext) -> None:
     """Set the current TraceContext in context variables."""
@@ -223,10 +225,7 @@ class RpcError(BaseModel):
         name = ERROR_CODE_NAMES.get(exc.code, "UNKNOWN")
         details = None
         if exc.data is not None and isinstance(exc.data, list):
-            details = [
-                item if isinstance(item, ErrorDetail) else ErrorDetail.model_validate(item)
-                for item in exc.data
-            ]
+            details = [item if isinstance(item, ErrorDetail) else ErrorDetail.model_validate(item) for item in exc.data]
         return cls(code=int(exc.code), name=name, message=exc.message, details=details)
 
 
@@ -285,16 +284,18 @@ class AduibRpcRequest(BaseModel):
         return self._id_str
 
     @classmethod
-    def create(cls,
-               id: str,
-               name: str,
-               method: str,
-               data: dict[str, Any] | None = None,
-               meta: dict[str, Any] | None = None
-               ,*,
-               trace_context:TraceContext,
-               qos:Any,
-               metadata:Any) -> "AduibRpcRequest":
+    def create(
+        cls,
+        id: str,
+        name: str,
+        method: str,
+        data: dict[str, Any] | None = None,
+        meta: dict[str, Any] | None = None,
+        *,
+        trace_context: TraceContext,
+        qos: Any,
+        metadata: Any,
+    ) -> "AduibRpcRequest":
         """Helper to create a request with minimal parameters.
 
         Args:
@@ -306,15 +307,17 @@ class AduibRpcRequest(BaseModel):
             AduibRpcRequest instance.
         """
 
-        return cls(id=id,
-                    name=name,
-                   method=method,
-                   data=data,
-                   meta=meta,
-                   trace_context=trace_context,
-                   qos=qos,
-                   metadata=metadata,
-                   _id_str=str(uuid.uuid4()))
+        return cls(
+            id=id,
+            name=name,
+            method=method,
+            data=data,
+            meta=meta,
+            trace_context=trace_context,
+            qos=qos,
+            metadata=metadata,
+            _id_str=str(uuid.uuid4()),
+        )
 
 
 class AduibRpcResponse(BaseModel):
@@ -367,4 +370,3 @@ class AduibRpcResponse(BaseModel):
         if value is not None and result is not None:
             raise ValueError("result and error are mutually exclusive")
         return value
-
