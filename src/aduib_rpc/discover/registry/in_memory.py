@@ -6,9 +6,10 @@ from aduib_rpc.discover.registry import ServiceRegistry
 from aduib_rpc.discover.registry.registry_factory import registry
 from aduib_rpc.utils.constant import LoadBalancePolicy
 
-logger=logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
-@registry(name='in-memory')
+
+@registry(name="in-memory")
 class InMemoryServiceRegistry(ServiceRegistry):
     """In-memory implementation of the ServiceRegistry."""
 
@@ -27,7 +28,7 @@ class InMemoryServiceRegistry(ServiceRegistry):
         if service_name in self._services:
             del self._services[service_name]
         else:
-            instances:list[ServiceInstance] = self._services.get(service_name)
+            instances: list[ServiceInstance] = self._services.get(service_name)
             for instance in instances:
                 if instance.instance_id == service_name:
                     instances.remove(instance)

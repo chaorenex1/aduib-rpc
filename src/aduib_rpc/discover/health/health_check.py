@@ -25,6 +25,7 @@ class HealthChecker(ABC):
         """Run a health check against the given instance."""
         raise NotImplementedError
 
+
 class DefaultHealthChecker(HealthChecker):
     """Default health checker that calls the remote HealthService Check."""
 
@@ -75,9 +76,7 @@ class DefaultHealthChecker(HealthChecker):
         try:
             client = self._get_client(instance)
             request = (
-                HealthCheckRequest(service=instance.service_name)
-                if instance.service_name
-                else HealthCheckRequest()
+                HealthCheckRequest(service=instance.service_name) if instance.service_name else HealthCheckRequest()
             )
             payload = await client.health_check(request)
             if isinstance(payload, dict):

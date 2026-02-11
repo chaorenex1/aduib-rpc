@@ -11,7 +11,7 @@ class LoadBalancer(ABC):
     """Abstract base class for a load balancer."""
 
     @abstractmethod
-    def select_instance(self,instances: list[ServiceInstance],key: str | None = None) -> ServiceInstance | None:
+    def select_instance(self, instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
         """Selects an instance from the available instances.
 
         Returns:
@@ -24,14 +24,13 @@ class WeightedRoundRobinLB(LoadBalancer):
     This load balancer selects instances based on their assigned weights,
     ensuring that instances with higher weights are chosen more frequently.
     """
+
     def __init__(self):
         self._iter = None
         self._pool = None
 
-    def select_instance(self,instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
-        self._pool = list(itertools.chain.from_iterable(
-            [inst] * inst.weight for inst in instances
-        ))
+    def select_instance(self, instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
+        self._pool = list(itertools.chain.from_iterable([inst] * inst.weight for inst in instances))
         self._iter = itertools.cycle(self._pool)
         return next(self._iter, None)
 
@@ -41,7 +40,7 @@ class RandomLB(LoadBalancer):
     This load balancer selects instances randomly from the available instances.
     """
 
-    def select_instance(self,instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
+    def select_instance(self, instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
         if not instances:
             return None
         return random.choice(instances)
@@ -52,7 +51,8 @@ class ConsistentHashLB(LoadBalancer):
     This load balancer uses consistent hashing to map keys to instances,
     ensuring minimal disruption when instances are added or removed.
     """
-    def __init__(self,virtual_nodes: int = 100):
+
+    def __init__(self, virtual_nodes: int = 100):
         self.ring = {}
         self.sorted_keys = []
         self.virtual_nodes = virtual_nodes
@@ -73,7 +73,7 @@ class ConsistentHashLB(LoadBalancer):
     def _hash(self, key: str) -> int:
         return int(hashlib.md5(key.encode("utf-8")).hexdigest(), 16)
 
-    def select_instance(self,instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
+    def select_instance(self, instances: list[ServiceInstance], key: str | None = None) -> ServiceInstance | None:
         self.init_hash_ring(instances, self.virtual_nodes)
         if not self.ring:
             return None
@@ -86,4 +86,3 @@ class ConsistentHashLB(LoadBalancer):
         if idx == len(self.sorted_keys):
             idx = 0
         return self.ring[self.sorted_keys[idx]]
-

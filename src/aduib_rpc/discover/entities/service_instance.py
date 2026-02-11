@@ -3,6 +3,7 @@
 This module provides the v2 protocol entities for service discovery and
 registration, matching the specification in docs/protocol_v2_specification.md.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -179,12 +180,19 @@ class ServiceInstance(BaseModel):
         """
         import uuid
 
-        service_instance = cls(instance_id=instance_id or str(uuid.uuid4()), service_name=service_name, version=version, host=host,
-                port=port, scheme=scheme, protocol=protocol, registered_at_ms=int(datetime.now().timestamp() * 1000),
-                **kwargs, )
-        service_instance.metadata=service_instance.to_dict()
+        service_instance = cls(
+            instance_id=instance_id or str(uuid.uuid4()),
+            service_name=service_name,
+            version=version,
+            host=host,
+            port=port,
+            scheme=scheme,
+            protocol=protocol,
+            registered_at_ms=int(datetime.now().timestamp() * 1000),
+            **kwargs,
+        )
+        service_instance.metadata = service_instance.to_dict()
         return service_instance
-
 
     def to_dict(self) -> dict[str, str]:
         """Convert the ServiceInstance class fields to a dictionary.
@@ -199,4 +207,3 @@ class ServiceInstance(BaseModel):
         # Remove capabilities from metadata to avoid complexity
         result.pop("capabilities", None)
         return result
-

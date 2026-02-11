@@ -3,6 +3,7 @@ from .in_memory import InMemoryServiceRegistry
 
 try:
     from .nacos.nacos import NacosServiceRegistry
+
     _all = ["ServiceRegistry", "InMemoryServiceRegistry", "NacosServiceRegistry"]
 except ImportError:
     # nacos-sdk-python is optional

@@ -43,13 +43,14 @@ logger = logging.getLogger(__name__)
 class AduibServiceFactory(ServiceFactory):
     """Class for discovering Aduib services on the network."""
 
-    def __init__(self,
-                 service_instance: ServiceInstance,
-                 interceptors: list[ServerInterceptor] | None = None,
-                 request_executors: dict[str, RequestExecutor] | None = None,
-                 server_tls: ServerTlsConfig | None = None,
-                 task_manager: TaskManager | None = None,
-                 ):
+    def __init__(
+        self,
+        service_instance: ServiceInstance,
+        interceptors: list[ServerInterceptor] | None = None,
+        request_executors: dict[str, RequestExecutor] | None = None,
+        server_tls: ServerTlsConfig | None = None,
+        task_manager: TaskManager | None = None,
+    ):
         self.interceptors = interceptors or []
         self.request_executors = request_executors or []
         self.service = service_instance
@@ -84,9 +85,7 @@ class AduibServiceFactory(ServiceFactory):
             self.request_executors,
             task_manager=self.task_manager,
         )
-        rpc_handler = ThriftV2Handler(
-            request_handler=request_handler
-        )
+        rpc_handler = ThriftV2Handler(request_handler=request_handler)
         task_handler = ThriftV2TaskHandler(request_handler=request_handler)
         health_handler = ThriftV2HealthHandler(request_handler=request_handler)
 
@@ -132,20 +131,20 @@ class AduibServiceFactory(ServiceFactory):
         )
 
         SERVICE_NAMES = (
-            aduib_rpc_v2_pb2.DESCRIPTOR.services_by_name['AduibRpcService'].full_name,
-            aduib_rpc_v2_pb2.DESCRIPTOR.services_by_name['TaskService'].full_name,
-            aduib_rpc_v2_pb2.DESCRIPTOR.services_by_name['HealthService'].full_name,
+            aduib_rpc_v2_pb2.DESCRIPTOR.services_by_name["AduibRpcService"].full_name,
+            aduib_rpc_v2_pb2.DESCRIPTOR.services_by_name["TaskService"].full_name,
+            aduib_rpc_v2_pb2.DESCRIPTOR.services_by_name["HealthService"].full_name,
             reflection.SERVICE_NAME,
         )
-        logger.info(f'Service names for reflection: {SERVICE_NAMES}')
+        logger.info(f"Service names for reflection: {SERVICE_NAMES}")
         reflection.enable_server_reflection(SERVICE_NAMES, server)
         if server_tls:
             creds = self._build_grpc_credentials(server_tls)
             server.add_secure_port(f"{host}:{port}", creds)
             logger.info("Starting gRPC server with TLS on %s:%s", host, port)
         else:
-            server.add_insecure_port(f'{host}:{port}')
-            logger.info(f'Starting gRPC server on {host}:{port}')
+            server.add_insecure_port(f"{host}:{port}")
+            logger.info(f"Starting gRPC server on {host}:{port}")
         await server.start()
         self.server = server
         loop = asyncio.get_running_loop()
@@ -168,7 +167,12 @@ class AduibServiceFactory(ServiceFactory):
                     logger.exception("Failed to stop gRPC server cleanly")
             await self._stop_task_manager()
 
-    async def run_jsonrpc_server(self, *, server_tls: ServerTlsConfig | None = None, **kwargs: Any, ):
+    async def run_jsonrpc_server(
+        self,
+        *,
+        server_tls: ServerTlsConfig | None = None,
+        **kwargs: Any,
+    ):
         """Run a JSON-RPC server for the given service instance."""
         host, port = self.service.host, self.service.port
         request_handler = DefaultRequestHandler(
@@ -187,7 +191,12 @@ class AduibServiceFactory(ServiceFactory):
         finally:
             await self._stop_task_manager()
 
-    async def run_rest_server(self, *, server_tls: ServerTlsConfig | None = None, **kwargs: Any, ):
+    async def run_rest_server(
+        self,
+        *,
+        server_tls: ServerTlsConfig | None = None,
+        **kwargs: Any,
+    ):
         """Run a REST server for the given service instance."""
         host, port = self.service.host, self.service.port
         request_handler = DefaultRequestHandler(

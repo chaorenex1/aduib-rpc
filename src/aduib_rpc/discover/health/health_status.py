@@ -15,7 +15,7 @@ class HealthStatus(StrEnum):
     UNKNOWN = "unknown"
 
     @classmethod
-    def to_health_status(cls,status: str) -> HealthStatus:
+    def to_health_status(cls, status: str) -> HealthStatus:
         for health_status in cls:
             if health_status.value == status:
                 return health_status

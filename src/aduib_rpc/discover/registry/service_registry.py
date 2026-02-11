@@ -4,7 +4,7 @@ from typing import Any
 
 from aduib_rpc.discover.entities import ServiceInstance
 
-logger=logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class ServiceRegistry(ABC):
@@ -19,7 +19,7 @@ class ServiceRegistry(ABC):
         """
 
     @abstractmethod
-    async def unregister_service(self,service_info: ServiceInstance) -> None:
+    async def unregister_service(self, service_info: ServiceInstance) -> None:
         """Unregisters a service from the registry.
 
         Args:

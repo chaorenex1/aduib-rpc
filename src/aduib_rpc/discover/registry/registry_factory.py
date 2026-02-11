@@ -48,7 +48,7 @@ class ServiceRegistryFactory:
             raise ValueError(f"Service registry '{registry_type}' not found.")
 
         sig = inspect.signature(registry_class.__init__)
-        param_names = [p for p in sig.parameters.keys() if p != 'self']
+        param_names = [p for p in sig.parameters.keys() if p != "self"]
 
         valid_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
         valid_args = []

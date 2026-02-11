@@ -25,15 +25,15 @@ def get_ip_port(service: ServiceInstance) -> tuple[str, int]:
 
 def add_signal_handlers(loop, shutdown_coro: Callable[..., Any], *args, **kwargs) -> None:
     """Add signal handlers for graceful shutdown."""
-    if platform.system() == 'Windows':
+    if platform.system() == "Windows":
         return
 
     def shutdown(sig: signal.Signals) -> None:
-        logger.warning('Received shutdown signal %s', sig)
+        logger.warning("Received shutdown signal %s", sig)
         result = shutdown_coro(*args, **kwargs)
         if asyncio.iscoroutine(result):
             asyncio.ensure_future(result, loop=loop)
-        logger.warning('Shutdown scheduled')
+        logger.warning("Shutdown scheduled")
 
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, lambda s=sig: shutdown(s))

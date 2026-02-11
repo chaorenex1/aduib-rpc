@@ -25,6 +25,7 @@ Example:
     # Get healthy instances
     healthy = await health_aware_registry.list_healthy_instances("my-service")
 """
+
 from __future__ import annotations
 
 # v1 compatibility entities

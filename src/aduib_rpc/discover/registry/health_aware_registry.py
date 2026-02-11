@@ -13,6 +13,7 @@ from aduib_rpc.discover.health.health_status import HealthCheckConfig, HealthChe
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class HealthAwareServiceInstance:
     """Service instance with health tracking state."""
@@ -118,7 +119,7 @@ class HealthAwareRegistry:
                 for service_name in service_names:
                     result = self._base_registry.list_instances(service_name)
                     instances = await result if inspect.isawaitable(result) else result
-                    for instance in (instances or []):
+                    for instance in instances or []:
                         await self._check_instance(instance)
                 await asyncio.sleep(self._config.interval_seconds)
             except asyncio.CancelledError:
@@ -165,4 +166,5 @@ class HealthAwareRegistry:
     async def _get_all_service_names(self) -> list[str]:
         """Return all registered service names (registry-specific)."""
         from aduib_rpc.server import get_service_info
+
         return [get_service_info().service_name]
