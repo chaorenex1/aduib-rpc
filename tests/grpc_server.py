@@ -7,6 +7,7 @@ from aduib_rpc.app import run_serve
 
 logging.basicConfig(level=logging.DEBUG)
 
+
 async def main():
     registry_config = {
         "server_addresses": "10.0.0.96:8848",
@@ -16,7 +17,7 @@ async def main():
         "password": "nacos11.",
         "max_retry": 3,
         "DISCOVERY_SERVICE_TYPE": "nacos",
-        "APP_NAME": "test_app"
+        "APP_NAME": "test_app",
     }
     app = await run_serve(
         registry_type="in-memory",
@@ -31,8 +32,9 @@ async def main():
             "version": "2.0.0",
             "description": "A test gRPC service",
         },
-        task_manager_config=TaskManagerConfig()
+        task_manager_config=TaskManagerConfig(),
     )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main())

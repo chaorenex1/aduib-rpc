@@ -45,10 +45,12 @@ _GLOBAL_RPC_APP: "RpcApp | None" = None
 if TYPE_CHECKING:
     from aduib_rpc.security.permission_provider import PermissionProvider
 
+
 class ServeMode(StrEnum):
     DISCOVERY_ONLY = "discovery_only"
     REGISTRATION_ONLY = "registration_only"
     REGISTRATION_AND_DISCOVERY = "registration_and_discovery"
+
 
 async def _allocate_host_port(*, host: str, port: int) -> tuple[str, int]:
     """Allocate a concrete (host, port).
@@ -105,7 +107,6 @@ class RpcApp:
 
     def set_cache_provider(self, cache: Cache) -> None:
         self.cache = cache
-
 
     def get_client_id(self) -> str:
         from aduib_rpc.utils.id_utils import IdUtils
@@ -164,7 +165,14 @@ class RpcApp:
             try:
                 from aduib_rpc.server.qos import QosHandler
                 from aduib_rpc.server.interceptors import QosInterceptor
-                interceptors.append(QosInterceptor(qos_handler=QosHandler(self.cache,self.config.qos.timeout_ms,self.config.qos.idempotency_ttl_s)))
+
+                interceptors.append(
+                    QosInterceptor(
+                        qos_handler=QosHandler(
+                            self.cache, self.config.qos.timeout_ms, self.config.qos.idempotency_ttl_s
+                        )
+                    )
+                )
                 logger.info("QoS interceptor loaded")
             except ImportError as e:
                 logger.warning("QoS interceptor not available: %s", e)
@@ -220,6 +228,7 @@ class RpcApp:
         if cfg.telemetry.audit_enabled and audit_config is not None:
             try:
                 from aduib_rpc.server.interceptors import AuditInterceptor
+
                 interceptors.append(AuditInterceptor(config=audit_config))
                 logger.info("Audit interceptor loaded")
             except ImportError as e:
@@ -227,9 +236,11 @@ class RpcApp:
             except Exception:
                 logger.exception("Failed to build Audit interceptor")
         from aduib_rpc.server.interceptors import TenantInterceptor
+
         interceptors.append(TenantInterceptor())
         logger.info("Tenant interceptor loaded")
         from aduib_rpc.server.interceptors import QosInterceptor
+
         interceptors.append(QosInterceptor())
         logger.info("QoS interceptor loaded")
         # sort by order
@@ -248,19 +259,17 @@ class RpcApp:
             from aduib_rpc.discover.health.health_check import DefaultHealthChecker
 
             self._health_checker = DefaultHealthChecker(
-                config=self.config,
-                client_factory=AduibRpcClientFactory.build_health_client_factory(self.config.client)
+                config=self.config, client_factory=AduibRpcClientFactory.build_health_client_factory(self.config.client)
             )
         self.health_registries = []
         for registry in self._base_registries:
             try:
                 from aduib_rpc.discover.registry.health_aware_registry import HealthAwareRegistry
+
                 if isinstance(registry, HealthAwareRegistry):
                     health_registry = registry
                 else:
-                    health_registry = HealthAwareRegistry(
-                        registry, self._health_checker, config
-                    )
+                    health_registry = HealthAwareRegistry(registry, self._health_checker, config)
                 await health_registry.start()
                 self.health_registries.append(health_registry)
                 try:
@@ -291,15 +300,16 @@ class RpcApp:
         return RegistryServiceResolver(self.registries, policy=self.resolver_policy)
 
     async def register(self, inst: ServiceInstance) -> None:
-            for reg in self.registries:
-                await reg.register_service(inst)
+        for reg in self.registries:
+            await reg.register_service(inst)
 
-    async def discover_async(self, service_name: str,lb_key: str | None) -> ResolvedService | None:
+    async def discover_async(self, service_name: str, lb_key: str | None) -> ResolvedService | None:
         return await self.resolver.resolve(service_name, lb_key=lb_key)
 
-    def discover(self, service_name: str,lb_key: str | None) -> ResolvedService | None:
+    def discover(self, service_name: str, lb_key: str | None) -> ResolvedService | None:
         from aduib_rpc.utils.anyio_compat import run as anyio_run
-        return anyio_run(self.discover_async, service_name,lb_key)
+
+        return anyio_run(self.discover_async, service_name, lb_key)
 
     async def start_servers(
         self,
@@ -326,7 +336,7 @@ class RpcApp:
             service_instance=instance,
             interceptors=interceptors,
             task_manager=task_manager,
-            server_tls=self.config.security.mtls.to_server_tls_config()
+            server_tls=self.config.security.mtls.to_server_tls_config(),
         )
         self.factory = factory
         self._service_factories.append(factory)
@@ -384,6 +394,7 @@ class RpcApp:
 
     def create_client(self, resolved: ResolvedService):
         from aduib_rpc.client.config import ClientConfig as BaseClientConfig
+
         client_config = BaseClientConfig(
             httpx_client=self.config.client.httpx_client,
             grpc_channel_factory=self.config.client.grpc_channel_factory,
@@ -413,16 +424,14 @@ class RpcApp:
                         health_checker=self._health_checker,
                         health_config=self.config.health_check,
                         lb_policy=self.resolver_policy,
-                        lb_key=resolved.get_lb_value()
+                        lb_key=resolved.get_lb_value(),
                     )
                     client_factory.register(resolved.scheme, wrapped)
             except Exception:
                 pass
 
         return client_factory.create(
-            resolved.url,
-            server_preferred=resolved.scheme,
-            interceptors=get_runtime().interceptors
+            resolved.url, server_preferred=resolved.scheme, interceptors=get_runtime().interceptors
         )
 
 
@@ -460,7 +469,7 @@ async def run_serve(
     service_port: int = 0,
     service_scheme: TransportSchemes = TransportSchemes.GRPC,
     service_weight: int = 1,
-    service_metadata: dict[str, str]=None,
+    service_metadata: dict[str, str] = None,
     registry_type: str = "in_memory",
     registry_config: dict[str, Any] | None = None,
     config: str | AduibRpcConfig | None = None,
@@ -470,7 +479,7 @@ async def run_serve(
     task_manager_type: str = "in-memory",
     task_manager_config: TaskManagerConfig | None = None,
     server_kwargs: dict[str, Any] | None = None,
-    resolver_policy: LoadBalancePolicy=LoadBalancePolicy.WeightedRoundRobin,
+    resolver_policy: LoadBalancePolicy = LoadBalancePolicy.WeightedRoundRobin,
     permission_provider: "PermissionProvider | None" = None,
     cache_provider: Cache | None = None,
 ) -> RpcApp:
@@ -517,9 +526,7 @@ async def run_serve(
         try:
             source_kwargs = dict(config_source_config or {})
             source_kwargs.setdefault("target", config_obj)
-            loaded = await ConfigSourceProvider.load_config(
-                config_source_type, **source_kwargs
-            )
+            loaded = await ConfigSourceProvider.load_config(config_source_type, **source_kwargs)
             if isinstance(loaded, tuple):
                 loaded_config = loaded[0]
             else:
@@ -552,14 +559,22 @@ async def run_serve(
 
     update_runtime(runtime)
 
-    capabilities.methods= runtime.batch_to_method_descriptors()
-    instance: ServiceInstance = ServiceInstance.create(service_name=service_name, host=service_host, port=int(service_port),
-                                                       protocol=AIProtocols.AduibRpc, weight=service_weight, scheme=service_scheme,
-                                                       metadata=metadata, health=HealthStatus.HEALTHY, capabilities=capabilities)
+    capabilities.methods = runtime.batch_to_method_descriptors()
+    instance: ServiceInstance = ServiceInstance.create(
+        service_name=service_name,
+        host=service_host,
+        port=int(service_port),
+        protocol=AIProtocols.AduibRpc,
+        weight=service_weight,
+        scheme=service_scheme,
+        metadata=metadata,
+        health=HealthStatus.HEALTHY,
+        capabilities=capabilities,
+    )
     instance.metadata.update(metadata)
 
     app = RpcApp.from_registry_type(registry_type, **(registry_config or {}))
-    app.resolver_policy=resolver_policy
+    app.resolver_policy = resolver_policy
     if permission_provider is not None:
         app.set_permission_provider(permission_provider)
     if cache_provider is not None:
@@ -576,7 +591,7 @@ async def run_serve(
         if task_manager_config is None:
             raise ValueError("task_manager_config must be provided if task_manager_enable is True")
 
-        task_manager_none = TaskManagerProvider.from_task_source_instance(task_manager_type,config=task_manager_config)
+        task_manager_none = TaskManagerProvider.from_task_source_instance(task_manager_type, config=task_manager_config)
 
     resolved = await app.discover_async(service_name, lb_key=None)
     if resolved is None:
@@ -584,6 +599,7 @@ async def run_serve(
 
     app.config = config_obj
     from aduib_rpc.server import set_service_info
+
     set_service_info(instance)
     import_service_modules(service_modules)
 

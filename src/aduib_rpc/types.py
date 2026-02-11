@@ -9,6 +9,7 @@ Primary types (v2):
     QosConfig - Quality of service configuration
     StreamMessage - Streaming message types
 """
+
 from __future__ import annotations
 
 from typing import Any, Literal, Union
@@ -68,6 +69,7 @@ JsonRpcResult = Union[
 # JSON-RPC Wrapper Types
 # ============================================================
 
+
 class JSONRPCError(BaseModel):
     """Represents a JSON-RPC 2.0 Error object (code/message/data)."""
 
@@ -81,14 +83,14 @@ class JSONRPCErrorResponse(BaseModel):
 
     error: JSONRPCError
     id: str | int | None = None
-    jsonrpc: Literal['2.0'] = '2.0'
+    jsonrpc: Literal["2.0"] = "2.0"
 
 
 class JSONRPCRequest(BaseModel):
     """Represents a JSON-RPC 2.0 Request object."""
 
     id: str | int | None = None
-    jsonrpc: Literal['2.0'] = '2.0'
+    jsonrpc: Literal["2.0"] = "2.0"
     method: str
     params: JsonRpcParams | None = None
 
@@ -97,13 +99,13 @@ class JSONRPCSuccessResponse(BaseModel):
     """Represents a successful JSON-RPC 2.0 Response object."""
 
     id: str | int | None = None
-    jsonrpc: Literal['2.0'] = '2.0'
+    jsonrpc: Literal["2.0"] = "2.0"
     result: JsonRpcResult
 
 
 class JsonRpcMessageRequest(BaseModel):
     id: str | int
-    jsonrpc: Literal['2.0'] = '2.0'
+    jsonrpc: Literal["2.0"] = "2.0"
     # v2: JSON-RPC method carries the v2 RPC method path, e.g. "rpc.v2/UserService/GetUser".
     method: str
     params: JsonRpcParams | None = None
@@ -111,7 +113,7 @@ class JsonRpcMessageRequest(BaseModel):
 
 class JsonRpcStreamingMessageRequest(BaseModel):
     id: str | int
-    jsonrpc: Literal['2.0'] = '2.0'
+    jsonrpc: Literal["2.0"] = "2.0"
     # v2: JSON-RPC method carries the v2 RPC method path.
     method: str
     params: JsonRpcParams | None = None
@@ -119,13 +121,13 @@ class JsonRpcStreamingMessageRequest(BaseModel):
 
 class JsonRpcMessageSuccessResponse(BaseModel):
     id: str | int | None = None
-    jsonrpc: Literal['2.0'] = '2.0'
+    jsonrpc: Literal["2.0"] = "2.0"
     result: JsonRpcResult
 
 
 class JsonRpcStreamingMessageSuccessResponse(BaseModel):
     id: str | int | None = None
-    jsonrpc: Literal['2.0'] = '2.0'
+    jsonrpc: Literal["2.0"] = "2.0"
     result: JsonRpcResult
 
 
@@ -156,13 +158,9 @@ class AduibJSONRpcRequest(
     root: Union[JsonRpcMessageRequest, JsonRpcStreamingMessageRequest]
 
 
-class JsonRpcMessageResponse(
-    RootModel[Union[JSONRPCErrorResponse, JsonRpcMessageSuccessResponse]]
-):
+class JsonRpcMessageResponse(RootModel[Union[JSONRPCErrorResponse, JsonRpcMessageSuccessResponse]]):
     root: Union[JSONRPCErrorResponse, JsonRpcMessageSuccessResponse]
 
 
-class JsonRpcStreamingMessageResponse(
-    RootModel[Union[JSONRPCErrorResponse, JsonRpcStreamingMessageSuccessResponse]]
-):
+class JsonRpcStreamingMessageResponse(RootModel[Union[JSONRPCErrorResponse, JsonRpcStreamingMessageSuccessResponse]]):
     root: Union[JSONRPCErrorResponse, JsonRpcStreamingMessageSuccessResponse]

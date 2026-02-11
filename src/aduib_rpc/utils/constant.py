@@ -7,6 +7,7 @@ class SecuritySchemes(StrEnum):
     """Security schemes for the OpenAPI specification
     APIKey
     """
+
     APIKey = "APIKey"
     OAuth2 = "OAuth2"
     OpenIDConnect = "OpenIDConnect"
@@ -32,6 +33,7 @@ class LoadBalancePolicy(IntEnum):
     RoundRobin
     PickFirst
     """
+
     Random = 0
     WeightedRoundRobin = 1
     CONSISTENT_HASHING = 2
@@ -42,10 +44,11 @@ class TransportSchemes(StrEnum):
     HTTP
     WebSocket
     """
+
     HTTP = "http"
     HTTPS = "https"
     GRPC = "grpc"
-    GRPCS="grpcs"
+    GRPCS = "grpcs"
     JSONRPC = "jsonrpc"
     JSONRPCS = "jsonrpcs"
     THRIFT = "thrift"
@@ -74,7 +77,7 @@ class TransportSchemes(StrEnum):
                 raise ValueError(f"Unsupported transport scheme: {value}")
 
     @classmethod
-    def get_real_scheme(cls, scheme: 'TransportSchemes'):
+    def get_real_scheme(cls, scheme: "TransportSchemes"):
         match scheme:
             case TransportSchemes.HTTP:
                 return "http"
@@ -94,6 +97,7 @@ class TransportSchemes(StrEnum):
 
 class AIProtocols(StrEnum):
     """AI protocol specification for the OpenAPI specification"""
+
     A2A = "A2A"
     AduibRpc = "AduibRpc"
 

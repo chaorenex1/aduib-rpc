@@ -31,7 +31,8 @@ from aduib_rpc.server.tasks.types import (
     TaskRecord,
     TaskStatus,
     TaskSubmitRequest,
-    TaskSubscribeRequest, TaskSubmitResponse,
+    TaskSubscribeRequest,
+    TaskSubmitResponse,
 )
 
 
@@ -308,9 +309,7 @@ class FromProto:
             status=ResponseStatus.from_proto(response.status),
             result=result,
             error=error,
-            trace_context=cls.trace_context(response.trace_context)
-            if response.HasField("trace_context")
-            else None,
+            trace_context=cls.trace_context(response.trace_context) if response.HasField("trace_context") else None,
             metadata=cls.response_metadata(response.metadata) if response.HasField("metadata") else None,
         )
 
@@ -571,13 +570,17 @@ class ToProto:
 
     @classmethod
     def rpc_error(cls, error: RpcError) -> aduib_rpc_v2_pb2.RpcError:
-        payload = error.model_dump() if hasattr(error, "model_dump") else {
-            "code": getattr(error, "code", 0),
-            "name": getattr(error, "name", None) or "UNKNOWN",
-            "message": getattr(error, "message", ""),
-            "details": getattr(error, "details", None),
-            "debug": getattr(error, "debug", None),
-        }
+        payload = (
+            error.model_dump()
+            if hasattr(error, "model_dump")
+            else {
+                "code": getattr(error, "code", 0),
+                "name": getattr(error, "name", None) or "UNKNOWN",
+                "message": getattr(error, "message", ""),
+                "details": getattr(error, "details", None),
+                "debug": getattr(error, "debug", None),
+            }
+        )
 
         rpc_error = aduib_rpc_v2_pb2.RpcError(
             code=int(payload.get("code") or 0),

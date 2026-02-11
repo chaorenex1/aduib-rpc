@@ -20,4 +20,3 @@ def run(coro_fn: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any) -> An
         if "anyio.run() cannot be called from a running event loop" in str(e):
             return anyio.from_thread.run(coro_fn, *args, **kwargs)
         raise
-

@@ -47,6 +47,7 @@ TRANSPORTS = [
 def anyio_backend() -> str:
     return "asyncio"
 
+
 STATE = {
     "flaky": {},
     "idempotent": {},
@@ -116,10 +117,12 @@ def _build_rbac_policy() -> RbacPolicy:
     )
     writer = Role(
         name="writer",
-        permissions=frozenset({
-            Permission(resource="docs", action="read"),
-            Permission(resource="docs", action="write"),
-        }),
+        permissions=frozenset(
+            {
+                Permission(resource="docs", action="read"),
+                Permission(resource="docs", action="write"),
+            }
+        ),
     )
     admin = Role(
         name="admin",
@@ -617,8 +620,7 @@ async def test_streaming_client_stream(transport_server: TransportServerHandle) 
         data={},
     )
     requests = [base] + [
-        _build_request(handler, token="token_writer", roles=["writer"], data={"value": value})
-        for value in (1, 2, 3)
+        _build_request(handler, token="token_writer", roles=["writer"], data={"value": value}) for value in (1, 2, 3)
     ]
     response = await transport_server.client.call_client_stream(_iter_requests(requests))
     assert response.error is None
@@ -640,9 +642,7 @@ async def test_streaming_bidirectional(transport_server: TransportServerHandle) 
         _build_request(handler, token="token_writer", roles=["writer"], data={"value": value})
         for value in ("a", "b", "c")
     ]
-    responses = await _collect_stream(
-        transport_server.client.call_bidirectional(_iter_requests(requests))
-    )
+    responses = await _collect_stream(transport_server.client.call_bidirectional(_iter_requests(requests)))
     assert [resp.result for resp in responses] == [
         {"echo": "a"},
         {"echo": "b"},
@@ -685,18 +685,14 @@ async def test_long_task_submit_and_subscribe(transport_server: TransportServerH
     task_id = response.result.get("task_id")
     assert task_id
 
-    events = await _collect_stream(
-        transport_server.client.task_subscribe(TaskSubscribeRequest(task_id=task_id))
-    )
+    events = await _collect_stream(transport_server.client.task_subscribe(TaskSubscribeRequest(task_id=task_id)))
     assert events
     assert any(event.task.status == TaskStatus.SUCCEEDED for event in events)
 
 
 @pytest.mark.anyio
 async def test_health_check(transport_server: TransportServerHandle) -> None:
-    response = await transport_server.client.health_check(
-        HealthCheckRequest(service=SERVICE_NAME)
-    )
+    response = await transport_server.client.health_check(HealthCheckRequest(service=SERVICE_NAME))
     assert response.status == HealthCheckStatus.HEALTHY
     assert response.services is not None
     assert response.services.get(SERVICE_NAME) == HealthCheckStatus.HEALTHY
@@ -704,9 +700,7 @@ async def test_health_check(transport_server: TransportServerHandle) -> None:
 
 @pytest.mark.anyio
 async def test_health_watch(transport_server: TransportServerHandle) -> None:
-    responses = await _collect_stream(
-        transport_server.client.health_watch(HealthCheckRequest(service=SERVICE_NAME))
-    )
+    responses = await _collect_stream(transport_server.client.health_watch(HealthCheckRequest(service=SERVICE_NAME)))
     assert responses
     assert responses[0].status == HealthCheckStatus.HEALTHY
 

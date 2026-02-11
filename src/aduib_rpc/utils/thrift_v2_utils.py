@@ -199,9 +199,7 @@ class FromThrift:
             max_attempts=int(getattr(value, "max_attempts", 0) or 0),
             next_retry_at_ms=getattr(value, "next_retry_at_ms", None),
             result=result,
-            error=cls.rpc_error(getattr(value, "error", None))
-            if getattr(value, "error", None) is not None
-            else None,
+            error=cls.rpc_error(getattr(value, "error", None)) if getattr(value, "error", None) is not None else None,
             progress=cls.task_progress(getattr(value, "progress", None))
             if getattr(value, "progress", None) is not None
             else None,
@@ -529,12 +527,16 @@ class ToThrift:
     def error_detail(cls, detail: ErrorDetail):
         from aduib_rpc.thrift_v2.ttypes import ErrorDetail as ThriftErrorDetail
 
-        payload = detail.model_dump() if hasattr(detail, "model_dump") else {
-            "type": getattr(detail, "type", ""),
-            "field": getattr(detail, "field", None),
-            "reason": getattr(detail, "reason", ""),
-            "metadata": getattr(detail, "metadata", None),
-        }
+        payload = (
+            detail.model_dump()
+            if hasattr(detail, "model_dump")
+            else {
+                "type": getattr(detail, "type", ""),
+                "field": getattr(detail, "field", None),
+                "reason": getattr(detail, "reason", ""),
+                "metadata": getattr(detail, "metadata", None),
+            }
+        )
 
         msg = ThriftErrorDetail(
             type=str(payload.get("type") or ""),
@@ -551,11 +553,15 @@ class ToThrift:
     def debug_info(cls, debug: DebugInfo):
         from aduib_rpc.thrift_v2.ttypes import DebugInfo as ThriftDebugInfo
 
-        payload = debug.model_dump() if hasattr(debug, "model_dump") else {
-            "stack_trace": getattr(debug, "stack_trace", None),
-            "internal_message": getattr(debug, "internal_message", None),
-            "timestamp_ms": getattr(debug, "timestamp_ms", 0),
-        }
+        payload = (
+            debug.model_dump()
+            if hasattr(debug, "model_dump")
+            else {
+                "stack_trace": getattr(debug, "stack_trace", None),
+                "internal_message": getattr(debug, "internal_message", None),
+                "timestamp_ms": getattr(debug, "timestamp_ms", 0),
+            }
+        )
 
         msg = ThriftDebugInfo(timestamp_ms=int(payload.get("timestamp_ms") or 0))
         if payload.get("stack_trace") is not None:
@@ -568,13 +574,17 @@ class ToThrift:
     def rpc_error(cls, error: RpcError):
         from aduib_rpc.thrift_v2.ttypes import RpcError as ThriftRpcError
 
-        payload = error.model_dump(exclude_none=True) if hasattr(error, "model_dump") else {
-            "code": getattr(error, "code", 0),
-            "name": getattr(error, "name", None) or "ERROR",
-            "message": getattr(error, "message", ""),
-            "details": getattr(error, "details", None),
-            "debug": getattr(error, "debug", None),
-        }
+        payload = (
+            error.model_dump(exclude_none=True)
+            if hasattr(error, "model_dump")
+            else {
+                "code": getattr(error, "code", 0),
+                "name": getattr(error, "name", None) or "ERROR",
+                "message": getattr(error, "message", ""),
+                "details": getattr(error, "details", None),
+                "debug": getattr(error, "debug", None),
+            }
+        )
 
         rpc_error = ThriftRpcError(
             code=int(payload.get("code", -1)),
@@ -629,18 +639,14 @@ class ToThrift:
             max_attempts=int(getattr(record, "max_attempts", 0)),
             next_retry_at_ms=getattr(record, "next_retry_at_ms", None),
             result=result_value,
-            error=cls.rpc_error(getattr(record, "error", None))
-            if getattr(record, "error", None) is not None
-            else None,
+            error=cls.rpc_error(getattr(record, "error", None)) if getattr(record, "error", None) is not None else None,
             progress=cls.task_progress(getattr(record, "progress", None))
             if getattr(record, "progress", None) is not None
             else None,
             metadata=cls._coerce_str_map(getattr(record, "metadata", None))
             if getattr(record, "metadata", None)
             else None,
-            tags=cls._coerce_str_list(getattr(record, "tags", None))
-            if getattr(record, "tags", None)
-            else None,
+            tags=cls._coerce_str_list(getattr(record, "tags", None)) if getattr(record, "tags", None) else None,
         )
 
     @classmethod
@@ -668,6 +674,7 @@ class ToThrift:
     def error_payload(cls, exc: Exception):
         err = exception_to_error(exc)
         from aduib_rpc.thrift_v2.ttypes import ResponsePayload as ThriftResponsePayload
+
         return ThriftResponsePayload(error=cls.rpc_error(err))
 
     @classmethod

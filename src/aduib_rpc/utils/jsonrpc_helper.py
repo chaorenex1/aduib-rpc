@@ -1,13 +1,20 @@
 """Helper functions for building JSON-RPC response objects."""
+
 from typing import TypeVar
 
 from aduib_rpc.protocol.v2.errors import ErrorCode
-from aduib_rpc.types import JsonRpcMessageSuccessResponse, \
-    JsonRpcStreamingMessageSuccessResponse, JsonRpcMessageResponse, JsonRpcStreamingMessageResponse, JSONRPCError, \
-    JSONRPCErrorResponse, AduibRpcResponse
+from aduib_rpc.types import (
+    JsonRpcMessageSuccessResponse,
+    JsonRpcStreamingMessageSuccessResponse,
+    JsonRpcMessageResponse,
+    JsonRpcStreamingMessageResponse,
+    JSONRPCError,
+    JSONRPCErrorResponse,
+    AduibRpcResponse,
+)
 
 RT = TypeVar(
-    'RT',
+    "RT",
     JsonRpcMessageResponse,
     JsonRpcStreamingMessageResponse,
 )
@@ -15,16 +22,14 @@ RT = TypeVar(
 
 # success types
 SPT = TypeVar(
-    'SPT',
+    "SPT",
     JsonRpcMessageSuccessResponse,
     JsonRpcStreamingMessageSuccessResponse,
 )
 """Type variable for SuccessResponse types."""
 
 # result types
-EventTypes = (
-    AduibRpcResponse
-)
+EventTypes = AduibRpcResponse
 """Type alias for possible event types produced by handlers."""
 
 
@@ -72,14 +77,13 @@ def prepare_response_object(
             root=success_payload_type(id=request_id, result=response)  # type:ignore
         )
 
-
-    if isinstance(response,JSONRPCError):
+    if isinstance(response, JSONRPCError):
         return build_error_response(request_id, response, response_type)
 
     response = JSONRPCError(
         code=int(ErrorCode.INTERNAL_ERROR),
-        message='Internal error',
-        data=f'Handler returned invalid response type: {type(response)}'
+        message="Internal error",
+        data=f"Handler returned invalid response type: {type(response)}",
     )
 
     return build_error_response(request_id, response, response_type)

@@ -11,10 +11,10 @@ class FixtureService:
         return "pong"
 
 
-
 class test_add(BaseModel):
     x: int = 1
     y: int = 2
+
 
 @service()
 class CaculService:
@@ -22,7 +22,7 @@ class CaculService:
         """同步加法"""
         return x + y
 
-    def add2(self, data:test_add):
+    def add2(self, data: test_add):
         """同步加法"""
         return data.x + data.y
 

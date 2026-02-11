@@ -7,8 +7,7 @@ from tests.fixtures_service_module import test_add
 
 @client(service_name="test_app")
 class FixtureService:
-    def ping(self) -> str:
-        ...
+    def ping(self) -> str: ...
 
 
 @client(service_name="test_app")
@@ -17,7 +16,7 @@ class CaculService:
         """同步加法"""
         ...
 
-    def add2(self, data:test_add):
+    def add2(self, data: test_add):
         """同步加法"""
         ...
 

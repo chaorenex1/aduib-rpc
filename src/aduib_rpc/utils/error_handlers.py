@@ -49,10 +49,8 @@ def rest_error_handler(
         try:
             return await func(*args, **kwargs)
         except Exception:
-            logger.exception('Unknown error occurred')
-            return JSONResponse(
-                content={'message': 'unknown exception'}, status_code=500
-            )
+            logger.exception("Unknown error occurred")
+            return JSONResponse(content={"message": "unknown exception"}, status_code=500)
 
     return wrapper
 

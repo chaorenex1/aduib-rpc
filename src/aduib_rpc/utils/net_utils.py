@@ -17,23 +17,23 @@ class NetUtils:
         return ip
 
     @classmethod
-    def find_free_port(cls,start_port=5002, max_port=6000):
+    def find_free_port(cls, start_port=5002, max_port=6000):
         """
         从 start_port 开始查找可用端口
         """
         if start_port >= max_port:
             raise RuntimeError("没有找到可用端口")
-        for port in range(start_port, max_port+1):
+        for port in range(start_port, max_port + 1):
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 try:
                     s.bind(("", port))  # 绑定测试
                     return port
                 except Exception:
-                    cls.find_free_port(start_port+1, max_port)
+                    cls.find_free_port(start_port + 1, max_port)
         raise RuntimeError("没有找到可用端口")
 
     @classmethod
-    def get_ip_and_free_port(cls, start_port=5002, max_port=6000)-> tuple[str, int]:
+    def get_ip_and_free_port(cls, start_port=5002, max_port=6000) -> tuple[str, int]:
         """
         获取本地IP地址和可用端口
         :param start_port:
