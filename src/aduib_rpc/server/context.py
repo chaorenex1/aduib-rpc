@@ -217,6 +217,7 @@ class ServerInterceptor(ABC):
       - Code after yield: post-processing
       - Call ctx.abort() before yield to short-circuit
     """
+
     @abstractmethod
     def order(self) -> int:
         """Order of the interceptor in the chain.

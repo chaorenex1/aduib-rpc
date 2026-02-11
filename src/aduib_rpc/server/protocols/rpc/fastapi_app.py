@@ -8,7 +8,8 @@ from aduib_rpc.server.request_handlers import RequestHandler
 from aduib_rpc.types import AduibJSONRpcRequest
 from aduib_rpc.utils.constant import DEFAULT_RPC_PATH
 
-logger=logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
 
 class AduibFastAPI(FastAPI):
     """A FastAPI application that adds Aduib-specific OpenAPI components."""
@@ -59,17 +60,14 @@ class AduibRPCFastAPIApp(JsonRpcApp):
         """
         app.post(
             rpc_path,
-        openapi_extra={
-            "requestBody": {
-                "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/AduibJSONRpcRequest"}
-                    }
+            openapi_extra={
+                "requestBody": {
+                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AduibJSONRpcRequest"}}},
+                    "required": True,
+                    "description": "Aduib RPC request payload",
                 },
-                "required": True,
-                "description": "Aduib RPC request payload",
             },
-        })(self._handle_requests)
+        )(self._handle_requests)
         logger.debug(f"Added RPC route at {rpc_path}")
 
     def build(

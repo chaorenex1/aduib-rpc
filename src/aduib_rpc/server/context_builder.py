@@ -5,6 +5,7 @@ Per spec v2 sections 2.1-2.3:
 - Injects tenant_id and auth info from metadata into ServerContext
 - Integrates with OpenTelemetry for distributed tracing
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -60,9 +61,7 @@ class V2ServerContextBuilder(ServerContextBuilder):
 
         return ServerContext(state=state, metadata=metadata)
 
-    def _extract_trace_context(
-        self, request: Request, state: dict[str, Any]
-    ) -> TraceContext | None:
+    def _extract_trace_context(self, request: Request, state: dict[str, Any]) -> TraceContext | None:
         """Extract TraceContext from request body or W3C traceparent header.
 
         Priority:
@@ -135,8 +134,10 @@ class V2ServerContextBuilder(ServerContextBuilder):
         # Try headers first (easier access)
         headers = state.get("headers", {})
         tenant_id = (
-            headers.get("X-Tenant-ID") or headers.get("x-tenant-id")
-            or headers.get("X-Tenant") or headers.get("x-tenant")
+            headers.get("X-Tenant-ID")
+            or headers.get("x-tenant-id")
+            or headers.get("X-Tenant")
+            or headers.get("x-tenant")
         )
         if tenant_id:
             return tenant_id

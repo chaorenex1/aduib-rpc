@@ -7,6 +7,7 @@ from typing import Any
 
 _V2_PREFIX = "rpc.v2/"
 
+
 class MethodProtocol(StrEnum):
     """RPC protocol versions."""
 
@@ -15,14 +16,10 @@ class MethodProtocol(StrEnum):
 
 
 # Pattern for rpc.v2/{service}/{handler} format
-_V2_METHOD_PATTERN = re.compile(
-    r"^rpc\.v2/(?P<service>[a-zA-Z][a-zA-Z0-9_]*)/(?P<handler>[a-zA-Z][a-zA-Z0-9_]*)$"
-)
+_V2_METHOD_PATTERN = re.compile(r"^rpc\.v2/(?P<service>[a-zA-Z][a-zA-Z0-9_]*)/(?P<handler>[a-zA-Z][a-zA-Z0-9_]*)$")
 
 # Pattern for legacy format {service}.{handler}
-_LEGACY_METHOD_PATTERN = re.compile(
-    r"^(?P<service>[a-zA-Z][a-zA-Z0-9_]*)\.(?P<handler>[a-zA-Z][a-zA-Z0-9_]*)$"
-)
+_LEGACY_METHOD_PATTERN = re.compile(r"^(?P<service>[a-zA-Z][a-zA-Z0-9_]*)\.(?P<handler>[a-zA-Z][a-zA-Z0-9_]*)$")
 
 
 def parse_method_name(method: str) -> dict[str, Any] | None:
@@ -88,6 +85,7 @@ def normalize_method_name(method: str, target_protocol: str = "v2") -> str | Non
             return parsed["normalized"]
         # Convert v2 to v1
         return f"{parsed['service']}.{parsed['handler']}"
+
 
 @dataclass(frozen=True, slots=True)
 class MethodName:

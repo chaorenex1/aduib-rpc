@@ -41,6 +41,7 @@ class ArgModelBase(BaseModel):
 
 class OutModelBase(BaseModel):
     """A model representing the output of a function."""
+
     def model_dump_one_level(self) -> dict[str, Any]:
         """Return a dict of the model's fields, one level deep.
 
@@ -65,11 +66,11 @@ class ServiceFuncMetadata(BaseModel):
     #  - Maybe some args are special (like context) for dependency injection
 
     async def call_fn_with_arg_validation(
-            self,
-            fn: Callable[..., Any] | Awaitable[Any],
-            fn_is_async: bool,
-            arguments_to_validate: dict[str, Any],
-            arguments_to_pass_directly: dict[str, Any] | None,
+        self,
+        fn: Callable[..., Any] | Awaitable[Any],
+        fn_is_async: bool,
+        arguments_to_validate: dict[str, Any],
+        arguments_to_pass_directly: dict[str, Any] | None,
     ) -> Any:
         """Call the given function with arguments validated and injected.
 
@@ -132,9 +133,7 @@ class ServiceFuncMetadata(BaseModel):
     )
 
 
-def func_metadata(
-        func: Callable[..., Any], skip_names: Sequence[str] = ()
-) -> ServiceFuncMetadata:
+def func_metadata(func: Callable[..., Any], skip_names: Sequence[str] = ()) -> ServiceFuncMetadata:
     """Given a function, return metadata including a pydantic model representing its
     signature.
 
@@ -161,9 +160,7 @@ def func_metadata(
     globalns = getattr(func, "__globals__", {})
     for param in params.values():
         if param.name.startswith("_"):
-            raise RuntimeError(
-                f"Parameter {param.name} of {func.__name__} cannot start with '_'"
-            )
+            raise RuntimeError(f"Parameter {param.name} of {func.__name__} cannot start with '_'")
         if param.name in skip_names:
             continue
         annotation = param.annotation
@@ -172,11 +169,7 @@ def func_metadata(
         if annotation is None:
             annotation = Annotated[
                 None,
-                Field(
-                    default=param.default
-                    if param.default is not inspect.Parameter.empty
-                    else PydanticUndefined
-                ),
+                Field(default=param.default if param.default is not inspect.Parameter.empty else PydanticUndefined),
             ]
 
         # Untyped field
@@ -184,15 +177,13 @@ def func_metadata(
             annotation = Annotated[
                 Any,
                 Field(),
-                    # 🤷
+                # 🤷
                 WithJsonSchema({"title": param.name, "type": "string"}),
             ]
 
         field_info = FieldInfo.from_annotated_attribute(
             _get_typed_annotation(annotation, globalns),
-            param.default
-            if param.default is not inspect.Parameter.empty
-            else PydanticUndefined,
+            param.default if param.default is not inspect.Parameter.empty else PydanticUndefined,
         )
         dynamic_pydantic_model_params[param.name] = (field_info.annotation, field_info)
         continue
@@ -212,9 +203,7 @@ def func_metadata(
 
 
 def _get_typed_annotation(annotation: Any, globalns: dict[str, Any]) -> Any:
-    def try_eval_type(
-            value: Any, globalns: dict[str, Any], localns: dict[str, Any]
-    ) -> tuple[Any, bool]:
+    def try_eval_type(value: Any, globalns: dict[str, Any], localns: dict[str, Any]) -> tuple[Any, bool]:
         try:
             return eval_type_backport(value, globalns, localns), True
         except NameError:
@@ -247,6 +236,7 @@ def _get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
     ]
     typed_signature = inspect.Signature(typed_params)
     return typed_signature
+
 
 def _get_return_signature(call: Callable[..., Any]) -> Any:
     """Get function return annotation while evaluating forward references"""
@@ -315,70 +305,50 @@ class ServiceFunc(BaseModel):
     wrap_fn: Callable[..., Any] | None = Field(
         default=None,
         description="A wrapper function that takes the same arguments as fn and returns"
-                    " its result. This can be used to add additional functionality to"
-                    " the function, such as logging or error handling.",
+        " its result. This can be used to add additional functionality to"
+        " the function, such as logging or error handling.",
         exclude=True,
     )
     name: str = Field(description="Name of the tool")
-    full_name: str = Field(
-        default="", description="Full name of the tool including namespace"
-    )
+    full_name: str = Field(default="", description="Full name of the tool including namespace")
     description: str = Field(description="Description of what the tool does")
     parameters: dict[str, Any] = Field(description="JSON schema for tool parameters")
     fn_metadata: ServiceFuncMetadata = Field(
-        description="Metadata about the function including a pydantic model for tool"
-                    " arguments"
+        description="Metadata about the function including a pydantic model for tool arguments"
     )
     outputs: dict[str, Any] = Field(description="JSON schema for tool outputs")
     is_async: bool = Field(description="Whether the tool is async")
     version: str = Field(description="Version of the tool")
-    deprecated: bool = Field(
-        default=False, description="Whether the tool is deprecated"
-    )
-    deprecation_message: str = Field(
-        default="", description="Message explaining the deprecation"
-    )
-    replaced_by: str | None = Field(
-        default=None, description="Name of the tool that replaces this one"
-    )
+    deprecated: bool = Field(default=False, description="Whether the tool is deprecated")
+    deprecation_message: str = Field(default="", description="Message explaining the deprecation")
+    replaced_by: str | None = Field(default=None, description="Name of the tool that replaces this one")
     idempotent_key: str | None = Field(default=None, description="Key for idempotent requests")
     timeout: int | None = Field(default=None, description="Timeout for the tool in seconds")
-    long_running: bool = Field(
-        default=False, description="Whether the tool is long-running"
-    )
-    metadata: dict[str, Any] = Field(
-        default_factory=dict, description="Additional metadata about the tool"
-    )
-    client_stream: bool = Field(
-        default=False, description="Whether the tool supports client streaming"
-    )
-    server_stream: bool = Field(
-        default=False, description="Whether the tool supports server streaming"
-    )
-    bidirectional_stream: bool = Field(
-        default=False, description="Whether the tool supports bidirectional streaming"
-    )
-
+    long_running: bool = Field(default=False, description="Whether the tool is long-running")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata about the tool")
+    client_stream: bool = Field(default=False, description="Whether the tool supports client streaming")
+    server_stream: bool = Field(default=False, description="Whether the tool supports server streaming")
+    bidirectional_stream: bool = Field(default=False, description="Whether the tool supports bidirectional streaming")
 
     @classmethod
     def from_function(
-            cls,
-            fn: Callable[..., Any],
-            wrap_fn: Callable[..., Any],
-            name: str | None = None,
-            full_name: str | None = None,
-            description: str | None = None,
-            version: str = "1.0.0",
-            deprecated: bool = False,
-            deprecation_message: str | None = None,
-            replaced_by: str | None = None,
-            idempotent_key: str | None = None,
-            timeout: int | None = None,
-            long_running: bool = False,
-            metadata: dict[str, Any] = None,
-            client_stream: bool = False,
-            server_stream: bool = False,
-            bidirectional_stream: bool = False,
+        cls,
+        fn: Callable[..., Any],
+        wrap_fn: Callable[..., Any],
+        name: str | None = None,
+        full_name: str | None = None,
+        description: str | None = None,
+        version: str = "1.0.0",
+        deprecated: bool = False,
+        deprecation_message: str | None = None,
+        replaced_by: str | None = None,
+        idempotent_key: str | None = None,
+        timeout: int | None = None,
+        long_running: bool = False,
+        metadata: dict[str, Any] = None,
+        client_stream: bool = False,
+        server_stream: bool = False,
+        bidirectional_stream: bool = False,
     ) -> ServiceFunc:
         """Create a ServiceFunc from a function."""
         func_name = name or fn.__name__
@@ -433,8 +403,8 @@ class ServiceFunc(BaseModel):
         )
 
     async def run(
-            self,
-            arguments: dict[str, Any],
+        self,
+        arguments: dict[str, Any],
     ) -> Any:
         """Run the tool with arguments."""
         try:
@@ -455,13 +425,13 @@ def _is_async_callable(obj: Any) -> bool:
 
     # Coroutine functions are async.
     if inspect.iscoroutinefunction(obj) or (
-            callable(obj) and inspect.iscoroutinefunction(getattr(obj, "__call__", None))
+        callable(obj) and inspect.iscoroutinefunction(getattr(obj, "__call__", None))
     ):
         return True
 
     # Async-generator functions (`async def ...: yield ...`) are also async callables.
     if inspect.isasyncgenfunction(obj) or (
-            callable(obj) and inspect.isasyncgenfunction(getattr(obj, "__call__", None))
+        callable(obj) and inspect.isasyncgenfunction(getattr(obj, "__call__", None))
     ):
         return True
 

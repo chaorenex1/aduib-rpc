@@ -56,8 +56,10 @@ class DefaultGrpcV2ServerContextBuilder:
     def _attach_tenant_from_headers(context: ServerContext) -> None:
         headers = context.state.get("headers", {}) or {}
         tenant_id = (
-            headers.get("X-Tenant-ID") or headers.get("x-tenant-id")
-            or headers.get("X-Tenant") or headers.get("x-tenant")
+            headers.get("X-Tenant-ID")
+            or headers.get("x-tenant-id")
+            or headers.get("X-Tenant")
+            or headers.get("x-tenant")
         )
         if tenant_id:
             context.state["tenant_id"] = str(tenant_id)
@@ -309,5 +311,3 @@ class GrpcV2HealthHandler(HealthServiceServicer):
             status = getattr(grpc.StatusCode, status_name, grpc.StatusCode.UNKNOWN)
             details = json.dumps(err.model_dump(mode="json", exclude_none=True), ensure_ascii=False)
             await context.abort(status, details)
-
-

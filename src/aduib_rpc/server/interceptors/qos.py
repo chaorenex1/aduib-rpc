@@ -1,4 +1,5 @@
 """QoS interceptor for server-side request processing."""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -15,10 +16,7 @@ class QosInterceptor(ServerInterceptor):
     def order(self) -> int:
         return 6
 
-    def __init__(
-        self,
-        qos_handler: QosHandler | None = None
-    ) -> None:
+    def __init__(self, qos_handler: QosHandler | None = None) -> None:
         self._qos_handler = qos_handler
 
     @asynccontextmanager
@@ -32,9 +30,7 @@ class QosInterceptor(ServerInterceptor):
         ) -> Callable[[InterceptContext], AsyncIterator[AduibRpcResponse]]:
             async def _wrapped(inner_ctx: InterceptContext) -> AsyncIterator[AduibRpcResponse]:
                 if inner_ctx.is_stream:
-                    async for response in self._qos_handler.handle_stream(
-                        inner_ctx.request, handler, inner_ctx
-                    ):
+                    async for response in self._qos_handler.handle_stream(inner_ctx.request, handler, inner_ctx):
                         yield response
                     return
 

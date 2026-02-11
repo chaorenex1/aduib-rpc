@@ -15,6 +15,7 @@ from aduib_rpc.utils.json_v2_utils import FromJson
 
 logger = logging.getLogger(__name__)
 
+
 class RESTV2Handler:
     """Pure v2 REST handler.
 
@@ -54,9 +55,9 @@ class RESTV2Handler:
     @staticmethod
     def _error_payload(request_id: str | int | None, exc: Exception) -> dict[str, Any]:
         err = exception_to_error(exc)
-        return AduibRpcResponse(
-            id=request_id, status=ResponseStatus.ERROR, error=err
-        ).model_dump(mode="json", exclude_none=True)
+        return AduibRpcResponse(id=request_id, status=ResponseStatus.ERROR, error=err).model_dump(
+            mode="json", exclude_none=True
+        )
 
     @staticmethod
     def _parse_v2_request(payload: Any) -> AduibRpcRequest:
@@ -137,7 +138,9 @@ class RESTV2Handler:
     async def CallClientStream(self, request: Request, context: ServerContext | None = None) -> dict[str, Any]:
         """Handles AduibRpcService.CallClientStream over REST v2 (not supported)."""
         err = exception_to_error(NotImplementedError("REST v2 does not support client streaming"))
-        return AduibRpcResponse(id=None, status=ResponseStatus.ERROR, error=err).model_dump(mode="json", exclude_none=True)
+        return AduibRpcResponse(id=None, status=ResponseStatus.ERROR, error=err).model_dump(
+            mode="json", exclude_none=True
+        )
 
     async def CallBidirectional(
         self, request: Request, context: ServerContext | None = None

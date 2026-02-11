@@ -5,7 +5,8 @@ from aduib_rpc.server.context import ServerContext
 
 
 class RequestContext:
-    def __init__(self,
+    def __init__(
+        self,
         request: AduibRpcRequest | None = None,
         server_context: ServerContext | None = None,
         request_id: str | None = None,
@@ -14,7 +15,7 @@ class RequestContext:
         method: str | None = None,
         stream: bool = False,
         metadata: dict | None = None,
-        ):
+    ):
         """Initializes the RequestContext.
         Args:
             request: The incoming `AduibRpcRequest` object.
@@ -51,9 +52,9 @@ class RequestContext:
             self.method = request.method if request else None
 
         if not self.stream:
-            self.stream = request.meta["stream"] == 'true' if request and request.meta and "stream" in request.meta else False
-
-
+            self.stream = (
+                request.meta["stream"] == "true" if request and request.meta and "stream" in request.meta else False
+            )
 
     def to_dict(self) -> dict:
         """Converts the RequestContext to a dictionary.

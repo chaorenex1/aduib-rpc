@@ -23,15 +23,15 @@ class TaskManagerConfig:
 class TaskNotFoundError(KeyError):
     pass
 
-class TaskManager(ABC):
 
+class TaskManager(ABC):
     @abstractmethod
     async def submit(
-            self,
-            coro_factory: Callable[[], Awaitable[Any]],
-            *,
-            ttl_seconds: int | None = None,
-            task_id: str | None = None,
+        self,
+        coro_factory: Callable[[], Awaitable[Any]],
+        *,
+        ttl_seconds: int | None = None,
+        task_id: str | None = None,
     ) -> TaskRecord:
         """Submit a coroutine factory to run in background."""
 
@@ -221,7 +221,9 @@ class InMemoryTaskManager(TaskManager):
         if aggressive:
             # delete finished tasks oldest-first until under cap
             finished = [
-                r for r in self._tasks.values() if r.status in {TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELED}
+                r
+                for r in self._tasks.values()
+                if r.status in {TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELED}
             ]
             finished.sort(key=lambda r: r.completed_at_ms or r.created_at_ms)
             while len(self._tasks) > int(self._max_tasks * 0.9) and finished:

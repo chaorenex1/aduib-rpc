@@ -4,6 +4,7 @@ This interceptor reads tenant_id from ServerContext.state and binds it to
 the runtime context for the duration of request processing, ensuring
 proper multi-tenant isolation.
 """
+
 from __future__ import annotations
 
 import logging
@@ -14,6 +15,7 @@ from aduib_rpc.server.context import InterceptContext, ServerContext, ServerInte
 from aduib_rpc.server.rpc_execution.runtime import with_tenant
 
 logger = logging.getLogger(__name__)
+
 
 class TenantInterceptor(ServerInterceptor):
     """Interceptor that binds tenant_id to the runtime context.

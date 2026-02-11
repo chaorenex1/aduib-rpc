@@ -39,6 +39,7 @@ def request_execution(method: str):
 
     return decorator
 
+
 def get_request_executor(method: str) -> RequestExecutor | None:
     """Retrieves the request executor for the given model ID or type.
     Args:

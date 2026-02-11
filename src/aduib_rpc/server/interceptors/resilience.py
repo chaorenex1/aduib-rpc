@@ -8,6 +8,7 @@ This module provides server-side resilience patterns for handling incoming reque
 
 Phase P0-2: Server-side resilience handler 入站执行
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -41,6 +42,7 @@ from aduib_rpc.server.context import InterceptContext, ServerContext, ServerInte
 from aduib_rpc.types import AduibRpcRequest, AduibRpcResponse
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ServerResilienceConfig:
@@ -258,9 +260,7 @@ class ServerResilienceInterceptor(ServerInterceptor):
         """Get rate limiter statistics for a tenant."""
         rate_limiter = self._rate_limiters.get(tenant_id) or self._rate_limiters.get("default")
         if rate_limiter:
-            return {
-                "available_tokens": await rate_limiter.get_available_tokens()
-            }
+            return {"available_tokens": await rate_limiter.get_available_tokens()}
         return None
 
     def refresh_from_config(self) -> None:
@@ -398,9 +398,7 @@ def with_resilience(
             return {"result": "success"}
     """
 
-    def decorator(
-        handler: Callable[[AduibRpcRequest, ServerContext], Awaitable[Any]]
-    ) -> ResilienceHandler:
+    def decorator(handler: Callable[[AduibRpcRequest, ServerContext], Awaitable[Any]]) -> ResilienceHandler:
         return ResilienceHandler(
             handler,
             circuit_breaker=circuit_breaker,

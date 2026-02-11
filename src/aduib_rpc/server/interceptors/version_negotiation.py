@@ -2,6 +2,7 @@
 
 This middleware now enforces v2-only traffic and rejects unsupported versions.
 """
+
 from __future__ import annotations
 
 import logging
@@ -159,4 +160,3 @@ def negotiate_client_version(
             return version
 
     return "2.0"
-

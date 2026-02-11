@@ -364,6 +364,7 @@ def with_tenant(tenant_id: str) -> _RuntimeScope:
 # Backward compatibility alias
 RpcRuntime = ScopedRuntime
 
+
 def set_service_info(service_info: ServiceInstance) -> None:
     """Set service identity metadata on the active runtime.
 

@@ -23,6 +23,7 @@ from aduib_rpc.utils.json_v2_utils import FromJson
 
 logger = logging.getLogger(__name__)
 
+
 class JSONRPCV2Handler:
     """Maps incoming JSON-RPC requests to the appropriate request handler method and formats responses."""
 
@@ -68,9 +69,7 @@ class JSONRPCV2Handler:
     ) -> AduibJSONRPCResponse:
         """Handles the 'message/send' JSON-RPC method."""
         try:
-            message = await self.request_handler.on_message(
-                self._require_rpc_request(request.params), context
-            )
+            message = await self.request_handler.on_message(self._require_rpc_request(request.params), context)
             return prepare_response_object(
                 request.id,
                 message,
@@ -120,9 +119,7 @@ class JSONRPCV2Handler:
     ) -> AduibJSONRPCResponse:
         """Handles AduibRpcService.Call over JSON-RPC."""
         try:
-            message = await self.request_handler.call(
-                self._require_rpc_request(request.params), context
-            )
+            message = await self.request_handler.call(self._require_rpc_request(request.params), context)
             return prepare_response_object(
                 request.id,
                 message,

@@ -233,12 +233,12 @@ def _raise_for_rpc_error(value: Any, *, message: str | None = None) -> None:
 
 
 def _make_wrappers(
-        *,
-        kind: str,
-        func: Callable[..., Any],
-        handler_name: str,
-        fallback: Callable[..., Any] | None,
-        extra_base: Mapping[str, Any] | None = None,
+    *,
+    kind: str,
+    func: Callable[..., Any],
+    handler_name: str,
+    fallback: Callable[..., Any] | None,
+    extra_base: Mapping[str, Any] | None = None,
 ) -> tuple[Callable[..., Any], Callable[..., Any]]:
     """Create async and sync wrappers with shared logging/timing/fallback behavior."""
 
@@ -259,23 +259,25 @@ def _make_wrappers(
                 return await res
             return res
         except asyncio.CancelledError:
-            logger.debug('CancelledError in %s %s', kind, handler_name, extra=extra_base)
+            logger.debug("CancelledError in %s %s", kind, handler_name, extra=extra_base)
             if fallback:
-                logger.info('Calling fallback function for %s', handler_name,
-                            extra={**extra_base, "rpc.fallback_used": True})
+                logger.info(
+                    "Calling fallback function for %s", handler_name, extra={**extra_base, "rpc.fallback_used": True}
+                )
                 return fallback_function(fallback, *args, **kwargs)
             raise
         except Exception as e:
-            logger.warning('Exception in %s %s: %s', kind, handler_name, e, exc_info=True, extra=extra_base)
+            logger.warning("Exception in %s %s: %s", kind, handler_name, e, exc_info=True, extra=extra_base)
             if fallback:
-                logger.info('Calling fallback function for %s', handler_name,
-                            extra={**extra_base, "rpc.fallback_used": True})
+                logger.info(
+                    "Calling fallback function for %s", handler_name, extra={**extra_base, "rpc.fallback_used": True}
+                )
                 return fallback_function(fallback, *args, **kwargs)
             raise
         finally:
             duration_ms = (time.perf_counter() - start) * 1000
             logger.debug(
-                '%s call finished',
+                "%s call finished",
                 kind.capitalize(),
                 extra={**extra_base, "rpc.handler": handler_name, "rpc.duration_ms": duration_ms},
             )
@@ -294,16 +296,17 @@ def _make_wrappers(
                 )
             return res
         except Exception as e:
-            logger.warning('Exception in %s %s: %s', kind, handler_name, e, exc_info=True, extra=extra_base)
+            logger.warning("Exception in %s %s: %s", kind, handler_name, e, exc_info=True, extra=extra_base)
             if fallback:
-                logger.info('Calling fallback function for %s', handler_name,
-                            extra={**extra_base, "rpc.fallback_used": True})
+                logger.info(
+                    "Calling fallback function for %s", handler_name, extra={**extra_base, "rpc.fallback_used": True}
+                )
                 return fallback_function(fallback, *args, **kwargs)
             raise
         finally:
             duration_ms = (time.perf_counter() - start) * 1000
             logger.debug(
-                '%s call finished',
+                "%s call finished",
                 kind.capitalize(),
                 extra={**extra_base, "rpc.handler": handler_name, "rpc.duration_ms": duration_ms},
             )
@@ -312,11 +315,11 @@ def _make_wrappers(
 
 
 def service_function(  # noqa: PLR0915
-        func: Callable | None = None,
-        *,
-        func_name: str | None = None,
-        fallback: Callable[..., Any] = None,
-        runtime: RpcRuntime | None = None,
+    func: Callable | None = None,
+    *,
+    func_name: str | None = None,
+    fallback: Callable[..., Any] = None,
+    runtime: RpcRuntime | None = None,
 ) -> Callable:
     """Decorator to register a service function.
 
@@ -340,7 +343,7 @@ def service_function(  # noqa: PLR0915
     is_async_func = inspect.iscoroutinefunction(func) or inspect.isasyncgenfunction(func)
 
     logger.debug(
-        'Start wrap func for %s, is_async_func %s',
+        "Start wrap func for %s, is_async_func %s",
         actual_func_name,
         is_async_func,
     )
@@ -421,8 +424,8 @@ async def _get_credentials(
 
 def function(
     *,
-    idempotent_key:str |None=None,
-    timeout:int | None = None,
+    idempotent_key: str | None = None,
+    timeout: int | None = None,
     client_stream: bool = False,
     server_stream: bool = False,
     bidirectional_stream: bool = False,
@@ -460,15 +463,19 @@ def function(
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         normalized_permission = _normalize_permission(permission)
-        setattr(func, _METADATA_ATTR, {
-            "client_stream": client_stream,
-            "server_stream": server_stream,
-            "bidirectional_stream": bidirectional_stream,
-            "idempotent_key": idempotent_key,
-            "timeout": timeout,
-            "long_running": long_running,
-            "permission": normalized_permission,
-        })
+        setattr(
+            func,
+            _METADATA_ATTR,
+            {
+                "client_stream": client_stream,
+                "server_stream": server_stream,
+                "bidirectional_stream": bidirectional_stream,
+                "idempotent_key": idempotent_key,
+                "timeout": timeout,
+                "long_running": long_running,
+                "permission": normalized_permission,
+            },
+        )
         return func
 
     return decorator
@@ -484,24 +491,28 @@ def get_func_metadata(func: Callable[..., Any]) -> dict[str, bool]:
         A dict with keys: client_stream, server_stream, bidirectional_stream.
         All values default to False if the function is not decorated.
     """
-    return getattr(func, _METADATA_ATTR, {
-        "client_stream": False,
-        "server_stream": False,
-        "bidirectional_stream": False,
-        "idempotent_key": None,
-        "timeout": None,
-        "long_running": False,
-        "permission": None,
-    })
+    return getattr(
+        func,
+        _METADATA_ATTR,
+        {
+            "client_stream": False,
+            "server_stream": False,
+            "bidirectional_stream": False,
+            "idempotent_key": None,
+            "timeout": None,
+            "long_running": False,
+            "permission": None,
+        },
+    )
 
 
 def client_function(  # noqa: PLR0915
-        func: Callable | None = None,
-        *,
-        handler_name: str | None = None,
-        service_name: str | None = None,
-        fallback: Callable[..., Any] = None,
-        runtime: RpcRuntime | None = None,
+    func: Callable | None = None,
+    *,
+    handler_name: str | None = None,
+    service_name: str | None = None,
+    fallback: Callable[..., Any] = None,
+    runtime: RpcRuntime | None = None,
 ) -> Callable:
     """Decorator to call a remote service function.
 
@@ -520,7 +531,8 @@ def client_function(  # noqa: PLR0915
             fallback=fallback,
             runtime=runtime,
         )
-    from aduib_rpc.app import get_global_app,RpcApp
+    from aduib_rpc.app import get_global_app, RpcApp
+
     app: RpcApp = get_global_app()
     effective_runtime = _get_effective_runtime(runtime)
 
@@ -532,7 +544,7 @@ def client_function(  # noqa: PLR0915
     is_async_func = client_func.is_async
 
     logger.debug(
-        'Start call for %s (service=%s), is_async_func %s',
+        "Start call for %s (service=%s), is_async_func %s",
         handler_name,
         service_name,
         is_async_func,
@@ -551,24 +563,24 @@ def client_function(  # noqa: PLR0915
             raise RuntimeError("No service registry available")
 
         dict_data = args_to_dict(func, *args, **kwargs)
-        dict_data.pop('self', None)
+        dict_data.pop("self", None)
 
         if client_func.deprecated:
-            logger.warning("Calling deprecated client function '%s': %s",
-                           handler_name,
-                           client_func.deprecation_message or "No deprecation message provided.")
-        method_name= client_func.full_name
+            logger.warning(
+                "Calling deprecated client function '%s': %s",
+                handler_name,
+                client_func.deprecation_message or "No deprecation message provided.",
+            )
+        method_name = client_func.full_name
         if client_func.replaced_by:
-            logger.info("Client function '%s' has been replaced by '%s'.",
-                        handler_name,
-                        client_func.replaced_by)
+            logger.info("Client function '%s' has been replaced by '%s'.", handler_name, client_func.replaced_by)
 
-            method_name = MethodName.format_v2(service_name,client_func.replaced_by) or method_name
+            method_name = MethodName.format_v2(service_name, client_func.replaced_by) or method_name
 
-        logger.debug('called remote service %s', service_name, extra={"rpc.method": method_name})
+        logger.debug("called remote service %s", service_name, extra={"rpc.method": method_name})
         error_context = f"RPC call failed: {method_name}"
 
-        metadata=client_func.metadata or  {}
+        metadata = client_func.metadata or {}
         lb_policy = metadata.get("lb_policy", 0)
         lb_key = metadata.get("lb_key", "")
 
@@ -576,12 +588,13 @@ def client_function(  # noqa: PLR0915
         if lb_policy is not None:
             try:
                 from aduib_rpc.utils.constant import LoadBalancePolicy
+
                 resolver_policy = LoadBalancePolicy(int(lb_policy))
             except Exception:
                 logger.warning("Invalid lb_policy=%r; falling back to default", lb_policy)
 
         resolver = RegistryServiceResolver(registries, policy=resolver_policy or app.resolver_policy)
-        resolved = await resolver.resolve(service_name,lb_key=lb_key)
+        resolved = await resolver.resolve(service_name, lb_key=lb_key)
         if not resolved:
             raise RuntimeError(f"Service '{service_name}' not found")
 
@@ -604,7 +617,11 @@ def client_function(  # noqa: PLR0915
             trace_context = TraceContext.create(baggage=resolved.meta())
             set_current_trace_context(trace_context)
 
-        qos_config=QosConfig(timeout_ms=client_func.timeout,idempotency_key=dict_data.get('idempotency_key', None) if client_func.idempotent_key else None,retry=app.config.resilience.retry)
+        qos_config = QosConfig(
+            timeout_ms=client_func.timeout,
+            idempotency_key=dict_data.get("idempotency_key", None) if client_func.idempotent_key else None,
+            retry=app.config.resilience.retry,
+        )
         auth_ctx = None
         provider = getattr(effective_runtime, "credentials_provider", None)
         if provider is not None:
@@ -626,26 +643,36 @@ def client_function(  # noqa: PLR0915
         )
 
         if client_func.long_running:
-            request_meta.long_task=True
+            request_meta.long_task = True
             if client_stream or bidirectional_stream:
                 raise RuntimeError("long_running cannot be combined with client/bidirectional streaming.")
-            request_meta.long_task_method=TaskMethod.SUBMIT_TASK
-            request = AduibRpcRequest.create(id=str(uuid.uuid4()), name=service_name, method=method_name, data=dict_data,
-                                            meta=resolved.meta(), trace_context=trace_context, qos=qos_config,
-                                            metadata=request_meta, )
+            request_meta.long_task_method = TaskMethod.SUBMIT_TASK
+            request = AduibRpcRequest.create(
+                id=str(uuid.uuid4()),
+                name=service_name,
+                method=method_name,
+                data=dict_data,
+                meta=resolved.meta(),
+                trace_context=trace_context,
+                qos=qos_config,
+                metadata=request_meta,
+            )
 
-            submit_resp = await client.task_submit(TaskSubmitRequest(target_method=request_meta.long_task_method,params=request.model_dump()))
+            submit_resp = await client.task_submit(
+                TaskSubmitRequest(target_method=request_meta.long_task_method, params=request.model_dump())
+            )
             task_id = submit_resp.task_id
             if not task_id:
                 raise RuntimeError("long_running task submit did not return task_id")
 
             logger.info("Task '%s' returned status '%s'.", handler_name, submit_resp.status)
-            if submit_resp.status!=TaskStatus.FAILED:
-                request_meta.long_task_method=TaskMethod.SUBMIT_TASK
+            if submit_resp.status != TaskStatus.FAILED:
+                request_meta.long_task_method = TaskMethod.SUBMIT_TASK
+
                 async def _results():
                     async for resp in client.task_subscribe(TaskSubscribeRequest(task_id=task_id)):
                         yield resp
-                        if resp.event==TaskEventType.COMPLETED:
+                        if resp.event == TaskEventType.COMPLETED:
                             logger.info("Task '%s' completed status '%s'.", handler_name, submit_resp.status)
                             return
 
@@ -657,7 +684,6 @@ def client_function(  # noqa: PLR0915
         stream_source = None
         if client_stream or bidirectional_stream:
             stream_source = _extract_stream_source(dict_data)
-
 
             async def _iter_requests():
                 async for item in _iter_stream_items(stream_source):
@@ -671,7 +697,6 @@ def client_function(  # noqa: PLR0915
                         qos=qos_config,
                         metadata=request_meta,
                     )
-
 
             if bidirectional_stream:
                 resp_stream = client.call_bidirectional(_iter_requests())
@@ -689,16 +714,19 @@ def client_function(  # noqa: PLR0915
                 return resp.result
             return None
         elif server_stream:
-            resp=client.call_server_stream(AduibRpcRequest.create(
-                id=str(uuid.uuid4()),
-                name=service_name,
-                method=method_name,
-                data=dict_data,
-                meta=resolved.meta(),
-                trace_context=trace_context,
-                qos=qos_config,
-                metadata=request_meta,
-            ))
+            resp = client.call_server_stream(
+                AduibRpcRequest.create(
+                    id=str(uuid.uuid4()),
+                    name=service_name,
+                    method=method_name,
+                    data=dict_data,
+                    meta=resolved.meta(),
+                    trace_context=trace_context,
+                    qos=qos_config,
+                    metadata=request_meta,
+                )
+            )
+
             async def _results():
                 async for r in resp:
                     _raise_for_rpc_error(r, message=error_context)
@@ -706,16 +734,18 @@ def client_function(  # noqa: PLR0915
 
             return _results()
         else:
-            resp = await client.call(AduibRpcRequest.create(
-                id=str(uuid.uuid4()),
-                name=service_name,
-                method=method_name,
-                data=dict_data,
-                meta=resolved.meta(),
-                trace_context=trace_context,
-                qos=qos_config,
-                metadata=request_meta,
-            ))
+            resp = await client.call(
+                AduibRpcRequest.create(
+                    id=str(uuid.uuid4()),
+                    name=service_name,
+                    method=method_name,
+                    data=dict_data,
+                    meta=resolved.meta(),
+                    trace_context=trace_context,
+                    qos=qos_config,
+                    metadata=request_meta,
+                )
+            )
 
             if inspect.isawaitable(resp) and not hasattr(resp, "__aiter__"):
                 resp = await resp
@@ -750,14 +780,15 @@ def client_function(  # noqa: PLR0915
 
 
 def service(
-            name: str | None = None,
-            *,
-            version: str = "1.0.0",
-            deprecated: bool = False,
-            deprecation_message: str = "",
-            replaced_by: str | None = None,
-            metadata: dict[str, Any] | None = None,
-            runtime: RpcRuntime | None = None):
+    name: str | None = None,
+    *,
+    version: str = "1.0.0",
+    deprecated: bool = False,
+    deprecation_message: str = "",
+    replaced_by: str | None = None,
+    metadata: dict[str, Any] | None = None,
+    runtime: RpcRuntime | None = None,
+):
     """Decorator to register a service executor class.
 
     Usage:
@@ -777,31 +808,30 @@ def service(
             setattr(
                 cls,
                 method_name,
-                service_function(func_name=handler_name, fallback=None,
-                                 runtime=effective_runtime)(function),
+                service_function(func_name=handler_name, fallback=None, runtime=effective_runtime)(function),
             )
             wrapper_func = getattr(cls, method_name)
             func_metadata = get_func_metadata(function)
             merged_metadata = {**(metadata or {}), **func_metadata}
-            service_func: ServiceFunc = ServiceFunc.from_function(function,
-                                                                  wrapper_func,
-                                                                  handler_name,
-                                                                  full_handler_name,
-                                                                  function.__doc__,
-                                                                  version=version,
-                                                                  deprecated=deprecated,
-                                                                  deprecation_message=deprecation_message,
-                                                                  replaced_by=replaced_by,
-                                                                  idempotent_key=func_metadata["idempotent_key"],
-                                                                  timeout=func_metadata["timeout"],
-                                                                  long_running=func_metadata["long_running"],
-                                                                  metadata=merged_metadata,
-                                                                  client_stream=func_metadata["client_stream"],
-                                                                  server_stream=func_metadata["server_stream"],
-                                                                  bidirectional_stream=func_metadata["bidirectional_stream"],
-                                                                  )
+            service_func: ServiceFunc = ServiceFunc.from_function(
+                function,
+                wrapper_func,
+                handler_name,
+                full_handler_name,
+                function.__doc__,
+                version=version,
+                deprecated=deprecated,
+                deprecation_message=deprecation_message,
+                replaced_by=replaced_by,
+                idempotent_key=func_metadata["idempotent_key"],
+                timeout=func_metadata["timeout"],
+                long_running=func_metadata["long_running"],
+                metadata=merged_metadata,
+                client_stream=func_metadata["client_stream"],
+                server_stream=func_metadata["server_stream"],
+                bidirectional_stream=func_metadata["bidirectional_stream"],
+            )
             effective_runtime.register_service(handler_name, service_func)
-
 
         effective_runtime.register_service_instance(service_name, cls)
         # Also register under runtime service_info name when it differs, so
@@ -816,22 +846,23 @@ def service(
     return decorator
 
 
-def client(service_name: str,
-           fallback: Callable[..., Any] = None,
-           *,
-            version: str = "1.0.0",
-            deprecated: bool = False,
-            deprecation_message: str = "",
-            metadata: dict[str, Any] | None = None,
-           runtime: RpcRuntime | None = None,
-           ):
+def client(
+    service_name: str,
+    fallback: Callable[..., Any] = None,
+    *,
+    version: str = "1.0.0",
+    deprecated: bool = False,
+    deprecation_message: str = "",
+    metadata: dict[str, Any] | None = None,
+    runtime: RpcRuntime | None = None,
+):
     """Decorator to register a client class whose methods call remote services."""
 
     effective_runtime = _get_effective_runtime(runtime)
 
     def decorator(cls: Any):
         for method_name, function in inspect.getmembers(cls, inspect.isfunction):
-            if method_name.startswith('__') and method_name.endswith('__'):
+            if method_name.startswith("__") and method_name.endswith("__"):
                 continue
 
             handler_name = f"{cls.__name__}.{method_name}" if cls.__name__ else method_name
@@ -850,28 +881,29 @@ def client(service_name: str,
             wrapper_func = getattr(cls, method_name)
             func_metadata = get_func_metadata(function)
             merged_metadata = {**(metadata or {}), **func_metadata}
-            client_func: ServiceFunc = ServiceFunc.from_function(function,
-                                                                 wrapper_func,
-                                                                 handler_name,
-                                                                 full_handler_name,
-                                                                 function.__doc__,
-                                                                 version=version,
-                                                                 deprecated=deprecated,
-                                                                 deprecation_message=deprecation_message,
-                                                                 replaced_by=None,
-                                                                 idempotent_key=func_metadata["idempotent_key"],
-                                                                 timeout=func_metadata["timeout"],
-                                                                 long_running=func_metadata["long_running"],
-                                                                 metadata=merged_metadata,
-                                                                 client_stream=func_metadata["client_stream"],
-                                                                 server_stream=func_metadata["server_stream"],
-                                                                 bidirectional_stream=func_metadata["bidirectional_stream"],
-                                                                 )
+            client_func: ServiceFunc = ServiceFunc.from_function(
+                function,
+                wrapper_func,
+                handler_name,
+                full_handler_name,
+                function.__doc__,
+                version=version,
+                deprecated=deprecated,
+                deprecation_message=deprecation_message,
+                replaced_by=None,
+                idempotent_key=func_metadata["idempotent_key"],
+                timeout=func_metadata["timeout"],
+                long_running=func_metadata["long_running"],
+                metadata=merged_metadata,
+                client_stream=func_metadata["client_stream"],
+                server_stream=func_metadata["server_stream"],
+                bidirectional_stream=func_metadata["bidirectional_stream"],
+            )
             client_func.wrap_fn = wrapper_func
             effective_runtime.register_client(handler_name, client_func)
 
         if fallback:
-            setattr(cls, 'fallback', staticmethod(fallback))
+            setattr(cls, "fallback", staticmethod(fallback))
         effective_runtime.register_client_instance(cls.__name__, cls)
         return cls
 
@@ -940,7 +972,7 @@ class ClientCaller:
         if self.service_type is None:
             raise ValueError(f"Client '{self.service_name}' is not registered.")
         service_instance = self.service_type()
-        method = getattr(service_instance, handler.split('.')[-1])
+        method = getattr(service_instance, handler.split(".")[-1])
         arguments = args_to_dict(method, *args, **kwargs)
-        arguments['self'] = service_instance
+        arguments["self"] = service_instance
         return await service_func.run(arguments)

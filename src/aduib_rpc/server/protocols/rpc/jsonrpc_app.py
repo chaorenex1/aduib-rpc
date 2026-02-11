@@ -14,9 +14,16 @@ from aduib_rpc.server.context import ServerContext
 from aduib_rpc.server.rpc_execution import MethodName, get_runtime
 from aduib_rpc.server.request_handlers.jsonrpc_v2_handler import JSONRPCV2Handler
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
-from aduib_rpc.types import JsonRpcMessageRequest, JsonRpcStreamingMessageRequest, JSONRPCError, JSONRPCErrorResponse, \
-    JSONRPCRequest, AduibJSONRpcRequest, AduibJSONRPCResponse, \
-    JsonRpcStreamingMessageResponse
+from aduib_rpc.types import (
+    JsonRpcMessageRequest,
+    JsonRpcStreamingMessageRequest,
+    JSONRPCError,
+    JSONRPCErrorResponse,
+    JSONRPCRequest,
+    AduibJSONRpcRequest,
+    AduibJSONRPCResponse,
+    JsonRpcStreamingMessageResponse,
+)
 from aduib_rpc.protocol.v2 import ErrorCode, ERROR_CODE_NAMES
 from aduib_rpc.protocol.v2 import RpcError
 from aduib_rpc.utils.error_handlers import exception_to_error
@@ -29,26 +36,30 @@ class ServerContextBuilder(ABC):
     """Abstract base class for building server content."""
 
     @abstractmethod
-    def build_context(self, request:Request) -> ServerContext:
+    def build_context(self, request: Request) -> ServerContext:
         """Builds and returns server content based on the provided data."""
+
 
 class DefaultServerContextBuilder(ServerContextBuilder):
     """Default implementation of ServerContextBuilder."""
 
-    def build_context(self, request:Request) -> ServerContext:
+    def build_context(self, request: Request) -> ServerContext:
         """Builds and returns a default ServerContext."""
-        state={}
+        state = {}
         metadata = {}
         with contextlib.suppress(Exception):
-            state['headers'] = dict(request.headers)
+            state["headers"] = dict(request.headers)
             headers = state.get("headers", {}) or {}
             tenant_id = (
-                headers.get("X-Tenant-ID") or headers.get("x-tenant-id")
-                or headers.get("X-Tenant") or headers.get("x-tenant")
+                headers.get("X-Tenant-ID")
+                or headers.get("x-tenant-id")
+                or headers.get("X-Tenant")
+                or headers.get("x-tenant")
             )
             if tenant_id:
                 state["tenant_id"] = str(tenant_id)
-        return ServerContext(state=state,metadata=metadata)
+        return ServerContext(state=state, metadata=metadata)
+
 
 class RpcPathValidatorMiddleware(BaseHTTPMiddleware):
     """Middleware to validate the RPC path in incoming requests."""
@@ -56,29 +67,18 @@ class RpcPathValidatorMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if not request.url.path.startswith(DEFAULT_RPC_PATH):
             return JSONResponse(
-                content={
-                    "jsonrpc": "2.0",
-                    "error": {
-                        "code": -32601,
-                        "message": "Method not found"
-                    },
-                    "id": None
-                },
-                status_code=404
+                content={"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": None},
+                status_code=404,
             )
         response = await call_next(request)
         return response
 
+
 class JsonRpcApp(ABC):
+    RpcRequestModel = JsonRpcMessageRequest | JsonRpcStreamingMessageRequest
 
-    RpcRequestModel=(
-        JsonRpcMessageRequest
-        | JsonRpcStreamingMessageRequest
-    )
-
-    MODEL:dict[str,type[RpcRequestModel]]={
-        model.model_fields['method'].default: model
-        for model in RpcRequestModel.__args__
+    MODEL: dict[str, type[RpcRequestModel]] = {
+        model.model_fields["method"].default: model for model in RpcRequestModel.__args__
     }
 
     def __init__(
@@ -133,7 +133,7 @@ class JsonRpcApp(ABC):
             return False
         return bool(getattr(func, "server_stream", False) or getattr(func, "bidirectional_stream", False))
 
-    def _init_middlewares(self, app:Any)->None:
+    def _init_middlewares(self, app: Any) -> None:
         """Initializes middleware for the application.
 
         Args:
@@ -141,12 +141,7 @@ class JsonRpcApp(ABC):
         """
         app.add_middleware(RpcPathValidatorMiddleware)
 
-
-    def _generate_error_response(
-        self,
-        request_id: str,
-        error: JSONRPCError | RpcError
-    ) -> JSONResponse:
+    def _generate_error_response(self, request_id: str, error: JSONRPCError | RpcError) -> JSONResponse:
         """Generates a JSON-RPC error response.
 
         Args:
@@ -176,12 +171,10 @@ class JsonRpcApp(ABC):
             request_id,
             error_response.error.code,
             error_response.error.message,
-            ', Data=' + str(error_response.error.data)
-            if error_response.error.data
-            else '',
+            ", Data=" + str(error_response.error.data) if error_response.error.data else "",
         )
         return JSONResponse(
-            content=error_response.model_dump(mode='json', exclude_none=True),
+            content=error_response.model_dump(mode="json", exclude_none=True),
             status_code=200,
         )
 
@@ -200,8 +193,8 @@ class JsonRpcApp(ABC):
         request_id: str = None
         try:
             body = await request.json()
-            if isinstance(body,dict):
-                request_id = body.get('id')
+            if isinstance(body, dict):
+                request_id = body.get("id")
 
             logger.debug("Request ID=%s, Body=%s", request_id, body)
         except Exception as e:
@@ -211,11 +204,11 @@ class JsonRpcApp(ABC):
             )
 
         try:
-            base_request=JSONRPCRequest.model_validate(body)
+            base_request = JSONRPCRequest.model_validate(body)
             method = base_request.method
             if not method.strip().lstrip("/").startswith("rpc.v2/"):
                 return self._generate_error_response(
-                    request_id=body.get('id'),
+                    request_id=body.get("id"),
                     error=RpcError(
                         code=int(ErrorCode.METHOD_NOT_FOUND),
                         name=ERROR_CODE_NAMES.get(int(ErrorCode.METHOD_NOT_FOUND), "UNKNOWN"),
@@ -228,7 +221,7 @@ class JsonRpcApp(ABC):
         except Exception as e:
             logger.exception("Failed to validate request ID=%s", request_id)
             return self._generate_error_response(
-                request_id=body.get('id'),
+                request_id=body.get("id"),
                 error=exception_to_error(e, code=int(ErrorCode.INVALID_PARAMS)),
             )
 
@@ -240,8 +233,10 @@ class JsonRpcApp(ABC):
             if method_entry:
                 handler_fn, is_streaming, expects_iter = method_entry
                 if expects_iter:
+
                     async def _iter():
                         yield rpc_request
+
                     if is_streaming:
                         response_obj = handler_fn(_iter(), context)
                     else:
@@ -273,11 +268,12 @@ class JsonRpcApp(ABC):
                 error=exception_to_error(e, code=int(ErrorCode.INTERNAL_ERROR)),
             )
 
-    async def _process_streaming_request(self,
-                                         request_id: str,
-                                         request: AduibJSONRpcRequest,
-                                         context: ServerContext,
-                                         ) -> Response:
+    async def _process_streaming_request(
+        self,
+        request_id: str,
+        request: AduibJSONRpcRequest,
+        context: ServerContext,
+    ) -> Response:
         """Processes a streaming JSON-RPC request.
         Args:
             request_id: The ID of the request.
@@ -306,7 +302,7 @@ class JsonRpcApp(ABC):
                     code=int(ErrorCode.INTERNAL_ERROR),
                     message="unsupported request type",
                     data=payload,
-                )
+                ),
             )
 
         return self._create_response(
@@ -315,11 +311,12 @@ class JsonRpcApp(ABC):
             context=context,
         )
 
-    async def _process_non_streaming_request(self,
-                                             request_id: str,
-                                             request: AduibJSONRpcRequest,
-                                             context: ServerContext,
-                                             ) -> Response:
+    async def _process_non_streaming_request(
+        self,
+        request_id: str,
+        request: AduibJSONRpcRequest,
+        context: ServerContext,
+    ) -> Response:
         """Processes a non-streaming JSON-RPC request.
         Args:
             request_id: The ID of the request.
@@ -328,13 +325,13 @@ class JsonRpcApp(ABC):
         Returns:
             A `Response` object containing the JSON-RPC response.
         """
-        request_obj=request.root
-        response_obj:Any=None
+        request_obj = request.root
+        response_obj: Any = None
         if isinstance(request_obj, JsonRpcMessageRequest):
             response_obj = await self.handler.on_message(
-                    request=request_obj,
-                    context=context,
-                )
+                request=request_obj,
+                context=context,
+            )
 
         if response_obj is None:
             payload = {
@@ -348,7 +345,7 @@ class JsonRpcApp(ABC):
                     code=int(ErrorCode.INTERNAL_ERROR),
                     message="unsupported request type",
                     data=payload,
-                )
+                ),
             )
 
         return self._create_response(
@@ -360,12 +357,9 @@ class JsonRpcApp(ABC):
     def _create_response(
         self,
         request_id: str,
-        response: (
-                JSONRPCErrorResponse
-                | AduibJSONRPCResponse
-                | AsyncGenerator[JsonRpcStreamingMessageResponse, None]
-        ),
-        context: ServerContext) -> Response:
+        response: (JSONRPCErrorResponse | AduibJSONRPCResponse | AsyncGenerator[JsonRpcStreamingMessageResponse, None]),
+        context: ServerContext,
+    ) -> Response:
         """Creates a JSON-RPC response.
 
         Args:
@@ -377,30 +371,31 @@ class JsonRpcApp(ABC):
             A `Response` object containing the JSON-RPC response.
         """
         if isinstance(response, AsyncGenerator):
+
             async def event_generator(
-                    stream: AsyncGenerator[JsonRpcStreamingMessageResponse, None],
+                stream: AsyncGenerator[JsonRpcStreamingMessageResponse, None],
             ) -> AsyncGenerator[dict[str, str], None]:
                 async for item in stream:
-                    yield {'data': item.root.model_dump_json(exclude_none=True)}
+                    yield {"data": item.root.model_dump_json(exclude_none=True)}
 
-            return EventSourceResponse(
-                event_generator(response)
-            )
+            return EventSourceResponse(event_generator(response))
         if isinstance(response, JSONRPCErrorResponse):
             return JSONResponse(
-                content=response.model_dump(mode='json', exclude_none=True),
+                content=response.model_dump(mode="json", exclude_none=True),
                 status_code=200,
             )
 
         return JSONResponse(
-            content=response.root.model_dump(mode='json', exclude_none=True),
+            content=response.root.model_dump(mode="json", exclude_none=True),
             status_code=200,
         )
 
     @abstractmethod
-    def build(self,
-              rpc_path: str = DEFAULT_RPC_PATH,
-              **kwargs: Any,)->FastAPI|Starlette:
+    def build(
+        self,
+        rpc_path: str = DEFAULT_RPC_PATH,
+        **kwargs: Any,
+    ) -> FastAPI | Starlette:
         """Builds and returns the FastAPI or Starlette application.
         Args:
             rpc_path: The RPC path for the application.

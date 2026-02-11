@@ -8,7 +8,8 @@ from typing import Any
 from aduib_rpc.protocol.v2.types import ResponseStatus
 from aduib_rpc.server.context import InterceptContext, ServerContext, ServerInterceptor
 
-logger=logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
 
 class OTelServerInterceptor(ServerInterceptor):
     """Server-side interceptor extracting trace context and creating a span per request.
@@ -43,10 +44,7 @@ class OTelServerInterceptor(ServerInterceptor):
 
         carrier: dict[str, Any] = {}
         if ctx.server_context and "headers" in ctx.server_context.state:
-            carrier = {
-                str(k): str(v)
-                for k, v in (ctx.server_context.state.get("headers") or {}).items()
-            }
+            carrier = {str(k): str(v) for k, v in (ctx.server_context.state.get("headers") or {}).items()}
 
         ctx_carrier = extract(carrier)
         tracer = trace.get_tracer("aduib_rpc")
@@ -60,12 +58,18 @@ class OTelServerInterceptor(ServerInterceptor):
             "span.id": ctx.request.trace_context.span_id if ctx.request.trace_context else "",
             "parent.span.id": ctx.request.trace_context.parent_span_id if ctx.request.trace_context else "",
             "tenant.id": ctx.request.metadata.tenant_id if ctx.request.metadata else "",
-            "enduser.id": ctx.request.metadata.auth.principal if ctx.request.metadata and ctx.request.metadata.auth else "",
+            "enduser.id": ctx.request.metadata.auth.principal
+            if ctx.request.metadata and ctx.request.metadata.auth
+            else "",
             "enduser.roles": (
                 ",".join(ctx.request.metadata.auth.roles)
-                if ctx.request.metadata and ctx.request.metadata.auth and isinstance(ctx.request.metadata.auth.roles, list)
-                else str(ctx.request.metadata.auth.roles) if ctx.request.metadata and ctx.request.metadata.auth and ctx.request.metadata.auth.roles
-                else ""),
+                if ctx.request.metadata
+                and ctx.request.metadata.auth
+                and isinstance(ctx.request.metadata.auth.roles, list)
+                else str(ctx.request.metadata.auth.roles)
+                if ctx.request.metadata and ctx.request.metadata.auth and ctx.request.metadata.auth.roles
+                else ""
+            ),
             "client_id": ctx.request.metadata.client_id if ctx.request.metadata else "",
             "client_version": ctx.request.metadata.client_version if ctx.request.metadata else "",
         }

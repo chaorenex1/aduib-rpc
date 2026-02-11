@@ -20,6 +20,8 @@ from aduib_rpc.telemetry.audit import AuditConfig, AuditLogger
 from aduib_rpc.types import AduibRpcResponse
 
 logger = logging.getLogger(__name__)
+
+
 class AuditInterceptor(ServerInterceptor):
     """Server interceptor that records request/response audit logs.
 
@@ -79,9 +81,7 @@ class AuditInterceptor(ServerInterceptor):
             principal,
         )
 
-        params: dict[str, Any] | None = (
-            ctx.request.data if isinstance(ctx.request.data, dict) else None
-        )
+        params: dict[str, Any] | None = ctx.request.data if isinstance(ctx.request.data, dict) else None
 
         self._audit_logger.log_request(
             request_id=request_id,

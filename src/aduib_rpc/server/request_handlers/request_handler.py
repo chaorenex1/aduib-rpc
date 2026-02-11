@@ -20,14 +20,14 @@ from aduib_rpc.server.tasks.types import (
 
 
 class RequestHandler(ABC):
-    """ request handler base class """
+    """request handler base class"""
 
     @abstractmethod
     async def on_message(
-            self,
-            message: AduibRpcRequest,
-            context: ServerContext | None = None,
-    )-> AduibRpcResponse:
+        self,
+        message: AduibRpcRequest,
+        context: ServerContext | None = None,
+    ) -> AduibRpcResponse:
         """Handles the 'message' method.
 
         Args:
@@ -42,10 +42,10 @@ class RequestHandler(ABC):
 
     @abstractmethod
     async def on_stream_message(
-            self,
-            message: AduibRpcRequest,
-            context: ServerContext | None = None,
-    )-> AsyncGenerator[AduibRpcResponse, None]:
+        self,
+        message: AduibRpcRequest,
+        context: ServerContext | None = None,
+    ) -> AsyncGenerator[AduibRpcResponse, None]:
         """Handles the 'stream_message' method.
 
         Args:
@@ -60,18 +60,18 @@ class RequestHandler(ABC):
 
     @abstractmethod
     async def call(
-            self,
-            request: AduibRpcRequest,
-            context: ServerContext | None = None,
+        self,
+        request: AduibRpcRequest,
+        context: ServerContext | None = None,
     ) -> AduibRpcResponse:
         """Handles AduibRpcService.Call."""
         return await self.on_message(request, context)
 
     @abstractmethod
     async def call_server_stream(
-            self,
-            request: AduibRpcRequest,
-            context: ServerContext | None = None,
+        self,
+        request: AduibRpcRequest,
+        context: ServerContext | None = None,
     ) -> AsyncGenerator[AduibRpcResponse, None]:
         """Handles AduibRpcService.CallServerStream."""
         async for response in self.on_stream_message(request, context):
@@ -79,9 +79,9 @@ class RequestHandler(ABC):
 
     @abstractmethod
     async def call_client_stream(
-            self,
-            requests: AsyncIterator[AduibRpcRequest],
-            context: ServerContext | None = None,
+        self,
+        requests: AsyncIterator[AduibRpcRequest],
+        context: ServerContext | None = None,
     ) -> AduibRpcResponse:
         """Handles AduibRpcService.CallClientStream."""
         request = await self._collect_stream_request(requests)
@@ -89,9 +89,9 @@ class RequestHandler(ABC):
 
     @abstractmethod
     async def call_bidirectional(
-            self,
-            requests: AsyncIterator[AduibRpcRequest],
-            context: ServerContext | None = None,
+        self,
+        requests: AsyncIterator[AduibRpcRequest],
+        context: ServerContext | None = None,
     ) -> AsyncGenerator[AduibRpcResponse, None]:
         """Handles AduibRpcService.CallBidirectional."""
         request = await self._collect_stream_request(requests)
@@ -100,61 +100,61 @@ class RequestHandler(ABC):
 
     @abstractmethod
     async def task_submit(
-            self,
-            request: TaskSubmitRequest,
-            context: ServerContext | None = None,
+        self,
+        request: TaskSubmitRequest,
+        context: ServerContext | None = None,
     ) -> TaskSubmitResponse:
         """Handles TaskService.Submit."""
         raise NotImplementedError("Method not implemented.")
 
     @abstractmethod
     async def task_query(
-            self,
-            request: TaskQueryRequest,
-            context: ServerContext | None = None,
+        self,
+        request: TaskQueryRequest,
+        context: ServerContext | None = None,
     ) -> TaskQueryResponse:
         """Handles TaskService.Query."""
         raise NotImplementedError("Method not implemented.")
 
     @abstractmethod
     async def task_cancel(
-            self,
-            request: TaskCancelRequest,
-            context: ServerContext | None = None,
+        self,
+        request: TaskCancelRequest,
+        context: ServerContext | None = None,
     ) -> TaskCancelResponse:
         """Handles TaskService.Cancel."""
         raise NotImplementedError("Method not implemented.")
 
     @abstractmethod
     async def task_subscribe(
-            self,
-            request: TaskSubscribeRequest,
-            context: ServerContext | None = None,
+        self,
+        request: TaskSubscribeRequest,
+        context: ServerContext | None = None,
     ) -> AsyncGenerator[TaskEvent, None]:
         """Handles TaskService.Subscribe."""
         raise NotImplementedError("Method not implemented.")
 
     @abstractmethod
     async def health_check(
-            self,
-            request: HealthCheckRequest,
-            context: ServerContext | None = None,
+        self,
+        request: HealthCheckRequest,
+        context: ServerContext | None = None,
     ) -> HealthCheckResponse:
         """Handles HealthService.Check."""
         raise NotImplementedError("Method not implemented.")
 
     @abstractmethod
     async def health_watch(
-            self,
-            request: HealthCheckRequest,
-            context: ServerContext | None = None,
+        self,
+        request: HealthCheckRequest,
+        context: ServerContext | None = None,
     ) -> AsyncGenerator[HealthCheckResponse, None]:
         """Handles HealthService.Watch."""
         raise NotImplementedError("Method not implemented.")
 
     async def _collect_stream_request(
-            self,
-            requests: AsyncIterator[AduibRpcRequest],
+        self,
+        requests: AsyncIterator[AduibRpcRequest],
     ) -> AduibRpcRequest:
         base_request: AduibRpcRequest | None = None
         stream_items: list[Any] = []

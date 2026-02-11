@@ -5,6 +5,7 @@ This module provides security-related interceptors including:
 - Audit logging for security events
 - Principal extraction from requests
 """
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -51,11 +52,13 @@ class SecurityConfig:
     default_role: str = "anonymous"
     superadmin_role: str | None = "admin"
     require_auth: bool = False
-    anonymous_methods: set[str] = field(default_factory=lambda: {
-        "health",
-        "metrics",
-        "ping",
-    })
+    anonymous_methods: set[str] = field(
+        default_factory=lambda: {
+            "health",
+            "metrics",
+            "ping",
+        }
+    )
 
 
 class SecurityInterceptor(ServerInterceptor):
@@ -110,9 +113,7 @@ class SecurityInterceptor(ServerInterceptor):
 
             admin_role = Role(
                 name="admin",
-                permissions=frozenset([
-                    Permission(resource="*", action="*")
-                ]),
+                permissions=frozenset([Permission(resource="*", action="*")]),
                 allowed_methods=frozenset(["*"]),
             )
             self._rbac_policy = RbacPolicy(
@@ -125,9 +126,7 @@ class SecurityInterceptor(ServerInterceptor):
             self._rbac_policy.set_superadmin_role(self.config.superadmin_role)
 
         self._token_validator = token_validator or MetadataTokenValidator()
-        self._permission_validator = permission_validator or RbacPermissionValidator(
-            self._rbac_policy
-        )
+        self._permission_validator = permission_validator or RbacPermissionValidator(self._rbac_policy)
 
         # Initialize audit logger
         self._audit_logger = audit_logger or AuditLogger()
@@ -276,9 +275,7 @@ class SecurityInterceptor(ServerInterceptor):
             pass
         return False
 
-    def _extract_principal(
-        self, request: AduibRpcRequest, context: ServerContext
-    ) -> Principal:
+    def _extract_principal(self, request: AduibRpcRequest, context: ServerContext) -> Principal:
         """Extract principal from request and context.
 
         Args:
@@ -437,16 +434,18 @@ class SecurityInterceptor(ServerInterceptor):
         code = int(ErrorCode.PERMISSION_DENIED)
         details = []
         if permission is not None:
-            details.append({
-                "type": "aduib.rpc/permission_denied",
-                "field": "permission",
-                "reason": reason,
-                "metadata": {
-                    "principal_id": principal.id,
-                    "resource": permission.resource,
-                    "action": permission.action,
-                },
-            })
+            details.append(
+                {
+                    "type": "aduib.rpc/permission_denied",
+                    "field": "permission",
+                    "reason": reason,
+                    "metadata": {
+                        "principal_id": principal.id,
+                        "resource": permission.resource,
+                        "action": permission.action,
+                    },
+                }
+            )
         ctx.abort(
             RpcError(
                 code=code,
@@ -488,4 +487,3 @@ def create_security_interceptor(
         superadmin_role=superadmin_role,
     )
     return SecurityInterceptor(config=config)
-

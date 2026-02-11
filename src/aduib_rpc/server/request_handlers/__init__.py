@@ -7,14 +7,14 @@ from .thrift_v2_handler import ThriftV2Handler, ThriftV2HealthHandler, ThriftV2T
 
 
 __all__ = [
-    'RequestHandler',
-    'DefaultRequestHandler',
-    'GrpcV2Handler',
-    'GrpcV2TaskHandler',
-    'GrpcV2HealthHandler',
-    'RESTV2Handler',
-    'JSONRPCV2Handler',
-    'ThriftV2Handler',
-    'ThriftV2TaskHandler',
-    'ThriftV2HealthHandler',
+    "RequestHandler",
+    "DefaultRequestHandler",
+    "GrpcV2Handler",
+    "GrpcV2TaskHandler",
+    "GrpcV2HealthHandler",
+    "RESTV2Handler",
+    "JSONRPCV2Handler",
+    "ThriftV2Handler",
+    "ThriftV2TaskHandler",
+    "ThriftV2HealthHandler",
 ]

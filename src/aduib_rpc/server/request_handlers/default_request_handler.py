@@ -44,10 +44,10 @@ class DefaultRequestHandler(RequestHandler):
     """Default implementation of RequestHandler with no-op methods."""
 
     def __init__(
-            self,
-            interceptors: list[ServerInterceptor] | None = None,
-            request_executors: dict[str, RequestExecutor] | None = None,
-            task_manager: InMemoryTaskManager | None = None,
+        self,
+        interceptors: list[ServerInterceptor] | None = None,
+        request_executors: dict[str, RequestExecutor] | None = None,
+        task_manager: InMemoryTaskManager | None = None,
     ):
         self.request_executors: dict[str, RequestExecutor] = request_executors or {}
         self.interceptors = interceptors or []
@@ -59,10 +59,10 @@ class DefaultRequestHandler(RequestHandler):
                 add_request_executor(method, executor)
 
     async def on_message(
-            self,
-            message: AduibRpcRequest,
-            context: ServerContext | None = None,
-    )-> AduibRpcResponse:
+        self,
+        message: AduibRpcRequest,
+        context: ServerContext | None = None,
+    ) -> AduibRpcResponse:
         """Handles the 'message' method.
         Args:
             message: The incoming request object.
@@ -126,9 +126,11 @@ class DefaultRequestHandler(RequestHandler):
         async for response in self.on_stream_message(request, context):
             yield response
 
-    async def on_stream_message(self, message: AduibRpcRequest,
-                                context: ServerContext | None = None,
-                                ) -> AsyncGenerator[AduibRpcResponse]:
+    async def on_stream_message(
+        self,
+        message: AduibRpcRequest,
+        context: ServerContext | None = None,
+    ) -> AsyncGenerator[AduibRpcResponse]:
         """Handles the 'stream_message' method.
 
         Args:
@@ -163,7 +165,6 @@ class DefaultRequestHandler(RequestHandler):
             stream = await stream
         async for response in stream:
             yield response
-
 
     async def task_submit(
         self,
@@ -295,7 +296,9 @@ class DefaultRequestHandler(RequestHandler):
                 yield AduibRpcResponse(
                     id=context.request_id,
                     status=ResponseStatus.ERROR,
-                    error=RpcError(code=code, name=ERROR_CODE_NAMES.get(code, "UNKNOWN"), message="task_id is required"),
+                    error=RpcError(
+                        code=code, name=ERROR_CODE_NAMES.get(code, "UNKNOWN"), message="task_id is required"
+                    ),
                 )
                 return
             try:
@@ -309,7 +312,14 @@ class DefaultRequestHandler(RequestHandler):
                         code=code,
                         name=ERROR_CODE_NAMES.get(code, "UNKNOWN"),
                         message="task not found",
-                        details=[{"type": "aduib.rpc/task", "field": "task_id", "reason": "not found", "metadata": {"task_id": task_id}}],
+                        details=[
+                            {
+                                "type": "aduib.rpc/task",
+                                "field": "task_id",
+                                "reason": "not found",
+                                "metadata": {"task_id": task_id},
+                            }
+                        ],
                     ),
                 )
                 return
@@ -347,7 +357,9 @@ class DefaultRequestHandler(RequestHandler):
                 yield AduibRpcResponse(
                     id=context.request_id,
                     status=ResponseStatus.ERROR,
-                    error=RpcError(code=code, name=ERROR_CODE_NAMES.get(code, "UNKNOWN"), message="task_id is required"),
+                    error=RpcError(
+                        code=code, name=ERROR_CODE_NAMES.get(code, "UNKNOWN"), message="task_id is required"
+                    ),
                 )
                 return
             try:
@@ -361,7 +373,14 @@ class DefaultRequestHandler(RequestHandler):
                         code=code,
                         name=ERROR_CODE_NAMES.get(code, "UNKNOWN"),
                         message="task not found",
-                        details=[{"type": "aduib.rpc/task", "field": "task_id", "reason": "not found", "metadata": {"task_id": task_id}}],
+                        details=[
+                            {
+                                "type": "aduib.rpc/task",
+                                "field": "task_id",
+                                "reason": "not found",
+                                "metadata": {"task_id": task_id},
+                            }
+                        ],
                     ),
                 )
                 return
@@ -380,7 +399,9 @@ class DefaultRequestHandler(RequestHandler):
                 yield AduibRpcResponse(
                     id=context.request_id,
                     status=ResponseStatus.ERROR,
-                    error=RpcError(code=code, name=ERROR_CODE_NAMES.get(code, "UNKNOWN"), message="task_id is required"),
+                    error=RpcError(
+                        code=code, name=ERROR_CODE_NAMES.get(code, "UNKNOWN"), message="task_id is required"
+                    ),
                 )
                 return
             cancel_resp = await self.task_cancel(
@@ -432,7 +453,14 @@ class DefaultRequestHandler(RequestHandler):
                     code=code,
                     name=ERROR_CODE_NAMES.get(code, "UNKNOWN"),
                     message="task not found",
-                    details=[{"type": "aduib.rpc/task", "field": "task_id", "reason": "not found", "metadata": {"task_id": task_id}}],
+                    details=[
+                        {
+                            "type": "aduib.rpc/task",
+                            "field": "task_id",
+                            "reason": "not found",
+                            "metadata": {"task_id": task_id},
+                        }
+                    ],
                 ),
             )
             return
@@ -467,12 +495,10 @@ class DefaultRequestHandler(RequestHandler):
         finally:
             await self.task_manager.unsubscribe(str(task_id), q)
 
-    def _setup_request_context(self,
-                               message: AduibRpcRequest,
-            context: ServerContext | None = None) -> RequestContext:
+    def _setup_request_context(self, message: AduibRpcRequest, context: ServerContext | None = None) -> RequestContext:
         """Sets up and returns a RequestContext based on the provided ServerContext."""
-        context_id:str=str(uuid.uuid4())
-        request_id:str=message.id or str(uuid.uuid4())
+        context_id: str = str(uuid.uuid4())
+        request_id: str = message.id or str(uuid.uuid4())
         if message.id is None:
             message.id = request_id
         request_context = RequestContext(
@@ -543,7 +569,7 @@ class DefaultRequestHandler(RequestHandler):
         compat = MethodName.parse_compat(message.method)
 
         if self._is_long_task(message):
-            response= self._handle_task_method(request_context)
+            response = self._handle_task_method(request_context)
             if inspect.isawaitable(response):
                 response = await response
             async for resp in self._iter_stream_result(response, request_context.request_id):

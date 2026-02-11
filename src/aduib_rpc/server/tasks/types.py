@@ -3,6 +3,7 @@
 This module provides the v2 protocol entities for task management,
 matching the specification in docs/protocol_v2_specification.md.
 """
+
 from __future__ import annotations
 
 import time
@@ -13,6 +14,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from aduib_rpc.protocol.v2.qos import Priority
+
 
 class TaskMethod(StrEnum):
     """RPC methods for task operations in the v2 protocol."""
@@ -28,6 +30,7 @@ class TaskMethod(StrEnum):
     def list(cls) -> list[str]:
         """List all task method names."""
         return [method.value for method in cls]
+
 
 class TaskStatus(StrEnum):
     """Task status in the v2 protocol."""
@@ -283,11 +286,13 @@ class TaskRecord(BaseModel):
             tags=tags,
         )
 
+
 class TaskEventType(StrEnum):
     STARTED = "STARTED"
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+
 
 class TaskEvent(BaseModel):
     """Task event for subscriptions.
@@ -309,7 +314,7 @@ class TaskSubmitRequest(BaseModel):
 
     target_method: str
     params: dict[str, Any] | None = None
-    priority: Priority = Priority.NORMAL,
+    priority: Priority = (Priority.NORMAL,)
 
 
 class TaskSubmitResponse(BaseModel):
@@ -352,4 +357,3 @@ class TaskSubscribeRequest(BaseModel):
 
     task_id: str
     events: list[str] | None = None
-

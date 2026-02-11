@@ -11,17 +11,20 @@ logger = logging.getLogger(__name__)
 
 def task_manager_provider(name: str):
     """Decorator to register a task manager provider class."""
+
     def decorator(cls: Any) -> Any:
         if not name:
             raise ValueError("Task manager provider name must be provided")
         TaskManagerProvider.register_task_source_class(name, cls)
         logger.info(f"Task manager provider {name} registered")
         return cls
+
     return decorator
 
 
 class TaskManagerProvider:
     """Task manager provider for managing task sources."""
+
     task_source_classes: dict[str, Any] = {}
     task_source_instances: dict[str, TaskManager] = {}
 
@@ -50,5 +53,3 @@ class TaskManagerProvider:
     def get_task_source_instance(cls, source_type: str) -> TaskManager | None:
         """Get a registered task source instance."""
         return cls.task_source_instances.get(source_type)
-
-

@@ -8,6 +8,7 @@ Implementation:
 - Uses asyncio.timeout() for hard timeout enforcement
 - In-memory LRU cache for idempotency (Redis can be added later)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -24,7 +25,7 @@ from aduib_rpc.resilience.retry_policy import RetryExecutor, RetryPolicy
 logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_MS = 30000  # 30 seconds
-MAX_TIMEOUT_MS = 300000     # 5 minutes
+MAX_TIMEOUT_MS = 300000  # 5 minutes
 
 
 class QosHandler:
@@ -50,9 +51,7 @@ class QosHandler:
         """
         self._cache = cache if cache is not None else InMemoryIdempotencyCache()
         # Ensure there is a default timeout value.
-        self._default_timeout_ms = (
-            default_timeout_ms if default_timeout_ms is not None else DEFAULT_TIMEOUT_MS
-        )
+        self._default_timeout_ms = default_timeout_ms if default_timeout_ms is not None else DEFAULT_TIMEOUT_MS
         self._idempotency_ttl_s = idempotency_ttl_s if idempotency_ttl_s is not None else 3600
         self._idempotency_locks: dict[str, asyncio.Lock] = {}
         self._idempotency_lock: asyncio.Lock = asyncio.Lock()
@@ -97,6 +96,7 @@ class QosHandler:
 
         # Use singleflight idempotency caching to avoid TOCTOU races.
         if idempotency_key:
+
             async def _factory() -> AduibRpcResponse:
                 return await self._execute_with_retry(_execute_once, qos)
 
@@ -311,4 +311,3 @@ def with_timeout(
         return wrapper
 
     return decorator
-
