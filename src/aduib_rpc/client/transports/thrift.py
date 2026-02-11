@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import inspect
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -49,24 +50,6 @@ def _parse_target(url: str) -> tuple[str, int]:
     return host, int(port)
 
 
-def _request_to_thrift(request: AduibRpcRequest):
-    from aduib_rpc.thrift_v2 import ttypes
-
-    data_json = None
-    if request.data is not None:
-        try:
-            data_json = json.dumps(request.data, ensure_ascii=False)
-        except Exception:
-            data_json = json.dumps({"_unserializable": True})
-    return ttypes.Request(
-        aduib_rpc=request.aduib_rpc or "2.0",
-        id=str(request.id_str),
-        method=str(request.method or ""),
-        name=str(request.name) if request.name is not None else None,
-        data_json=data_json or "{}",
-    )
-
-
 def _status_from_thrift(value: int) -> ResponseStatus:
     if value == 2:
         return ResponseStatus.ERROR
@@ -104,16 +87,7 @@ def _response_from_thrift(resp) -> AduibRpcResponse:
 
 
 def _task_status_from_thrift(value: int) -> TaskStatus:
-    mapping = {
-        1: TaskStatus.PENDING,
-        2: TaskStatus.SCHEDULED,
-        3: TaskStatus.RUNNING,
-        4: TaskStatus.SUCCEEDED,
-        5: TaskStatus.FAILED,
-        6: TaskStatus.CANCELED,
-        7: TaskStatus.RETRYING,
-    }
-    return mapping.get(int(value or 0), TaskStatus.PENDING)
+    return TaskStatus.from_thrift(value)
 
 
 def _coerce_task_status(value: Any) -> TaskStatus:
@@ -191,9 +165,22 @@ class ThriftTransport(ClientTransport):
         self._health_pool = None
         self._pool_lock = asyncio.Lock()
         self._thrift_module = None
+        self._closed = False
 
     def _get_thrift_path(self) -> Path:
         return Path(__file__).resolve().parents[2] / "proto" / "aduib_rpc_v2.thrift"
+
+    def _normalize_thrift_specs(self, module) -> None:
+        try:
+            values = module.__dict__.values()
+        except Exception:
+            return
+        for obj in values:
+            if not isinstance(obj, type):
+                continue
+            spec = getattr(obj, "thrift_spec", None)
+            if isinstance(spec, (list, tuple)):
+                obj.thrift_spec = {i: field for i, field in enumerate(spec) if field}
 
     def _load_thrift_module(self):
         if self._thrift_module is not None:
@@ -204,7 +191,14 @@ class ThriftTransport(ClientTransport):
             raise RuntimeError("aiothrift is required for ThriftTransport") from exc
         thrift_path = self._get_thrift_path()
         self._thrift_module = aiothrift.load(str(thrift_path), module_name="aduib_rpc_v2_thrift")
+        self._normalize_thrift_specs(self._thrift_module)
         return self._thrift_module
+
+    def _request_to_thrift(self, request: AduibRpcRequest):
+        from aduib_rpc.utils.thrift_v2_utils import ToThrift
+
+        module = self._load_thrift_module()
+        return ToThrift.request(request, ttypes=module)
 
     def _build_multiplexed_proto_factory(self, service_name: str):
         try:
@@ -245,11 +239,75 @@ class ThriftTransport(ClientTransport):
 
         return _MultiplexedProtocolFactory(base_factory)
 
+    def _make_multiplexed_protocol_cls(self, service_name: str):
+        try:
+            from aiothrift.protocol import TBinaryProtocol
+            from thriftpy2.protocol.multiplex import TMultiplexedProtocol
+        except Exception:
+            return None
+
+        class _MultiplexedProtocol:
+            __slots__ = ("_proto",)
+
+            def __init__(self, trans):
+                base = TBinaryProtocol(trans)
+                self._proto = TMultiplexedProtocol(base, service_name)
+
+            def __getattr__(self, item):
+                return getattr(self._proto, item)
+
+        return _MultiplexedProtocol
+
+    async def _create_multiplexed_pool(self, service, *, service_name: str):
+        try:
+            import aiothrift
+            from aiothrift.pool import ThriftPool
+            from aiothrift.connection import create_connection
+        except ImportError as exc:  # pragma: no cover
+            raise RuntimeError("aiothrift is required for ThriftTransport") from exc
+
+        protocol_cls = self._make_multiplexed_protocol_cls(service_name)
+        if protocol_cls is None:
+            raise RuntimeError("Thrift multiplexed protocol is unavailable")
+
+        class _MultiplexedPool(ThriftPool):
+            def __init__(self, *args, **kwargs):
+                self._protocol_cls = kwargs.pop("protocol_cls")
+                super().__init__(*args, **kwargs)
+
+            def _create_new_connection(self):
+                return create_connection(
+                    self._service,
+                    self._address,
+                    timeout=self._timeout,
+                    framed=self._framed,
+                    protocol_cls=self._protocol_cls,
+                )
+
+        pool = _MultiplexedPool(
+            service,
+            (self._host, self._port),
+            minsize=self._pool_minsize,
+            maxsize=self._pool_maxsize,
+            timeout=self._timeout_s,
+            framed=False,
+            protocol_cls=protocol_cls,
+        )
+        try:
+            await pool.fill_free(override_min=False)
+        except Exception:
+            pool.close()
+            raise
+        return pool
+
     async def _create_pool(self, service, *, service_name: str | None):
         try:
             import aiothrift
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError("aiothrift is required for ThriftTransport") from exc
+
+        if service_name:
+            return await self._create_multiplexed_pool(service, service_name=service_name)
 
         kwargs: dict[str, Any] = {
             "address": (self._host, self._port),
@@ -278,11 +336,15 @@ class ThriftTransport(ClientTransport):
         return await aiothrift.create_pool(service, **kwargs)
 
     async def _get_client(self):
-        if self._pool is not None:
+        if self._closed:
+            raise RuntimeError("ThriftTransport is closed")
+        if self._pool is not None and not self._is_pool_closed(self._pool):
             return self._pool
         async with self._pool_lock:
-            if self._pool is not None:
+            if self._pool is not None and not self._is_pool_closed(self._pool):
                 return self._pool
+            if self._is_pool_closed(self._pool):
+                self._pool = None
             module = self._load_thrift_module()
             self._pool = await self._create_pool(
                 module.AduibRpcService,
@@ -291,11 +353,15 @@ class ThriftTransport(ClientTransport):
             return self._pool
 
     async def _get_task_client(self):
-        if self._task_pool is not None:
+        if self._closed:
+            raise RuntimeError("ThriftTransport is closed")
+        if self._task_pool is not None and not self._is_pool_closed(self._task_pool):
             return self._task_pool
         async with self._pool_lock:
-            if self._task_pool is not None:
+            if self._task_pool is not None and not self._is_pool_closed(self._task_pool):
                 return self._task_pool
+            if self._is_pool_closed(self._task_pool):
+                self._task_pool = None
             module = self._load_thrift_module()
             self._task_pool = await self._create_pool(
                 module.TaskService,
@@ -304,17 +370,56 @@ class ThriftTransport(ClientTransport):
             return self._task_pool
 
     async def _get_health_client(self):
-        if self._health_pool is not None:
+        if self._closed:
+            raise RuntimeError("ThriftTransport is closed")
+        if self._health_pool is not None and not self._is_pool_closed(self._health_pool):
             return self._health_pool
         async with self._pool_lock:
-            if self._health_pool is not None:
+            if self._health_pool is not None and not self._is_pool_closed(self._health_pool):
                 return self._health_pool
+            if self._is_pool_closed(self._health_pool):
+                self._health_pool = None
             module = self._load_thrift_module()
             self._health_pool = await self._create_pool(
                 module.HealthService,
                 service_name="HealthService",
             )
             return self._health_pool
+
+    @staticmethod
+    def _is_pool_closed(pool) -> bool:
+        if pool is None:
+            return True
+        return bool(getattr(pool, "closed", False))
+
+    async def _close_pool(self, pool) -> None:
+        if pool is None:
+            return
+        try:
+            close = getattr(pool, "close", None)
+            if callable(close):
+                close()
+        finally:
+            wait_closed = getattr(pool, "wait_closed", None)
+            if callable(wait_closed):
+                result = wait_closed()
+                if inspect.isawaitable(result):
+                    await result
+
+    async def aclose(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        async with self._pool_lock:
+            pools = (self._pool, self._task_pool, self._health_pool)
+            self._pool = None
+            self._task_pool = None
+            self._health_pool = None
+        for pool in pools:
+            await self._close_pool(pool)
+
+    async def close(self) -> None:
+        await self.aclose()
 
     async def completion(
         self,
@@ -323,7 +428,7 @@ class ThriftTransport(ClientTransport):
         context: ClientContext,
     ) -> AduibRpcResponse:
         client = await self._get_client()
-        resp = await client.Call(_request_to_thrift(request))
+        resp = await client.Call(self._request_to_thrift(request))
         return _response_from_thrift(resp)
 
     async def call(
@@ -333,7 +438,7 @@ class ThriftTransport(ClientTransport):
         context: ClientContext,
     ) -> AduibRpcResponse:
         client = await self._get_client()
-        resp = await client.Call(_request_to_thrift(request))
+        resp = await client.Call(self._request_to_thrift(request))
         return _response_from_thrift(resp)
 
     async def completion_stream(
@@ -343,7 +448,7 @@ class ThriftTransport(ClientTransport):
         context: ClientContext,
     ):
         client = await self._get_client()
-        items = await client.CallServerStream(_request_to_thrift(request))
+        items = await client.CallServerStream(self._request_to_thrift(request))
         responses = [_response_from_thrift(item) for item in (items or [])]
         for response in responses:
             yield response
@@ -355,7 +460,7 @@ class ThriftTransport(ClientTransport):
         context: ClientContext,
     ):
         client = await self._get_client()
-        items = await client.CallServerStream(_request_to_thrift(request))
+        items = await client.CallServerStream(self._request_to_thrift(request))
         responses = [_response_from_thrift(item) for item in (items or [])]
         for response in responses:
             yield response
@@ -370,7 +475,7 @@ class ThriftTransport(ClientTransport):
         if not items:
             raise ValueError("request stream is empty")
         client = await self._get_client()
-        thrift_requests = [_request_to_thrift(req) for req in items]
+        thrift_requests = [self._request_to_thrift(req) for req in items]
         resp = await client.CallClientStream(thrift_requests)
         return _response_from_thrift(resp)
 
@@ -384,7 +489,7 @@ class ThriftTransport(ClientTransport):
         if not items:
             raise ValueError("request stream is empty")
         client = await self._get_client()
-        thrift_requests = [_request_to_thrift(req) for req in items]
+        thrift_requests = [self._request_to_thrift(req) for req in items]
         resp = await client.CallBidirectional(thrift_requests)
         responses = [_response_from_thrift(item) for item in (resp or [])]
         for response in responses:
@@ -396,22 +501,12 @@ class ThriftTransport(ClientTransport):
         *,
         context: ClientContext,
     ) -> TaskSubmitResponse:
-        from aduib_rpc.thrift_v2 import ttypes
-
-        req = ttypes.TaskSubmitRequest(
+        module = self._load_thrift_module()
+        req = module.TaskSubmitRequest(
             target_method=str(submit.target_method),
             params_json=json.dumps(submit.params or {}, ensure_ascii=False),
             priority=int(getattr(submit.priority, "value", submit.priority)),
-            max_attempts=int(submit.max_attempts),
         )
-        if submit.timeout_ms is not None:
-            req.timeout_ms = int(submit.timeout_ms)
-        if submit.scheduled_at_ms is not None:
-            req.scheduled_at_ms = int(submit.scheduled_at_ms)
-        if submit.idempotency_key is not None:
-            req.idempotency_key = str(submit.idempotency_key)
-        if submit.metadata:
-            req.metadata = {str(k): str(v) for k, v in submit.metadata.items()}
 
         client = await self._get_task_client()
         resp = await client.Submit(req)
@@ -427,9 +522,8 @@ class ThriftTransport(ClientTransport):
         *,
         context: ClientContext,
     ) -> TaskQueryResponse:
-        from aduib_rpc.thrift_v2 import ttypes
-
-        req = ttypes.TaskQueryRequest(task_id=str(query.task_id))
+        module = self._load_thrift_module()
+        req = module.TaskQueryRequest(task_id=str(query.task_id))
         client = await self._get_task_client()
         resp = await client.Query(req)
         record = _task_record_from_thrift(resp.task)
@@ -441,9 +535,8 @@ class ThriftTransport(ClientTransport):
         *,
         context: ClientContext,
     ) -> TaskCancelResponse:
-        from aduib_rpc.thrift_v2 import ttypes
-
-        req = ttypes.TaskCancelRequest(task_id=str(cancel.task_id))
+        module = self._load_thrift_module()
+        req = module.TaskCancelRequest(task_id=str(cancel.task_id))
         if cancel.reason is not None:
             req.reason = str(cancel.reason)
         client = await self._get_task_client()
@@ -460,9 +553,8 @@ class ThriftTransport(ClientTransport):
         *,
         context: ClientContext,
     ):
-        from aduib_rpc.thrift_v2 import ttypes
-
-        req = ttypes.TaskSubscribeRequest(task_id=str(sub.task_id))
+        module = self._load_thrift_module()
+        req = module.TaskSubscribeRequest(task_id=str(sub.task_id))
         if sub.events:
             req.events = [str(ev) for ev in sub.events]
         client = await self._get_task_client()
@@ -472,20 +564,24 @@ class ThriftTransport(ClientTransport):
             yield TaskEvent(event=item.event, task=record, timestamp_ms=int(item.timestamp_ms))
 
     async def health_check(self, request: HealthCheckRequest, *, context: ClientContext) -> HealthCheckResponse:
-        from aduib_rpc.thrift_v2 import ttypes
-
-        req = ttypes.HealthCheckRequest()
-        req.service = request.service
+        module = self._load_thrift_module()
+        req = module.HealthCheckRequest()
+        if hasattr(req, "service_name"):
+            req.service_name = request.service
+        else:
+            req.service = request.service
         client = await self._get_health_client()
         resp = await client.Check(req)
         services = {str(k): _health_status_from_thrift(v) for k, v in (resp.services or {}).items()}
         return HealthCheckResponse(status=_health_status_from_thrift(resp.status), services=services or None)
 
     async def health_watch(self, request: HealthCheckRequest, *, context: ClientContext):
-        from aduib_rpc.thrift_v2 import ttypes
-
-        req = ttypes.HealthCheckRequest()
-        req.service = request.service
+        module = self._load_thrift_module()
+        req = module.HealthCheckRequest()
+        if hasattr(req, "service_name"):
+            req.service_name = request.service
+        else:
+            req.service = request.service
         client = await self._get_health_client()
         items = await client.Watch(req)
         for item in (items or []):
@@ -494,10 +590,4 @@ class ThriftTransport(ClientTransport):
 
 
 def _health_status_from_thrift(value: int) -> HealthStatus:
-    mapping = {
-        1: HealthStatus.HEALTHY,
-        2: HealthStatus.UNHEALTHY,
-        3: HealthStatus.DEGRADED,
-        4: HealthStatus.UNKNOWN,
-    }
-    return mapping.get(int(value or 0), HealthStatus.UNKNOWN)
+    return HealthStatus.from_thrift(value)

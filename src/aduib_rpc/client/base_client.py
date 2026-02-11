@@ -1,5 +1,6 @@
 import logging
 import uuid
+import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from typing import Optional, Any
@@ -348,3 +349,14 @@ class BaseAduibRpcClient(AduibRpcClient):
         context = self._prepare_context(context)
         async for status in self._transport.health_watch(request, context=context):
             yield status
+
+    async def close(self) -> None:
+        close = getattr(self._transport, "aclose", None)
+        if callable(close):
+            await close()
+            return
+        close = getattr(self._transport, "close", None)
+        if callable(close):
+            result = close()
+            if asyncio.iscoroutine(result):
+                await result

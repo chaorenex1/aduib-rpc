@@ -10,6 +10,7 @@ from aduib_rpc.client.call_options import resolve_timeout_s
 from aduib_rpc.client.errors import ClientHTTPError, ClientJSONError
 from aduib_rpc.client import ClientContext, ClientRequestInterceptor, ClientJSONRPCError
 from aduib_rpc.client.transports.base import ClientTransport
+from aduib_rpc.protocol.v2 import RpcError, ResponseStatus
 from aduib_rpc.types import (
     AduibRpcRequest,
     AduibRpcResponse,
@@ -111,6 +112,33 @@ class JsonRpcTransport(ClientTransport):
             return AduibRpcResponse.model_validate(value)
         except ValidationError:
             return None
+
+    def _coerce_jsonrpc_error(self, error: JSONRPCErrorResponse) -> AduibRpcResponse | None:
+        code = getattr(error.error, "code", None)
+        if not isinstance(code, int):
+            return None
+        if code < 1000:
+            return None
+        data = error.error.data if isinstance(error.error.data, dict) else None
+        if data:
+            try:
+                rpc_error = RpcError.model_validate(data)
+            except ValidationError:
+                name = data.get("name") if isinstance(data, dict) else None
+                rpc_error = RpcError(code=code, name=str(name or "UNKNOWN"), message=str(error.error.message))
+        else:
+            rpc_error = RpcError(code=code, name="UNKNOWN", message=str(error.error.message))
+        return AduibRpcResponse(
+            id=error.id if error.id is not None else None,
+            status=ResponseStatus.ERROR,
+            error=rpc_error,
+        )
+
+    def _raise_or_coerce_jsonrpc_error(self, error: JSONRPCErrorResponse) -> AduibRpcResponse:
+        coerced = self._coerce_jsonrpc_error(error)
+        if coerced is not None:
+            return coerced
+        raise ClientJSONRPCError(error)
 
     async def _request_unary(
         self,
@@ -222,7 +250,7 @@ class JsonRpcTransport(ClientTransport):
         """Sends a non-streaming request."""
         response = await self._request_unary(request, context=context)
         if isinstance(response.root, JSONRPCErrorResponse):
-            raise ClientJSONRPCError(response.root)
+            return self._raise_or_coerce_jsonrpc_error(response.root)
         result = self._coerce_aduib_response(response.root.result)
         if result is None:
             raise ClientJSONError("Invalid JSON-RPC result payload for AduibRpcResponse")
@@ -231,7 +259,7 @@ class JsonRpcTransport(ClientTransport):
     async def call(self, request: AduibRpcRequest, *, context: ClientContext) -> AduibRpcResponse:
         response = await self._request_unary(request, context=context)
         if isinstance(response.root, JSONRPCErrorResponse):
-            raise ClientJSONRPCError(response.root)
+            return self._raise_or_coerce_jsonrpc_error(response.root)
         result = self._coerce_aduib_response(response.root.result)
         if result is None:
             raise ClientJSONError("Invalid JSON-RPC result payload for AduibRpcResponse")
@@ -242,7 +270,8 @@ class JsonRpcTransport(ClientTransport):
         """Sends a streaming request and yields responses as they arrive."""
         async for response in self._stream_requests(request, context=context):
             if isinstance(response.root, JSONRPCErrorResponse):
-                raise ClientJSONRPCError(response.root)
+                yield self._raise_or_coerce_jsonrpc_error(response.root)
+                return
             result = self._coerce_aduib_response(response.root.result)
             if result is None:
                 raise ClientJSONError("Invalid JSON-RPC result payload for AduibRpcResponse")
@@ -272,7 +301,8 @@ class JsonRpcTransport(ClientTransport):
     ) -> AsyncGenerator[AduibRpcResponse, None]:
         async for response in self._stream_requests(request, context=context):
             if isinstance(response.root, JSONRPCErrorResponse):
-                raise ClientJSONRPCError(response.root)
+                yield self._raise_or_coerce_jsonrpc_error(response.root)
+                return
             result = self._coerce_aduib_response(response.root.result)
             if result is None:
                 raise ClientJSONError("Invalid JSON-RPC result payload for AduibRpcResponse")
