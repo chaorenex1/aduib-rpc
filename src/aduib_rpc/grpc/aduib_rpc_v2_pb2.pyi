@@ -1,10 +1,10 @@
-from google.protobuf import any_pb2 as _any_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -21,22 +21,6 @@ class AuthScheme(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     AUTH_SCHEME_BEARER: _ClassVar[AuthScheme]
     AUTH_SCHEME_API_KEY: _ClassVar[AuthScheme]
     AUTH_SCHEME_MTLS: _ClassVar[AuthScheme]
-
-class ContentType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    CONTENT_TYPE_UNSPECIFIED: _ClassVar[ContentType]
-    CONTENT_TYPE_JSON: _ClassVar[ContentType]
-    CONTENT_TYPE_MSGPACK: _ClassVar[ContentType]
-    CONTENT_TYPE_PROTOBUF: _ClassVar[ContentType]
-    CONTENT_TYPE_AVRO: _ClassVar[ContentType]
-
-class Compression(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    COMPRESSION_UNSPECIFIED: _ClassVar[Compression]
-    COMPRESSION_NONE: _ClassVar[Compression]
-    COMPRESSION_GZIP: _ClassVar[Compression]
-    COMPRESSION_ZSTD: _ClassVar[Compression]
-    COMPRESSION_LZ4: _ClassVar[Compression]
 
 class Priority(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -72,16 +56,6 @@ AUTH_SCHEME_UNSPECIFIED: AuthScheme
 AUTH_SCHEME_BEARER: AuthScheme
 AUTH_SCHEME_API_KEY: AuthScheme
 AUTH_SCHEME_MTLS: AuthScheme
-CONTENT_TYPE_UNSPECIFIED: ContentType
-CONTENT_TYPE_JSON: ContentType
-CONTENT_TYPE_MSGPACK: ContentType
-CONTENT_TYPE_PROTOBUF: ContentType
-CONTENT_TYPE_AVRO: ContentType
-COMPRESSION_UNSPECIFIED: Compression
-COMPRESSION_NONE: Compression
-COMPRESSION_GZIP: Compression
-COMPRESSION_ZSTD: Compression
-COMPRESSION_LZ4: Compression
 PRIORITY_UNSPECIFIED: Priority
 PRIORITY_LOW: Priority
 PRIORITY_NORMAL: Priority
@@ -204,7 +178,7 @@ class TraceContext(_message.Message):
     def __init__(self, trace_id: _Optional[str] = ..., span_id: _Optional[str] = ..., parent_span_id: _Optional[str] = ..., sampled: bool = ..., baggage: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class RequestMetadata(_message.Message):
-    __slots__ = ("timestamp_ms", "client_id", "client_version", "auth", "tenant_id", "content_type", "accept", "compression", "headers", "long_task", "long_task_method", "long_task_timeout")
+    __slots__ = ("timestamp_ms", "client_id", "client_version", "auth", "tenant_id", "headers", "long_task", "long_task_method", "long_task_timeout")
     class HeadersEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -217,9 +191,6 @@ class RequestMetadata(_message.Message):
     CLIENT_VERSION_FIELD_NUMBER: _ClassVar[int]
     AUTH_FIELD_NUMBER: _ClassVar[int]
     TENANT_ID_FIELD_NUMBER: _ClassVar[int]
-    CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
-    ACCEPT_FIELD_NUMBER: _ClassVar[int]
-    COMPRESSION_FIELD_NUMBER: _ClassVar[int]
     HEADERS_FIELD_NUMBER: _ClassVar[int]
     LONG_TASK_FIELD_NUMBER: _ClassVar[int]
     LONG_TASK_METHOD_FIELD_NUMBER: _ClassVar[int]
@@ -229,39 +200,23 @@ class RequestMetadata(_message.Message):
     client_version: str
     auth: AuthContext
     tenant_id: str
-    content_type: ContentType
-    accept: _containers.RepeatedScalarFieldContainer[ContentType]
-    compression: Compression
     headers: _containers.ScalarMap[str, str]
     long_task: bool
     long_task_method: str
     long_task_timeout: int
-    def __init__(self, timestamp_ms: _Optional[int] = ..., client_id: _Optional[str] = ..., client_version: _Optional[str] = ..., auth: _Optional[_Union[AuthContext, _Mapping]] = ..., tenant_id: _Optional[str] = ..., content_type: _Optional[_Union[ContentType, str]] = ..., accept: _Optional[_Iterable[_Union[ContentType, str]]] = ..., compression: _Optional[_Union[Compression, str]] = ..., headers: _Optional[_Mapping[str, str]] = ..., long_task: bool = ..., long_task_method: _Optional[str] = ..., long_task_timeout: _Optional[int] = ...) -> None: ...
+    def __init__(self, timestamp_ms: _Optional[int] = ..., client_id: _Optional[str] = ..., client_version: _Optional[str] = ..., auth: _Optional[_Union[AuthContext, _Mapping]] = ..., tenant_id: _Optional[str] = ..., headers: _Optional[_Mapping[str, str]] = ..., long_task: bool = ..., long_task_method: _Optional[str] = ..., long_task_timeout: _Optional[int] = ...) -> None: ...
 
 class ResponseMetadata(_message.Message):
-    __slots__ = ("timestamp_ms", "duration_ms", "server_id", "server_version", "pagination", "rate_limit", "headers")
-    class HeadersEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: str
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    __slots__ = ("timestamp_ms", "duration_ms", "server_id", "server_version")
     TIMESTAMP_MS_FIELD_NUMBER: _ClassVar[int]
     DURATION_MS_FIELD_NUMBER: _ClassVar[int]
     SERVER_ID_FIELD_NUMBER: _ClassVar[int]
     SERVER_VERSION_FIELD_NUMBER: _ClassVar[int]
-    PAGINATION_FIELD_NUMBER: _ClassVar[int]
-    RATE_LIMIT_FIELD_NUMBER: _ClassVar[int]
-    HEADERS_FIELD_NUMBER: _ClassVar[int]
     timestamp_ms: int
     duration_ms: int
     server_id: str
     server_version: str
-    pagination: Pagination
-    rate_limit: RateLimitInfo
-    headers: _containers.ScalarMap[str, str]
-    def __init__(self, timestamp_ms: _Optional[int] = ..., duration_ms: _Optional[int] = ..., server_id: _Optional[str] = ..., server_version: _Optional[str] = ..., pagination: _Optional[_Union[Pagination, _Mapping]] = ..., rate_limit: _Optional[_Union[RateLimitInfo, _Mapping]] = ..., headers: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(self, timestamp_ms: _Optional[int] = ..., duration_ms: _Optional[int] = ..., server_id: _Optional[str] = ..., server_version: _Optional[str] = ...) -> None: ...
 
 class AuthContext(_message.Message):
     __slots__ = ("scheme", "credentials", "principal", "roles")
@@ -274,30 +229,6 @@ class AuthContext(_message.Message):
     principal: str
     roles: _containers.RepeatedScalarFieldContainer[str]
     def __init__(self, scheme: _Optional[_Union[AuthScheme, str]] = ..., credentials: _Optional[str] = ..., principal: _Optional[str] = ..., roles: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class Pagination(_message.Message):
-    __slots__ = ("total", "page", "page_size", "has_next", "cursor")
-    TOTAL_FIELD_NUMBER: _ClassVar[int]
-    PAGE_FIELD_NUMBER: _ClassVar[int]
-    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
-    HAS_NEXT_FIELD_NUMBER: _ClassVar[int]
-    CURSOR_FIELD_NUMBER: _ClassVar[int]
-    total: int
-    page: int
-    page_size: int
-    has_next: bool
-    cursor: str
-    def __init__(self, total: _Optional[int] = ..., page: _Optional[int] = ..., page_size: _Optional[int] = ..., has_next: bool = ..., cursor: _Optional[str] = ...) -> None: ...
-
-class RateLimitInfo(_message.Message):
-    __slots__ = ("limit", "remaining", "reset_at_ms")
-    LIMIT_FIELD_NUMBER: _ClassVar[int]
-    REMAINING_FIELD_NUMBER: _ClassVar[int]
-    RESET_AT_MS_FIELD_NUMBER: _ClassVar[int]
-    limit: int
-    remaining: int
-    reset_at_ms: int
-    def __init__(self, limit: _Optional[int] = ..., remaining: _Optional[int] = ..., reset_at_ms: _Optional[int] = ...) -> None: ...
 
 class QosConfig(_message.Message):
     __slots__ = ("priority", "timeout_ms", "retry", "idempotency_key")
@@ -381,31 +312,14 @@ class TaskProgress(_message.Message):
     def __init__(self, current: _Optional[int] = ..., total: _Optional[int] = ..., message: _Optional[str] = ..., percentage: _Optional[float] = ...) -> None: ...
 
 class TaskSubmitRequest(_message.Message):
-    __slots__ = ("target_method", "params", "priority", "max_attempts", "timeout_ms", "scheduled_at_ms", "idempotency_key", "metadata")
-    class MetadataEntry(_message.Message):
-        __slots__ = ("key", "value")
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: str
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    __slots__ = ("target_method", "params", "priority")
     TARGET_METHOD_FIELD_NUMBER: _ClassVar[int]
     PARAMS_FIELD_NUMBER: _ClassVar[int]
     PRIORITY_FIELD_NUMBER: _ClassVar[int]
-    MAX_ATTEMPTS_FIELD_NUMBER: _ClassVar[int]
-    TIMEOUT_MS_FIELD_NUMBER: _ClassVar[int]
-    SCHEDULED_AT_MS_FIELD_NUMBER: _ClassVar[int]
-    IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
-    METADATA_FIELD_NUMBER: _ClassVar[int]
     target_method: str
     params: _struct_pb2.Struct
     priority: Priority
-    max_attempts: int
-    timeout_ms: int
-    scheduled_at_ms: int
-    idempotency_key: str
-    metadata: _containers.ScalarMap[str, str]
-    def __init__(self, target_method: _Optional[str] = ..., params: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., priority: _Optional[_Union[Priority, str]] = ..., max_attempts: _Optional[int] = ..., timeout_ms: _Optional[int] = ..., scheduled_at_ms: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., metadata: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(self, target_method: _Optional[str] = ..., params: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., priority: _Optional[_Union[Priority, str]] = ...) -> None: ...
 
 class TaskSubmitResponse(_message.Message):
     __slots__ = ("task_id", "status", "created_at_ms")

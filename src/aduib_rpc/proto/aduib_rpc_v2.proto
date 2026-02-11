@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package aduib.rpc.v2;
 
-import "google/protobuf/any.proto";
 import "google/protobuf/struct.proto";
 
 option go_package = "github.com/aduib/rpc/v2;rpcv2";
@@ -114,9 +113,6 @@ message RequestMetadata {
   optional string client_version = 3;
   optional AuthContext auth = 4;
   optional string tenant_id = 5;
-  ContentType content_type = 6;
-  repeated ContentType accept = 7;
-  optional Compression compression = 8;
   map<string, string> headers = 9;
   optional bool long_task = 10;
   optional string long_task_method = 11;
@@ -128,9 +124,6 @@ message ResponseMetadata {
   int64 duration_ms = 2;
   optional string server_id = 3;
   optional string server_version = 4;
-  optional Pagination pagination = 5;
-  optional RateLimitInfo rate_limit = 6;
-  map<string, string> headers = 7;
 }
 
 message AuthContext {
@@ -145,36 +138,6 @@ enum AuthScheme {
   AUTH_SCHEME_BEARER = 1;
   AUTH_SCHEME_API_KEY = 2;
   AUTH_SCHEME_MTLS = 3;
-}
-
-enum ContentType {
-  CONTENT_TYPE_UNSPECIFIED = 0;
-  CONTENT_TYPE_JSON = 1;
-  CONTENT_TYPE_MSGPACK = 2;
-  CONTENT_TYPE_PROTOBUF = 3;
-  CONTENT_TYPE_AVRO = 4;
-}
-
-enum Compression {
-  COMPRESSION_UNSPECIFIED = 0;
-  COMPRESSION_NONE = 1;
-  COMPRESSION_GZIP = 2;
-  COMPRESSION_ZSTD = 3;
-  COMPRESSION_LZ4 = 4;
-}
-
-message Pagination {
-  int64 total = 1;
-  int32 page = 2;
-  int32 page_size = 3;
-  bool has_next = 4;
-  optional string cursor = 5;
-}
-
-message RateLimitInfo {
-  int32 limit = 1;
-  int32 remaining = 2;
-  int64 reset_at_ms = 3;
 }
 
 // ============================================================
@@ -257,11 +220,6 @@ message TaskSubmitRequest {
   string target_method = 1;
   optional google.protobuf.Struct params = 2;
   Priority priority = 3;
-  int32 max_attempts = 4;
-  optional int64 timeout_ms = 5;
-  optional int64 scheduled_at_ms = 6;
-  optional string idempotency_key = 7;
-  map<string, string> metadata = 8;
 }
 
 message TaskSubmitResponse {
