@@ -15,14 +15,19 @@ from aduib_rpc.security.mtls import (
     sanitize_cert_for_audit,
 )
 from aduib_rpc.security.rbac import (
-    InMemoryPermissionChecker,
     Permission,
-    PermissionChecker,
     PermissionDeniedError,
     Principal,
     RbacPolicy,
     Role,
 )
+from aduib_rpc.security.validators import (
+    PermissionValidator,
+    RbacPermissionValidator,
+    TokenValidator,
+    MetadataTokenValidator,
+)
+from aduib_rpc.security.permission_provider import PermissionProvider
 
 __all__ = [
     "TlsConfig",
@@ -40,8 +45,11 @@ __all__ = [
     "Permission",
     "Role",
     "Principal",
-    "PermissionChecker",
-    "InMemoryPermissionChecker",
     "RbacPolicy",
     "PermissionDeniedError",
+    "TokenValidator",
+    "PermissionValidator",
+    "MetadataTokenValidator",
+    "RbacPermissionValidator",
+    "PermissionProvider",
 ]

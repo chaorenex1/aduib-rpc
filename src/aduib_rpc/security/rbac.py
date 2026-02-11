@@ -109,139 +109,9 @@ class Principal:
         return self.metadata.get(key, default)
 
 
-class PermissionChecker:
-    """Interface for permission checks."""
-
-    def has_permission(
-        self,
-        principal: Principal,
-        permission: Permission | tuple[str, str],
-    ) -> bool:
-        """Check if principal has the given permission.
-
-        Args:
-            principal: The principal to check
-            permission: Permission or (resource, action) tuple
-
-        Returns:
-            True if permission is granted
-        """
-        raise NotImplementedError
-
-    def can_invoke_method(
-        self,
-        principal: Principal,
-        method: str,
-    ) -> bool:
-        """Check if principal can invoke a specific RPC method.
-
-        Args:
-            principal: The principal to check
-            method: RPC method path (e.g., "rpc.v2/users/UserService")
-
-        Returns:
-            True if method invocation is allowed
-        """
-        raise NotImplementedError
-
-
-class InMemoryPermissionChecker(PermissionChecker):
-    """In-memory permission checker with role resolution.
-
-    Thread-safe for read operations; add_role/remove_role should be
-    called during initialization only.
-    """
-
-    def __init__(self, roles: Iterable[Role] | None = None) -> None:
-        """Initialize with a set of available roles.
-
-        Args:
-            roles: Initial set of roles (default: empty)
-        """
-        self._roles: dict[str, Role] = {role.name: role for role in (roles or [])}
-        self._superadmin_role: str | None = None
-
-    def add_role(self, role: Role) -> None:
-        """Register or replace a role definition."""
-        self._roles[role.name] = role
-
-    def remove_role(self, name: str) -> None:
-        """Remove a role definition by name."""
-        self._roles.pop(name, None)
-
-    def set_superadmin_role(self, role_name: str) -> None:
-        """Set the superadmin role that bypasses all permission checks."""
-        self._superadmin_role = role_name
-
-    def has_permission(
-        self,
-        principal: Principal,
-        permission: Permission | tuple[str, str],
-    ) -> bool:
-        """Check if principal has the given permission.
-
-        A superadmin bypasses all checks. Otherwise, permissions from
-        all assigned roles are unioned.
-        """
-        if isinstance(permission, tuple):
-            permission = Permission(resource=permission[0], action=permission[1])
-
-        # Superadmin bypass
-        if self._superadmin_role and principal.has_role(self._superadmin_role):
-            return True
-
-        # Check all roles
-        for role_name in principal.roles:
-            role = self._roles.get(role_name)
-            if role and role.has_permission(permission):
-                return True
-        return False
-
-    def can_invoke_method(self, principal: Principal, method: str) -> bool:
-        """Check if principal can invoke a specific RPC method.
-
-        Superadmin bypass applies. Denied methods in any role block
-        access regardless of other roles.
-        """
-        # Superadmin bypass
-        if self._superadmin_role and principal.has_role(self._superadmin_role):
-            return True
-
-        # Check denied methods first (any role denial blocks)
-        for role_name in principal.roles:
-            role = self._roles.get(role_name)
-            if role:
-                # Check denied patterns
-                for pattern in role.denied_methods:
-                    if fnmatch.fnmatch(method, pattern):
-                        return False
-
-        # Check allowed methods
-        has_allowed_rules = False
-        for role_name in principal.roles:
-            role = self._roles.get(role_name)
-            if role and role.allowed_methods:
-                has_allowed_rules = True
-                for pattern in role.allowed_methods:
-                    if fnmatch.fnmatch(method, pattern):
-                        return True
-
-        # If no allowed rules defined, permit (default allow)
-        return not has_allowed_rules
-
-    def get_role(self, name: str) -> Role | None:
-        """Get a role definition by name."""
-        return self._roles.get(name)
-
-    def list_roles(self) -> list[str]:
-        """List all available role names."""
-        return list(self._roles.keys())
-
-
-class RbacPolicy(InMemoryPermissionChecker):
+class RbacPolicy:
     """RBAC policy with enforcement and audit hooks.
 
-    Extends InMemoryPermissionChecker with:
     - Custom enforcement logic
     - Audit callbacks
     - Default role assignment
@@ -260,9 +130,61 @@ class RbacPolicy(InMemoryPermissionChecker):
             default_role: Default role for principals without roles
             audit_callback: Called on each permission check
         """
-        super().__init__(roles)
+        self._roles: dict[str, Role] = {role.name: role for role in (roles or [])}
+        self._superadmin_role: str | None = None
         self._default_role = default_role
         self._audit_callback = audit_callback
+
+    def add_role(self, role: Role) -> None:
+        """Register or replace a role definition."""
+        self._roles[role.name] = role
+
+    def remove_role(self, name: str) -> None:
+        """Remove a role definition by name."""
+        self._roles.pop(name, None)
+
+    def set_superadmin_role(self, role_name: str) -> None:
+        """Set the superadmin role that bypasses all permission checks."""
+        self._superadmin_role = role_name
+
+    def get_role(self, name: str) -> Role | None:
+        """Get a role definition by name."""
+        return self._roles.get(name)
+
+    def list_roles(self) -> list[str]:
+        """List all available role names."""
+        return list(self._roles.keys())
+
+    def can_invoke_method(self, principal: Principal, method: str) -> bool:
+        """Check if principal can invoke a specific RPC method.
+
+        Superadmin bypass applies. Denied methods in any role block
+        access regardless of other roles.
+        """
+        # Superadmin bypass
+        if self._superadmin_role and principal.has_role(self._superadmin_role):
+            return True
+
+        # Check denied methods first (any role denial blocks)
+        for role_name in principal.roles:
+            role = self._roles.get(role_name)
+            if role:
+                for pattern in role.denied_methods:
+                    if fnmatch.fnmatch(method, pattern):
+                        return False
+
+        # Check allowed methods
+        has_allowed_rules = False
+        for role_name in principal.roles:
+            role = self._roles.get(role_name)
+            if role and role.allowed_methods:
+                has_allowed_rules = True
+                for pattern in role.allowed_methods:
+                    if fnmatch.fnmatch(method, pattern):
+                        return True
+
+        # If no allowed rules defined, permit (default allow)
+        return not has_allowed_rules
 
     def set_default_role(self, role_name: str) -> None:
         """Set the default role for unassigned principals."""
@@ -301,10 +223,25 @@ class RbacPolicy(InMemoryPermissionChecker):
         """Check permission with audit logging."""
         if isinstance(permission, tuple):
             permission = Permission(resource=permission[0], action=permission[1])
-
-        result = super().has_permission(principal, permission)
+        result = self._has_permission_no_audit(principal, permission)
         self._audit("permission_check", principal, permission, result)
         return result
+
+    def _has_permission_no_audit(
+        self,
+        principal: Principal,
+        permission: Permission,
+    ) -> bool:
+        """Check permission without emitting audit events."""
+        # Superadmin bypass
+        if self._superadmin_role and principal.has_role(self._superadmin_role):
+            return True
+
+        for role_name in principal.roles:
+            role = self._roles.get(role_name)
+            if role and role.has_permission(permission):
+                return True
+        return False
 
     def require_permission(
         self,
