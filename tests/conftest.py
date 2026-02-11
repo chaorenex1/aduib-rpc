@@ -1,4 +1,14 @@
+from pathlib import Path
+import sys
+
 import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if SRC.exists():
+    src_path = str(SRC)
+    if src_path not in sys.path:
+        sys.path.insert(0, src_path)
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:

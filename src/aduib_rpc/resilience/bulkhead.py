@@ -54,7 +54,7 @@ class BulkheadConfig:
     queue_depth: int = 5
 
 
-@dataclass(frozen=True)
+@dataclass
 class BulkheadError(RpcException):
     """Raised when bulkhead queue is full or wait timeout elapses."""
 

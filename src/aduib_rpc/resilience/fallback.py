@@ -178,7 +178,7 @@ class FallbackPolicy:
     include_context: bool = True
 
 
-@dataclass(frozen=True)
+@dataclass
 class FallbackExhaustedError(RpcException):
     """Raised when all fallback handlers fail or are exhausted."""
 

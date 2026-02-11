@@ -804,6 +804,13 @@ def service(
 
 
         effective_runtime.register_service_instance(service_name, cls)
+        # Also register under runtime service_info name when it differs, so
+        # ServiceCaller can resolve by the advertised service name.
+        service_info = getattr(effective_runtime, "service_info", None)
+        runtime_service_name = getattr(service_info, "service_name", None) if service_info is not None else None
+        if runtime_service_name and runtime_service_name != service_name:
+            if runtime_service_name not in effective_runtime.service_instances:
+                effective_runtime.service_instances[runtime_service_name] = cls
         return cls
 
     return decorator

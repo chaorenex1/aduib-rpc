@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass(frozen=True)
+@dataclass
 class RpcException(Exception):
     """Base class for Aduib RPC exceptions with a canonical error shape."""
 
@@ -24,7 +24,7 @@ class RpcException(Exception):
         return {"code": self.code, "message": self.message, "data": self.data}
 
 
-@dataclass(frozen=True)
+@dataclass
 class ProtocolError(RpcException):
     """Raised when the RPC protocol contract is violated."""
 
@@ -32,7 +32,7 @@ class ProtocolError(RpcException):
     message: str = "Protocol error"
 
 
-@dataclass(frozen=True)
+@dataclass
 class UnsupportedVersionError(RpcException):
     """Raised when the client uses an unsupported protocol version."""
 
@@ -40,7 +40,7 @@ class UnsupportedVersionError(RpcException):
     message: str = "Unsupported protocol version"
 
 
-@dataclass(frozen=True)
+@dataclass
 class InvalidMessageError(RpcException):
     """Raised when the inbound RPC message is malformed."""
 
@@ -48,7 +48,7 @@ class InvalidMessageError(RpcException):
     message: str = "Invalid message"
 
 
-@dataclass(frozen=True)
+@dataclass
 class SerializationError(RpcException):
     """Raised when serialization or deserialization fails."""
 
@@ -56,7 +56,7 @@ class SerializationError(RpcException):
     message: str = "Serialization error"
 
 
-@dataclass(frozen=True)
+@dataclass
 class CompressionError(RpcException):
     """Raised when compression or decompression fails."""
 
@@ -64,7 +64,7 @@ class CompressionError(RpcException):
     message: str = "Compression error"
 
 
-@dataclass(frozen=True)
+@dataclass
 class BadRequestError(RpcException):
     """Raised when the request payload is invalid or incomplete."""
 
@@ -72,7 +72,7 @@ class BadRequestError(RpcException):
     message: str = "Bad request"
 
 
-@dataclass(frozen=True)
+@dataclass
 class InvalidParamsError(RpcException):
     """Raised when the provided parameters are invalid."""
 
@@ -80,7 +80,7 @@ class InvalidParamsError(RpcException):
     message: str = "Invalid params"
 
 
-@dataclass(frozen=True)
+@dataclass
 class MissingRequiredFieldError(RpcException):
     """Raised when a required request field is missing."""
 
@@ -88,7 +88,7 @@ class MissingRequiredFieldError(RpcException):
     message: str = "Missing required field"
 
 
-@dataclass(frozen=True)
+@dataclass
 class InvalidFieldValueError(RpcException):
     """Raised when a field value fails validation."""
 
@@ -96,7 +96,7 @@ class InvalidFieldValueError(RpcException):
     message: str = "Invalid field value"
 
 
-@dataclass(frozen=True)
+@dataclass
 class RequestTooLargeError(RpcException):
     """Raised when the request exceeds the allowed payload size."""
 
@@ -104,7 +104,7 @@ class RequestTooLargeError(RpcException):
     message: str = "Request too large"
 
 
-@dataclass(frozen=True)
+@dataclass
 class UnauthenticatedError(RpcException):
     """Raised when authentication credentials are missing."""
 
@@ -112,7 +112,7 @@ class UnauthenticatedError(RpcException):
     message: str = "Unauthenticated"
 
 
-@dataclass(frozen=True)
+@dataclass
 class InvalidTokenError(RpcException):
     """Raised when the authentication token is invalid."""
 
@@ -120,7 +120,7 @@ class InvalidTokenError(RpcException):
     message: str = "Invalid token"
 
 
-@dataclass(frozen=True)
+@dataclass
 class TokenExpiredError(RpcException):
     """Raised when the authentication token has expired."""
 
@@ -128,7 +128,7 @@ class TokenExpiredError(RpcException):
     message: str = "Token expired"
 
 
-@dataclass(frozen=True)
+@dataclass
 class UnauthorizedError(RpcException):
     """Raised when the caller is not authorized for the operation."""
 
@@ -136,7 +136,7 @@ class UnauthorizedError(RpcException):
     message: str = "Unauthorized"
 
 
-@dataclass(frozen=True)
+@dataclass
 class PermissionDeniedError(RpcException):
     """Raised when the caller lacks permission to access the resource."""
 
@@ -144,7 +144,7 @@ class PermissionDeniedError(RpcException):
     message: str = "Permission denied"
 
 
-@dataclass(frozen=True)
+@dataclass
 class InsufficientScopeError(RpcException):
     """Raised when the caller token lacks required scope."""
 
@@ -152,7 +152,7 @@ class InsufficientScopeError(RpcException):
     message: str = "Insufficient scope"
 
 
-@dataclass(frozen=True)
+@dataclass
 class ResourceNotFoundError(RpcException):
     """Raised when the requested resource cannot be found."""
 
@@ -160,7 +160,7 @@ class ResourceNotFoundError(RpcException):
     message: str = "Resource not found"
 
 
-@dataclass(frozen=True)
+@dataclass
 class MethodNotFoundError(RpcException):
     """Raised when the RPC method name is not registered."""
 
@@ -168,7 +168,7 @@ class MethodNotFoundError(RpcException):
     message: str = "Method not found"
 
 
-@dataclass(frozen=True)
+@dataclass
 class ServiceNotFoundError(RpcException):
     """Raised when the target service is not available."""
 
@@ -176,7 +176,7 @@ class ServiceNotFoundError(RpcException):
     message: str = "Service not found"
 
 
-@dataclass(frozen=True)
+@dataclass
 class AlreadyExistsError(RpcException):
     """Raised when attempting to create a resource that already exists."""
 
@@ -184,7 +184,7 @@ class AlreadyExistsError(RpcException):
     message: str = "Already exists"
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConflictError(RpcException):
     """Raised when the request conflicts with current state."""
 
@@ -192,7 +192,7 @@ class ConflictError(RpcException):
     message: str = "Conflict"
 
 
-@dataclass(frozen=True)
+@dataclass
 class GoneError(RpcException):
     """Raised when a resource is no longer available."""
 
@@ -200,7 +200,7 @@ class GoneError(RpcException):
     message: str = "Gone"
 
 
-@dataclass(frozen=True)
+@dataclass
 class InternalError(RpcException):
     """Raised for unexpected server-side failures."""
 
@@ -208,7 +208,7 @@ class InternalError(RpcException):
     message: str = "Internal error"
 
 
-@dataclass(frozen=True)
+@dataclass
 class RpcNotImplementedError(RpcException):
     """Raised when an RPC method is not implemented."""
 
@@ -216,7 +216,7 @@ class RpcNotImplementedError(RpcException):
     message: str = "Not implemented"
 
 
-@dataclass(frozen=True)
+@dataclass
 class ServiceUnavailableError(RpcException):
     """Raised when the service is unavailable or overloaded."""
 
@@ -224,7 +224,7 @@ class ServiceUnavailableError(RpcException):
     message: str = "Service unavailable"
 
 
-@dataclass(frozen=True)
+@dataclass
 class RpcTimeoutError(RpcException):
     """Raised when an RPC call exceeds its timeout."""
 
@@ -232,7 +232,7 @@ class RpcTimeoutError(RpcException):
     message: str = "RPC timeout"
 
 
-@dataclass(frozen=True)
+@dataclass
 class CircuitBreakerOpenError(RpcException):
     """Raised when a circuit breaker prevents the call."""
 
@@ -240,7 +240,7 @@ class CircuitBreakerOpenError(RpcException):
     message: str = "Circuit breaker open"
 
 
-@dataclass(frozen=True)
+@dataclass
 class RateLimitedError(RpcException):
     """Raised when rate limiting is enforced."""
 
@@ -248,7 +248,7 @@ class RateLimitedError(RpcException):
     message: str = "Rate limited"
 
 
-@dataclass(frozen=True)
+@dataclass
 class ResourceExhaustedError(RpcException):
     """Raised when a server resource is exhausted."""
 
@@ -256,7 +256,7 @@ class ResourceExhaustedError(RpcException):
     message: str = "Resource exhausted"
 
 
-@dataclass(frozen=True)
+@dataclass
 class DependencyError(RpcException):
     """Raised when an external dependency fails."""
 
@@ -264,7 +264,7 @@ class DependencyError(RpcException):
     message: str = "Dependency error"
 
 
-@dataclass(frozen=True)
+@dataclass
 class UpstreamTimeoutError(RpcException):
     """Raised when an upstream dependency times out."""
 
@@ -272,7 +272,7 @@ class UpstreamTimeoutError(RpcException):
     message: str = "Upstream timeout"
 
 
-@dataclass(frozen=True)
+@dataclass
 class UpstreamUnavailableError(RpcException):
     """Raised when an upstream dependency is unavailable."""
 

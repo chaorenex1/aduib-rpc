@@ -12,7 +12,6 @@ from typing import Any
 import uuid
 from pydantic import BaseModel, field_validator, Field
 
-from aduib_rpc.protocol.v2.metadata import ContentType, Compression
 from aduib_rpc.utils.constant import AIProtocols, TransportSchemes
 
 
@@ -59,8 +58,8 @@ class ServiceCapabilities(BaseModel):
     """
 
     protocol_versions: list[str] = ["2.0"]
-    content_types: list[ContentType] = [ContentType.JSON,ContentType.MSGPACK]
-    compressions: list[Compression] = [Compression.ZSTD,Compression.GZIP]
+    content_types: list[str] = ["application/json", "application/msgpack"]
+    compressions: list[str] = ["zstd", "gzip"]
     methods: list[MethodDescriptor] | None = None
     streaming: bool = False
     bidirectional: bool = False

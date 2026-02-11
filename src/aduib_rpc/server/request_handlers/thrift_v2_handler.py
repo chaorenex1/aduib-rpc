@@ -22,6 +22,22 @@ def _attach_tenant_id(context: ServerContext, metadata: dict[str, str]) -> None:
         context.state["tenant_id"] = str(tenant_id)
 
 
+def _extract_metadata(request) -> dict[str, str]:
+    raw = getattr(request, "metadata", None)
+    if raw is None:
+        return {}
+    if isinstance(raw, dict):
+        return {str(k): str(v) for k, v in raw.items()}
+    headers = getattr(raw, "headers", None) or {}
+    metadata: dict[str, str] = {}
+    if isinstance(headers, dict):
+        metadata.update({str(k): str(v) for k, v in headers.items()})
+    tenant_id = getattr(raw, "tenant_id", None)
+    if tenant_id:
+        metadata["tenant_id"] = str(tenant_id)
+    return metadata
+
+
 class ThriftV2Handler:
     """Pure v2 Thrift handler."""
 
@@ -32,7 +48,7 @@ class ThriftV2Handler:
         from aduib_rpc.thrift_v2.ttypes import Response as ThriftResponse
 
         try:
-            metadata = dict(getattr(request, "metadata", None) or {})
+            metadata = _extract_metadata(request)
             ctx = ServerContext(state={"headers": metadata}, metadata=metadata)
             _attach_tenant_id(ctx, metadata)
             v2_req = FromThrift.request(request)
@@ -63,7 +79,7 @@ class ThriftV2Handler:
         from aduib_rpc.thrift_v2.ttypes import Response as ThriftResponse
 
         try:
-            metadata = dict(getattr(request, "metadata", None) or {})
+            metadata = _extract_metadata(request)
             ctx = ServerContext(state={"headers": metadata}, metadata=metadata)
             _attach_tenant_id(ctx, metadata)
             v2_req = FromThrift.request(request)
@@ -101,7 +117,7 @@ class ThriftV2Handler:
 
         try:
             first = requests[0] if requests else None
-            metadata = dict(getattr(first, "metadata", None) or {})
+            metadata = _extract_metadata(first)
             ctx = ServerContext(state={"headers": metadata}, metadata=metadata)
             _attach_tenant_id(ctx, metadata)
 
@@ -131,7 +147,7 @@ class ThriftV2Handler:
 
         try:
             first = requests[0] if requests else None
-            metadata = dict(getattr(first, "metadata", None) or {})
+            metadata = _extract_metadata(first)
             ctx = ServerContext(state={"headers": metadata}, metadata=metadata)
             _attach_tenant_id(ctx, metadata)
 

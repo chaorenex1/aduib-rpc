@@ -208,7 +208,7 @@ class QosHandler:
 
         if isinstance(request.qos, dict):
             try:
-                return QosConfig.model_validate(request.qos)
+                return QosConfig(**request.qos)
             except Exception:
                 logger.warning("Invalid QoS config in request: %s", request.qos)
                 return None

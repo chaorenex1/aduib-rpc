@@ -11,12 +11,20 @@ from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+import time
 from typing import Any, Callable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from aduib_rpc.protocol.v2 import RpcError, ERROR_CODE_NAMES, ResponseStatus, ErrorCode, AduibRpcRequest, \
-    AduibRpcResponse
+from aduib_rpc.protocol.v2 import (
+    AduibRpcRequest,
+    AduibRpcResponse,
+    ERROR_CODE_NAMES,
+    ErrorCode,
+    ResponseStatus,
+    RpcError,
+)
+from aduib_rpc.protocol.v2.metadata import ResponseMetadata
 
 State = dict[str, Any]
 
@@ -61,6 +69,7 @@ class InterceptorChain:
         Yields:
             AduibRpcResponse instances.
         """
+        start_time = time.perf_counter()
         ctx = InterceptContext(
             request=request,
             server_context=server_context,
@@ -74,6 +83,7 @@ class InterceptorChain:
         async with self._nest(ctx, 0):
             if ctx.aborted:
                 response = self._abort_response(ctx)
+                response = self._attach_response_metadata(response, server_context, start_time)
                 ctx.response = response
                 yield response
                 return
@@ -81,6 +91,7 @@ class InterceptorChain:
             try:
                 wrapped = self._apply_wrappers(ctx, handler)
                 async for response in wrapped(ctx):
+                    response = self._attach_response_metadata(response, server_context, start_time)
                     ctx.response = response
                     yield response
             except Exception as exc:
@@ -111,6 +122,32 @@ class InterceptorChain:
         for wrapper in reversed(wrappers):
             wrapped = wrapper(wrapped)
         return wrapped
+
+    @staticmethod
+    def _attach_response_metadata(
+        response: AduibRpcResponse | None,
+        server_context: ServerContext,
+        start_time: float | None,
+    ) -> AduibRpcResponse | None:
+        if response is None:
+            return None
+        if getattr(response, "metadata", None) is not None:
+            return response
+        duration_ms = None
+        if isinstance(start_time, (int, float)):
+            duration_ms = int(max(0.0, (time.perf_counter() - start_time) * 1000.0))
+        meta = getattr(server_context, "metadata", None) or {}
+        server_id = None
+        server_version = None
+        if isinstance(meta, dict):
+            server_id = meta.get("server_id") or meta.get("server-id")
+            server_version = meta.get("server_version") or meta.get("server-version")
+        response.metadata = ResponseMetadata.create(
+            duration_ms=duration_ms,
+            server_id=server_id,
+            server_version=server_version,
+        )
+        return response
 
     def _abort_response(self, ctx: InterceptContext) -> AduibRpcResponse:
         """Construct short-circuit error response."""

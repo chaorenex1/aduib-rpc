@@ -11,6 +11,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from aduib_rpc.server.context import ServerContext
+from aduib_rpc.server.rpc_execution import MethodName, get_runtime
 from aduib_rpc.server.request_handlers.jsonrpc_v2_handler import JSONRPCV2Handler
 from aduib_rpc.server.request_handlers.request_handler import RequestHandler
 from aduib_rpc.types import JsonRpcMessageRequest, JsonRpcStreamingMessageRequest, JSONRPCError, JSONRPCErrorResponse, \
@@ -114,7 +115,23 @@ class JsonRpcApp(ABC):
 
     def _is_streaming(self, request: Request, method: str) -> bool:
         entry = self._method_map.get(method)
-        return bool(entry and entry[1])
+        if entry:
+            return bool(entry[1])
+
+        accept = request.headers.get("accept", "") or ""
+        if "text/event-stream" in accept.lower():
+            return True
+
+        try:
+            parsed = MethodName.parse_compat(method)
+        except Exception:
+            return False
+
+        runtime = get_runtime()
+        func = runtime.service_funcs.get(parsed.handler)
+        if func is None:
+            return False
+        return bool(getattr(func, "server_stream", False) or getattr(func, "bidirectional_stream", False))
 
     def _init_middlewares(self, app:Any)->None:
         """Initializes middleware for the application.
