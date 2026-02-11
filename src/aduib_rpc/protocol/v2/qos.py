@@ -119,3 +119,6 @@ class QosConfig:
     retry: RetryPolicy | None = None
     idempotency_key: str | None = None
 
+    def __post_init__(self) -> None:
+        if isinstance(self.retry, dict):
+            self.retry = RetryPolicy(**self.retry)
