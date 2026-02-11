@@ -8,6 +8,7 @@ from typing import Any
 
 from .models import AduibRpcConfig
 
+
 class ConfigError(RuntimeError):
     """Raised when configuration loading fails."""
 
@@ -31,6 +32,7 @@ def get_default_config_path() -> Path | None:
                 return candidate
     return None
 
+
 def load_default_config() -> AduibRpcConfig:
     """Load the default config file into AduibRpcConfig."""
     path = get_default_config_path()
@@ -38,10 +40,10 @@ def load_default_config() -> AduibRpcConfig:
         raise ConfigError("No default config file found")
     return load_config(path)
 
+
 def load_config(path: str | Path) -> AduibRpcConfig:
     """Load a YAML config file into AduibRpcConfig."""
     if not path:
-
         return load_default_config()
     data = _load_config_mapping(path)
     try:
@@ -53,9 +55,7 @@ def load_config(path: str | Path) -> AduibRpcConfig:
         raise ConfigError(f"Failed to build config from {path}") from exc
 
 
-def load_config_with_overloads(
-    base_path: str | Path, *overload_paths: str | Path
-) -> AduibRpcConfig:
+def load_config_with_overloads(base_path: str | Path, *overload_paths: str | Path) -> AduibRpcConfig:
     """Load a base config file and apply one or more override files."""
     merged = _load_config_mapping(base_path)
     for overload in overload_paths:
@@ -131,24 +131,17 @@ def _expand_env_value(value: str) -> str:
         env_value = os.getenv(name)
         if env_value is None or env_value == "":
             if default is None:
-                raise ConfigError(
-                    f"Environment variable '{name}' is not set and no default provided"
-                )
+                raise ConfigError(f"Environment variable '{name}' is not set and no default provided")
             return default
         return env_value
 
     return _ENV_PATTERN.sub(replace, value)
 
 
-
 def _merge_mapping(base: Mapping[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
     merged = dict(base)
     for key, value in override.items():
-        if (
-            key in merged
-            and isinstance(merged[key], Mapping)
-            and isinstance(value, Mapping)
-        ):
+        if key in merged and isinstance(merged[key], Mapping) and isinstance(value, Mapping):
             merged[key] = _merge_mapping(merged[key], value)
         else:
             merged[key] = value

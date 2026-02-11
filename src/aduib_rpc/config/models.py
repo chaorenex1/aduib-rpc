@@ -218,9 +218,7 @@ def _build_rate_limiter_config(value: Any, field_name: str) -> RateLimiterConfig
     data = _ensure_mapping(value, field_name)
     payload = dict(data)
     if "algorithm" in payload:
-        payload["algorithm"] = _coerce_enum(
-            payload["algorithm"], RateLimitAlgorithm, f"{field_name}.algorithm"
-        )
+        payload["algorithm"] = _coerce_enum(payload["algorithm"], RateLimitAlgorithm, f"{field_name}.algorithm")
     return RateLimiterConfig(**payload)
 
 
@@ -232,9 +230,7 @@ def _build_retry_policy(value: Any, field_name: str) -> RetryPolicy | None:
     data = _ensure_mapping(value, field_name)
     payload = dict(data)
     if "strategy" in payload:
-        payload["strategy"] = _coerce_enum(
-            payload["strategy"], RetryStrategy, f"{field_name}.strategy"
-        )
+        payload["strategy"] = _coerce_enum(payload["strategy"], RetryStrategy, f"{field_name}.strategy")
     if "retryable_codes" in payload and payload["retryable_codes"] is not None:
         codes = payload["retryable_codes"]
         if isinstance(codes, (set, list, tuple)):
@@ -469,6 +465,7 @@ class SecurityConfig(_ServerSecurityConfig):
         if not isinstance(self.mtls, MtlsConfig):
             self.mtls = MtlsConfig.from_dict(self.mtls)  # type: ignore[arg-type]
 
+
 _RESILIENCE_FIELD_SPECS: tuple[FieldSpec, ...] = (
     ("enabled", _coerce_bool, "resilience.enabled"),
     ("circuit_breaker", _build_circuit_breaker_config, "resilience.circuit_breaker"),
@@ -494,6 +491,7 @@ class ResilienceConfig(_ResilienceConfig):
 
     def __post_init__(self) -> None:
         _apply_field_specs(self, _RESILIENCE_FIELD_SPECS)
+
 
 _HEALTH_FIELD_SPECS: tuple[FieldSpec, ...] = (
     ("interval_seconds", _coerce_float, "health_check.interval_seconds"),
@@ -530,6 +528,7 @@ class HealthCheckConfig(_HealthCheckConfig):
         if self.unhealthy_threshold < 1:
             raise ValueError("health_check.unhealthy_threshold must be >= 1")
 
+
 _PROTOCOL_FIELD_SPECS: tuple[FieldSpec, ...] = (
     ("protocol_versions", _coerce_str_list, "protocol.protocol_versions"),
     ("default_version", _coerce_str, "protocol.default_version"),
@@ -565,7 +564,6 @@ _QOS_FIELD_SPECS: tuple[tuple[str, Callable[[Any, str], Any], str], ...] = (
 
 @dataclass
 class QosConfig(_ServerQosConfig):
-
     @classmethod
     def from_dict(cls, data: Mapping[str, Any] | None) -> "QosConfig":
         if data is None:
@@ -583,9 +581,7 @@ class QosConfig(_ServerQosConfig):
             if name in payload:
                 kwargs[name] = coerce(payload[name], label)
         if "retry" in payload:
-            kwargs["retry"] = _build_retry_policy(
-                payload["retry"], "qos.retry"
-            )
+            kwargs["retry"] = _build_retry_policy(payload["retry"], "qos.retry")
         return cls(**kwargs)
 
     def __post_init__(self) -> None:
@@ -597,8 +593,6 @@ class QosConfig(_ServerQosConfig):
             raise ValueError("qos.idempotency_ttl_s must be >= 0")
         if self.retry is not None and not isinstance(self.retry, RetryPolicy):
             self.retry = _build_retry_policy(self.retry, "qos.retry")
-
-
 
 
 @dataclass
@@ -667,4 +661,3 @@ def _map_observability_to_telemetry(data: Any) -> TelemetryConfig:
         return TelemetryConfig(enabled=data)
     # Basic mapping - TelemetryConfig is frozen so we use defaults
     return TelemetryConfig(enabled=True)
-

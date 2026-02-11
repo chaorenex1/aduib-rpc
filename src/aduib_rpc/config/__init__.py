@@ -1,4 +1,5 @@
 """Configuration helpers."""
+
 from .models import (
     AduibRpcConfig,
     ClientConfig,

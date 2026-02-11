@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 def config_source_loader(name: str):
     """Decorator to register a config source loader class."""
+
     def decorator(cls: Any) -> Any:
         if not name:
             raise ValueError("Config source loader name must be provided")
@@ -27,6 +28,7 @@ def config_source_loader(name: str):
         ConfigSourceProvider.register_config_source_class(name, cls)
         logger.info("Config source loader %s registered", name)
         return cls
+
     return decorator
 
 
@@ -103,6 +105,7 @@ def _build_config_from_mapping(data: Mapping[str, Any]) -> AduibRpcConfig:
 
 class ConfigSourceProvider:
     """Config source provider for managing config loaders."""
+
     config_source_classes: dict[str, Any] = {}
     config_source_instances: dict[str, ConfigSourceLoader] = {}
 
@@ -131,9 +134,7 @@ class ConfigSourceProvider:
         return cls.config_source_instances.get(source_type)
 
     @classmethod
-    async def load_config(
-        cls, source_type: str, **kwargs: Any
-    ) -> AduibRpcConfig | tuple[AduibRpcConfig, Any]:
+    async def load_config(cls, source_type: str, **kwargs: Any) -> AduibRpcConfig | tuple[AduibRpcConfig, Any]:
         auto_start = bool(kwargs.pop("auto_start", True))
         instance = cls.get_config_source_instance(source_type)
         if instance is None:
@@ -472,4 +473,3 @@ class ConfigFileReloader:
         )
         await reloader.start(initial_load=initial_load)
         return reloader
-
