@@ -111,6 +111,7 @@ class AuthContext(BaseModel):
         scheme: Authentication scheme used by the client.
         credentials: Sensitive credential material that must never be logged.
         principal: Authenticated principal identifier, such as a user ID.
+        principal_type: Type of the authenticated principal (e.g., user, service).
         roles: Roles granted to the authenticated principal.
     """
 
@@ -149,6 +150,9 @@ class RequestMetadata(BaseModel):
         auth: Authentication context for the request.
         tenant_id: Tenant identifier for multi-tenant scenarios.
         headers: Additional request headers.
+        long_task: Whether the request is marked as long-running.
+        long_task_method: Method name for long-running task execution.
+        long_task_timeout: Timeout for long-running tasks in seconds.
     """
 
     timestamp_ms: int

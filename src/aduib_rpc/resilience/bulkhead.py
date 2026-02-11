@@ -69,8 +69,7 @@ class Bulkhead:
     operations from executing simultaneously. This protects both the service
     and its dependencies from overload.
 
-    Attributes:
-        config: Configuration for the bulkhead.
+    Properties:
         available_slots: Current number of available execution slots.
         active_count: Current number of executing operations.
 

@@ -110,9 +110,11 @@ class QosConfig:
     """Quality of service configuration for an RPC request.
 
     Attributes:
+        enabled: Whether QoS enforcement is enabled.
         priority: Scheduling priority for the request.
-        timeout_ms: Timeout in milliseconds. None means no timeout.
+        timeout_ms: Timeout in milliseconds.
         retry: Optional retry configuration.
+        idempotency_ttl_s: TTL in seconds for idempotency keys.
         idempotency_key: Optional idempotency key for deduplication.
     """
 

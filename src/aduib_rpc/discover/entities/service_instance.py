@@ -30,12 +30,13 @@ class MethodDescriptor(BaseModel):
 
     Attributes:
         name: Method name.
-        input_type: Input message type.
-        output_type: Output message type.
-        streaming_input: Whether input is streamed.
-        streaming_output: Whether output is streamed.
-        idempotent: Whether the method is idempotent.
+        full_name: Fully qualified method name.
+        description: Human-readable method description.
+        client_stream: Whether input is streamed from the client.
+        server_stream: Whether output is streamed from the server.
+        bidirectional_stream: Whether the method is bidirectional streaming.
         deprecated: Whether the method is deprecated.
+        version: Method version string.
     """
 
     name: str
@@ -56,6 +57,8 @@ class ServiceCapabilities(BaseModel):
         content_types: Supported content types.
         compressions: Supported compression algorithms.
         methods: List of available methods.
+        streaming: Whether any server streaming is supported.
+        bidirectional: Whether bidirectional streaming is supported.
     """
 
     protocol_versions: list[str] = ["2.0"]
@@ -78,6 +81,7 @@ class ServiceInstance(BaseModel):
         host: Host address.
         port: Port number.
         scheme: Transport scheme.
+        protocol: Communication protocol.
         health: Health status.
         last_health_check_ms: Last health check timestamp (ms).
         weight: Load balancing weight.
