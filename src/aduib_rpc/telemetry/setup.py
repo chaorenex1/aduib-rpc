@@ -5,7 +5,7 @@ import os
 
 from fastapi import FastAPI
 
-logger=logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 from .config import TelemetryConfig
 
@@ -99,26 +99,31 @@ def _configure_metrics(config: TelemetryConfig) -> None:
     provider = MeterProvider(metric_readers=[reader], resource=resource)
     metrics.set_meter_provider(provider)
 
+
 def _configure_auto_instrumentation(config: TelemetryConfig) -> None:
     """Configure auto-instrumentation for frameworks."""
     if config.instrument_fastapi:
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
         FastAPIInstrumentor().instrument()  # type: ignore[call-arg]
 
     if config.instrument_httpx:
         from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+
         HTTPXClientInstrumentor().instrument()  # type: ignore[call-arg]
 
     if config.instrument_grpc:
         from opentelemetry.instrumentation.grpc import GrpcInstrumentorClient, GrpcInstrumentorServer
+
         GrpcInstrumentorClient().instrument()
         GrpcInstrumentorServer().instrument()
 
 
-def configure_instrumentation_fastapi(app:FastAPI) -> None:
+def configure_instrumentation_fastapi(app: FastAPI) -> None:
     """Configure FastAPI instrumentation."""
     try:
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
         FastAPIInstrumentor().instrument_app(app)  # type: ignore[call-arg]
     except ImportError:
         logger.error("Please install the 'aduib-rpc[telemetry]' extras to enable telemetry features.")
@@ -150,5 +155,5 @@ def configure_logging(config: TelemetryConfig) -> None:
 def _get_resource(service_name: str):
     """Get or create OTel Resource."""
     from opentelemetry.sdk.resources import Resource
-    return Resource.create({"service.name": service_name})
 
+    return Resource.create({"service.name": service_name})

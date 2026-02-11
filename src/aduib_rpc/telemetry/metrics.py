@@ -54,36 +54,26 @@ class RpcMetrics:
             cls._disabled = False
 
             cls._request_total = cls._meter.create_counter(
-                "rpc.requests.total",
-                description="Total number of RPC requests"
+                "rpc.requests.total", description="Total number of RPC requests"
             )
             cls._request_duration = cls._meter.create_histogram(
-                "rpc.request.duration.ms",
-                description="RPC request duration in milliseconds"
+                "rpc.request.duration.ms", description="RPC request duration in milliseconds"
             )
             cls._request_size = cls._meter.create_histogram(
-                "rpc.request.size.bytes",
-                description="RPC request size in bytes"
+                "rpc.request.size.bytes", description="RPC request size in bytes"
             )
             cls._response_size = cls._meter.create_histogram(
-                "rpc.response.size.bytes",
-                description="RPC response size in bytes"
+                "rpc.response.size.bytes", description="RPC response size in bytes"
             )
             cls._active_requests = cls._meter.create_up_down_counter(
-                "rpc.active_requests",
-                description="Number of active RPC requests"
+                "rpc.active_requests", description="Number of active RPC requests"
             )
-            cls._error_total = cls._meter.create_counter(
-                "rpc.errors.total",
-                description="Total number of RPC errors"
-            )
+            cls._error_total = cls._meter.create_counter("rpc.errors.total", description="Total number of RPC errors")
             cls._rate_limit_total = cls._meter.create_counter(
-                "rpc.rate_limit.total",
-                description="Total number of rate limit events"
+                "rpc.rate_limit.total", description="Total number of rate limit events"
             )
             cls._retry_total = cls._meter.create_counter(
-                "rpc.retry.total",
-                description="Total number of retry attempts"
+                "rpc.retry.total", description="Total number of retry attempts"
             )
 
         except Exception:
@@ -132,8 +122,11 @@ class RpcMetrics:
         if cls._disabled:
             return
 
-        cls._error_total.add(1, {
-            "rpc.service": service,
-            "rpc.method": method,
-            "error.code": error_code,
-        })
+        cls._error_total.add(
+            1,
+            {
+                "rpc.service": service,
+                "rpc.method": method,
+                "error.code": error_code,
+            },
+        )

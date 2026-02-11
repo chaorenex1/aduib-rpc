@@ -23,11 +23,13 @@ def with_span(
         async def calculate_price(item_id: str) -> float:
             ...
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         span_name = name or func.__name__
         is_async = inspect.iscoroutinefunction(func)
 
         if is_async:
+
             @functools.wraps(func)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 try:
@@ -48,8 +50,10 @@ def with_span(
                         span.record_exception(e)
                         span.set_attribute("error", True)
                         raise
+
             return async_wrapper
         else:
+
             @functools.wraps(func)
             def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
                 try:
@@ -70,6 +74,7 @@ def with_span(
                         span.record_exception(e)
                         span.set_attribute("error", True)
                         raise
+
             return sync_wrapper
 
     return decorator

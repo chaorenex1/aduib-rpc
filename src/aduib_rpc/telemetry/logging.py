@@ -87,4 +87,3 @@ def get_logger(name: str, *, json_output: bool = True) -> logging.Logger:
         logger.setLevel(logging.INFO)
         logger.propagate = False
     return logger
-

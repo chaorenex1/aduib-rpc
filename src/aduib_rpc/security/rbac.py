@@ -14,6 +14,7 @@ import fnmatch
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable
 
+
 @dataclass(frozen=True, slots=True)
 class Permission:
     """Permission tuple for resource/action pairs.

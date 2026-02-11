@@ -9,6 +9,7 @@ This module provides audit logging functionality that tracks:
 Audit events are structured, JSON-formatted logs that can be
 exported to SIEM systems for compliance monitoring.
 """
+
 from __future__ import annotations
 
 import json

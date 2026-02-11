@@ -16,6 +16,8 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
+
+
 class TlsVersion(str, enum.Enum):
     """Supported TLS protocol versions."""
 
@@ -103,10 +105,7 @@ class ServerTlsConfig:
             return
 
         if self.server_cert_path is None or self.server_key_path is None:
-            raise ValueError(
-                "Either server_cert_path/server_key_path or server_cert_pem/server_key_pem must be set"
-            )
-
+            raise ValueError("Either server_cert_path/server_key_path or server_cert_pem/server_key_pem must be set")
 
     @property
     def mtls_enabled(self) -> bool:
@@ -182,9 +181,7 @@ class TlsVerifier:
             if hostname not in common_names and hostname not in san_dns:
                 # Try wildcard matching
                 wildcard_suffix = hostname.split(".", 1)[-1] if "." in hostname else ""
-                has_wildcard = any(
-                    cn == "*." + wildcard_suffix for cn in common_names
-                ) or any(
+                has_wildcard = any(cn == "*." + wildcard_suffix for cn in common_names) or any(
                     dns == "*." + wildcard_suffix for dns in san_dns
                 )
 

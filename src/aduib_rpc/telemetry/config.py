@@ -48,4 +48,3 @@ class TelemetryConfig:
     audit_enabled: bool = True
     audit_include_params: bool = False
     audit_include_response: bool = False
-
