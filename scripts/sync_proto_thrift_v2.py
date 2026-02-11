@@ -213,9 +213,7 @@ def _parse_proto_field(line: str) -> ProtoField | None:
             map_value=m.group(3).strip(),
         )
 
-    field_re = re.compile(
-        r"^(optional\s+|repeated\s+)?([A-Za-z0-9_.]+)\s+([A-Za-z0-9_]+)\s*=\s*([0-9]+)"
-    )
+    field_re = re.compile(r"^(optional\s+|repeated\s+)?([A-Za-z0-9_.]+)\s+([A-Za-z0-9_]+)\s*=\s*([0-9]+)")
     m = field_re.match(line)
     if not m:
         return None
@@ -304,9 +302,7 @@ def generate_thrift(schema: ProtoSchema) -> str:
             if comment:
                 lines.append(f"  {comment}")
             optional_prefix = "optional " if field.optional else ""
-            lines.append(
-                f"  {field.number}: {optional_prefix}{thrift_type} {field.name},"
-            )
+            lines.append(f"  {field.number}: {optional_prefix}{thrift_type} {field.name},")
         lines.append("}")
         lines.append("")
 
@@ -470,13 +466,9 @@ def sync_models(schema: ProtoSchema, apply: bool, update_types: bool) -> list[st
         updated = False
         for target in targets:
             if target.proto_name not in schema.messages:
-                changes.append(
-                    f"missing proto message: {target.proto_name} for {target.class_name}"
-                )
+                changes.append(f"missing proto message: {target.proto_name} for {target.class_name}")
                 continue
-            new_lines, changed = sync_model_class(
-                lines, schema.messages[target.proto_name], target, update_types
-            )
+            new_lines, changed = sync_model_class(lines, schema.messages[target.proto_name], target, update_types)
             if changed:
                 updated = True
                 lines = new_lines

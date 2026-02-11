@@ -10,16 +10,19 @@ try:
 except ImportError:
     from importlib.metadata import version, PackageNotFoundError  # 兼容旧版本
 
+
 def get_pkg_version(pkg_name: str) -> str | None:
     try:
         return version(pkg_name)
     except PackageNotFoundError:
         return None
 
+
 def pip_install(package: str, version: str | None = None):
     pkg = f"{package}=={version}" if version else package
     print(f"Installing {pkg} ...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", pkg])
+
 
 def check_version():
     grpc_version = get_pkg_version("grpcio")
@@ -67,6 +70,7 @@ def ensure_pkg_inits(root: Path):
                 init_file.touch()
             cur = cur.parent
 
+
 def fix_imports(out: str):
     for filename in os.listdir(out):
         if filename.endswith("_pb2.pyi") or filename.endswith("_pb2_grpc.py") or filename.endswith("_pb2.py"):
@@ -90,9 +94,9 @@ def fix_imports(out: str):
 
 def main():
     check_version()
-    clean:bool=True
-    mypy:bool=False
-    include:list[str]=[]
+    clean: bool = True
+    mypy: bool = False
+    include: list[str] = []
     src = Path("../src/aduib_rpc/proto").resolve()
     out = Path("../src/aduib_rpc/grpc").resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -102,8 +106,10 @@ def main():
             if p.is_file():
                 p.unlink()
         for p in sorted([d for d in out.rglob("*") if d.is_dir()], reverse=True):
-            try: p.rmdir()
-            except OSError: pass
+            try:
+                p.rmdir()
+            except OSError:
+                pass
         out.mkdir(parents=True, exist_ok=True)
 
     protos = [str(p) for p in src.rglob("*.proto")]
@@ -136,6 +142,7 @@ def main():
     fix_imports(out)
     print(f"Done. Generated to: {out}")
     return 0
+
 
 if __name__ == "__main__":
     main()

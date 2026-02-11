@@ -28,14 +28,47 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 PROTO_RESERVED = {
     # From https://protobuf.dev/reference/protobuf/proto3-spec/#reserved
-    "syntax","import","weak","public","package","option","enum","message","service",
-    "rpc","returns","extend","extensions","to","max","reserved","oneof","map",
-    "repeated","optional","double","float","int32","int64","uint32",
-    "uint64","sint32","sint64","fixed32","fixed64","sfixed32","sfixed64","bool",
-    "string","bytes","true","false"
+    "syntax",
+    "import",
+    "weak",
+    "public",
+    "package",
+    "option",
+    "enum",
+    "message",
+    "service",
+    "rpc",
+    "returns",
+    "extend",
+    "extensions",
+    "to",
+    "max",
+    "reserved",
+    "oneof",
+    "map",
+    "repeated",
+    "optional",
+    "double",
+    "float",
+    "int32",
+    "int64",
+    "uint32",
+    "uint64",
+    "sint32",
+    "sint64",
+    "fixed32",
+    "fixed64",
+    "sfixed32",
+    "sfixed64",
+    "bool",
+    "string",
+    "bytes",
+    "true",
+    "false",
 }
 
 # ------------- Utilities -------------
+
 
 def pascal_case(name: str) -> str:
     name = re.sub(r"[^0-9A-Za-z_]+", " ", name)
@@ -49,6 +82,7 @@ def pascal_case(name: str) -> str:
         s += "Msg"
     return s
 
+
 def snake_case(name: str) -> str:
     name = re.sub(r"[^0-9A-Za-z_]+", "_", name)
     name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name)
@@ -61,14 +95,17 @@ def snake_case(name: str) -> str:
         name += "_"
     return name
 
+
 # ------------- Type system -------------
 
 Scalar = str  # proto scalar name
+
 
 @dataclass
 class EnumSpec:
     name: str
     values: List[Union[str, int]]
+
 
 @dataclass
 class FieldSpec:
@@ -82,12 +119,14 @@ class FieldSpec:
     map_value_type: Optional[str] = None
     comment: Optional[str] = None
 
+
 @dataclass
 class MessageSpec:
     name: str
     fields: List[FieldSpec] = field(default_factory=list)
-    nested_messages: List['MessageSpec'] = field(default_factory=list)
+    nested_messages: List["MessageSpec"] = field(default_factory=list)
     nested_enums: List[EnumSpec] = field(default_factory=list)
+
 
 @dataclass
 class FileSpec:
@@ -96,7 +135,9 @@ class FileSpec:
     enums: List[EnumSpec]
     options: Dict[str, str] = field(default_factory=dict)
 
+
 # ------------- Inference from JSON example -------------
+
 
 def infer_scalar(value: Any) -> Tuple[Scalar, Optional[str]]:
     """Infer proto scalar type for a Python value. Returns (type, comment)."""
@@ -111,7 +152,9 @@ def infer_scalar(value: Any) -> Tuple[Scalar, Optional[str]]:
         return "string", "nullable: fell back to string"
     return "string", None
 
+
 _counter = 0
+
 
 def fresh_name(prefix: str = "Msg") -> str:
     global _counter
@@ -124,7 +167,7 @@ def unify_scalars(types: List[Scalar]) -> Tuple[Scalar, Optional[str]]:
     if len(tset) == 1:
         return types[0], None
     # mixed numeric -> double
-    if tset.issubset({"int64","double"}):
+    if tset.issubset({"int64", "double"}):
         return "double", "mixed numeric -> double"
     # otherwise string
     return "string", f"mixed types {sorted(tset)} -> string"
@@ -223,9 +266,7 @@ def build_from_example(name: str, data: Any) -> MessageSpec:
             merged = merge_objects([x for x in data if isinstance(x, dict)])
             item = build_from_example("Item", merged)
             wrapper.nested_messages.append(item)
-            wrapper.fields.append(FieldSpec(
-                name="items", type_name=item.name, number=1, repeated=True
-            ))
+            wrapper.fields.append(FieldSpec(name="items", type_name=item.name, number=1, repeated=True))
             msg = wrapper
         else:
             # repeated scalars -> items
@@ -258,7 +299,9 @@ def merge_objects(objs: List[Dict[str, Any]]) -> Dict[str, Any]:
                     out[k] = v
     return out
 
+
 # ------------- From JSON Schema -------------
+
 
 def from_schema(name: str, schema: Dict[str, Any]) -> MessageSpec:
     title = schema.get("title") or name
@@ -310,7 +353,7 @@ def from_schema(name: str, schema: Dict[str, Any]) -> MessageSpec:
         elif stype == "object" or s.get("properties"):
             # map detection: additionalProperties with scalar
             addl = s.get("additionalProperties")
-            if isinstance(addl, dict) and addl and addl.get("type") in {"string","number","integer","boolean"}:
+            if isinstance(addl, dict) and addl and addl.get("type") in {"string", "number", "integer", "boolean"}:
                 is_map = True
                 map_key_type, map_value_type = "string", map_schema_scalar(addl)
                 type_name = f"map<{map_key_type}, {map_value_type}>"
@@ -350,7 +393,7 @@ def map_schema_scalar(s: Dict[str, Any]) -> Scalar:
         return "bool"
     if t == "integer":
         # choose int64 by default; inspect format if present
-        if fmt in {"int32","int16","int8"}:
+        if fmt in {"int32", "int16", "int8"}:
             return "int32"
         return "int64"
     if t == "number":
@@ -361,11 +404,13 @@ def map_schema_scalar(s: Dict[str, Any]) -> Scalar:
         return "string"
     return "string"
 
+
 # ------------- Emission -------------
+
 
 def emit(filespec: FileSpec) -> str:
     lines: List[str] = []
-    lines.append("syntax = \"proto3\";")
+    lines.append('syntax = "proto3";')
     if filespec.package:
         lines.append(f"package {filespec.package};")
     for k, v in filespec.options.items():
@@ -433,7 +478,9 @@ def emit_message(msg: MessageSpec, indent: int) -> List[str]:
     lines.append(f"{ind}}}")
     return lines
 
+
 # ------------- CLI -------------
+
 
 def gen(input_data: str, output_path: str, root_message: str, package: Optional[str], is_schema: bool):
     if is_schema:
@@ -448,6 +495,7 @@ def gen(input_data: str, output_path: str, root_message: str, package: Optional[
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(proto_text)
     print(f"Wrote {output_path}\nRoot message: {root.name}")
+
 
 def main():
     ap = argparse.ArgumentParser(description="Generate .proto from JSON example or JSON Schema")
@@ -472,7 +520,12 @@ def main():
         f.write(proto_text)
     print(f"Wrote {args.output}\nRoot message: {root.name}")
 
+
 if __name__ == "__main__":
     gen(
-        input_data=json.dumps({}), output_path="../src/aduib_rpc/proto/chat_completion.proto", root_message="chatCompletion", package="src.aduib_rpc.proto", is_schema=False
+        input_data=json.dumps({}),
+        output_path="../src/aduib_rpc/proto/chat_completion.proto",
+        root_message="chatCompletion",
+        package="src.aduib_rpc.proto",
+        is_schema=False,
     )
