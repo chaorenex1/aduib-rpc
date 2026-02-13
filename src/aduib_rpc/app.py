@@ -464,6 +464,7 @@ async def run_serve(
     service_name: str,
     # New: auto-import modules that contain @service classes.
     service_modules: list[str],
+    auto_load_services: bool = False,
     # New: defaults for auto instance assembly.
     service_host: str = "127.0.0.1",
     service_port: int = 0,
@@ -601,7 +602,8 @@ async def run_serve(
     from aduib_rpc.server import set_service_info
 
     set_service_info(instance)
-    import_service_modules(service_modules)
+    if auto_load_services:
+        import_service_modules(service_modules)
 
     if serve_mode in {
         ServeMode.REGISTRATION_ONLY,

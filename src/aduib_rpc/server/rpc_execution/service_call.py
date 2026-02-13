@@ -803,6 +803,9 @@ def service(
         service_name = name if name else cls.__name__
         for method_name, function in inspect.getmembers(cls, inspect.isfunction):
             handler_name = f"{service_name}.{method_name}"
+            if effective_runtime.get_service(handler_name):
+                logger.warning("Service function '%s' is already registered; skipping.", handler_name)
+                continue
             full_handler_name = MethodName.format_v2(effective_runtime.service_info.service_name, handler_name)
 
             setattr(
@@ -866,6 +869,9 @@ def client(
                 continue
 
             handler_name = f"{cls.__name__}.{method_name}" if cls.__name__ else method_name
+            if effective_runtime.get_client(handler_name):
+                logger.warning("Client function '%s' is already registered; skipping.", handler_name)
+                continue
             full_handler_name = MethodName.format_v2(service_name, handler_name)
 
             setattr(

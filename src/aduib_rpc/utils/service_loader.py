@@ -24,14 +24,13 @@ def import_service_modules(modules: Iterable[str]) -> None:
     Args:
         modules: e.g. ["my_app.services.user", "my_app.services.order"]
     """
-    for m in modules:
-        if not m:
+    for package_name in modules:
+        if not package_name:
             continue
-        logger.debug("Importing service module: %s", m)
         try:
-            package = importlib.import_module(m)
+            package = importlib.import_module(package_name)
         except Exception:
-            logger.exception("Failed to import package %s", m)
+            logger.exception("Failed to import package %s", package_name)
             return
 
         package_path = getattr(package, "__path__", None)
@@ -39,9 +38,8 @@ def import_service_modules(modules: Iterable[str]) -> None:
             return
 
         import pkgutil
-
         for _, module_name, _ in pkgutil.iter_modules(package_path):
-            full_module_name = f"{package_path}.{module_name}"
+            full_module_name = f"{package_name}.{module_name}"
             try:
                 importlib.import_module(full_module_name)
             except Exception:
